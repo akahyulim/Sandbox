@@ -1,0 +1,19 @@
+# Visual Studio 가상 파일 및 캐시
+.vs/
+*.user
+*.suo
+*.db
+*.opendb
+
+# 빌드 결과물 및 임시 폴더
+bin/
+bin-int/
+Debug/
+Release/
+x64/
+x86/
+*.exe
+*.dll
+*.pdb
+*.obj
+*.ilk

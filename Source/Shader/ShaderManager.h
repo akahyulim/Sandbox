@@ -17,8 +17,16 @@ namespace Dive
 	class ShaderManager
 	{
 	public:
-		ShaderManager() = default;
-		~ShaderManager();
+		static ShaderManager& GetInst()
+		{
+			static ShaderManager instance;
+			return instance;
+		}
+
+		ShaderManager(const ShaderManager&) = delete;
+		ShaderManager(ShaderManager&&) = delete;
+		ShaderManager& operator=(const ShaderManager&) = delete;
+		ShaderManager& operator=(ShaderManager&&) = delete;
 
 		bool Initialize(Graphics* graphics);
 
@@ -26,6 +34,9 @@ namespace Dive
 		const std::unordered_map<std::string, std::shared_ptr<ShaderProgram>>& GetAllPrograms() { return m_shaderPrograms; }
 
 	private:
+		ShaderManager() = default;
+		~ShaderManager();
+
 		bool createVertexShaderAndInputLayout(Graphics* graphics, const std::filesystem::path& path, eInputLayout type);
 		bool createPixelShader(Graphics* graphics, const std::filesystem::path& path);
 		bool createShaderProgram(const std::string& vs, const std::string& ps, const std::string& name);

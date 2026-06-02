@@ -28,5 +28,6 @@ namespace Dive
 		uint8_t clearStencil = 0;
 
 		Viewport viewport;
+		//D3D11_VIEWPORT viewport;
 	};
 }

@@ -15,6 +15,7 @@
 #include <utility>
 #include <algorithm>
 #include <filesystem>
+#include <cwctype>
 
 #define DIRECTINPUT_VERSION 0x0800
 
@@ -23,6 +24,8 @@
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <wrl/client.h>
+
+#include <DirectXTex/DirectXTex.h>
 
 #include <spdlog/spdlog.h>
 

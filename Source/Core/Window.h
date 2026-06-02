@@ -7,7 +7,16 @@ namespace Dive
 	class Window
 	{
 	public:
-		static Window* GetInstance();
+		static Window& GetInst()
+		{
+			static Window instance;
+			return instance;
+		}
+
+		Window(const Window&) = delete;
+		Window(Window&&) = delete;
+		Window& operator=(const Window&) = delete;
+		Window& operator=(Window&&) = delete;
 
 		bool Initialize();
 
@@ -39,8 +48,10 @@ namespace Dive
 		std::string GetTitle() const;
 
 	private:
-		static Window* s_instance;
+		Window() = default;
+		~Window() = default;
 
+	private:
 		HWND m_hWnd{};
 		std::wstring m_title = L"Untitled";
 	};

@@ -8,43 +8,6 @@
 namespace Dive
 {
 	namespace {
-		/*
-		std::vector<D3D11_INPUT_ELEMENT_DESC> GetInputElements(eInputLayout layout)
-		{
-			std::vector<D3D11_INPUT_ELEMENT_DESC> elements;
-
-			switch (layout)
-			{
-
-			case eInputLayout::Unlit:
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				break;
-			case eInputLayout::Lit:
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				break;
-			case eInputLayout::Skinned:
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				elements.emplace_back(D3D11_INPUT_ELEMENT_DESC{ "BLENDWEIGHT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 });
-				break;
-			default:
-				spdlog::error("잘못된 입력 레이아웃 타입 전달");
-				break;
-			}
-
-			return elements;
-		}
-		*/
-
 		Microsoft::WRL::ComPtr<ID3DBlob> LoadShaderFile(const std::filesystem::path& path)
 		{
 			Microsoft::WRL::ComPtr<ID3DBlob> blob;
@@ -130,14 +93,14 @@ namespace Dive
 			spdlog::error("Unlit ShaderProgram 생성 실패");
 			return false;
 		}
-		if(!createShaderProgram("LitVS", "LegacyPS", "Legacy"))
+		if(!createShaderProgram("LitVS", "LegacyPS", "LegacyLit"))
 		{
 			spdlog::error("Legacy ShaderProgram 생성 실패");
 			return false;
 		}
-		if (!createShaderProgram("LitVS", "PbsPS", "Pbs"))
+		if (!createShaderProgram("LitVS", "PbsPS", "DefaultLit"))
 		{
-			spdlog::error("Pbs ShaderProgram 생성 실패");
+			spdlog::error("DefaultLit ShaderProgram 생성 실패");
 			return false;
 		}
 		if (!createShaderProgram("ResolveSceneVS", "ResolveScenePS", "ResolveScene"))
@@ -155,7 +118,13 @@ namespace Dive
 			spdlog::error("Skybox ShaderProgram 생성 실패");
 			return false;
 		}
+		if (!createShaderProgram("LitVS", "UnlitPS", "Test"))
+		{
+			spdlog::error("Legacy ShaderProgram 생성 실패");
+			return false;
+		}
 
+		spdlog::info("ShaderManager 초기화 완료");
 
 		return true;
 	}
@@ -165,7 +134,7 @@ namespace Dive
 		auto it = m_shaderPrograms.find(name);
 		if (it == m_shaderPrograms.end())
 		{
-			spdlog::warn("존재하지 않는 셰이더 프로그램 요청: {}", name);
+			spdlog::warn("ShaderManaager::GetProgram - 존재하지 않는 셰이더 프로그램 요청: {}", name);
 			return nullptr;
 		}
 		return it->second;
@@ -184,7 +153,7 @@ namespace Dive
 		if (!vs)
 			return false;
 
-		std::string shaderName = path.filename().string();
+		std::string shaderName = path.stem().string();
 		vs->SetName(shaderName);
 
 		std::shared_ptr<InputLayout> il = nullptr;
@@ -216,7 +185,7 @@ namespace Dive
 		if (!ps)
 			return false;
 
-		std::string shaderName = path.filename().string();
+		std::string shaderName = path.stem().string();
 		ps->SetName(shaderName);
 
 		m_pixelShaders[shaderName] = ps;

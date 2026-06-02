@@ -1,13 +1,12 @@
 ﻿#pragma once
-#include <DirectXMath.h>
-#include <memory>
-#include <vector>
-#include <string>
-#include <yaml-cpp/yaml.h>
 #include "Component.h"
+
+#include <DirectXMath.h>
 
 namespace Dive
 {
+	class GameObject;
+
 	enum class eSpace
 	{
 		Scene,
@@ -17,29 +16,24 @@ namespace Dive
 	class Transform : public Component
 	{
 	public:
-		Transform(GameObject* owner, uint64_t id = AUTO_ID);
+		Transform(GameObject* owner);
 		~Transform() override;
 
-		bool IsEqualTo(const Component* other) const override;
-
-		std::unique_ptr<Component> Clone(GameObject* owner) const override;
-
-		void Serialize(YAML::Emitter& out) override;
-		void Deserialize(const YAML::Node& node) override;
-
-		void Update() override;
-
 		static constexpr eComponentType GetComponentType() { return eComponentType::Transform; }
+
+		virtual void Update() override;
 
 		// transform
 		DirectX::XMVECTOR GetPositionVector() const { return DirectX::XMLoadFloat3(&m_position); }
 		const DirectX::XMFLOAT3& GetPosition() const { return m_position; }
 		void SetPositionVector(const DirectX::XMVECTOR& worldPos);
 		void SetPosition(const DirectX::XMFLOAT3& worldPos);
+		void SetPosition(float x, float y, float z);
 		DirectX::XMVECTOR GetLocalPositionVector() const { return DirectX::XMLoadFloat3(&m_localPosition); }
 		const DirectX::XMFLOAT3& GetLocalPosition() const { return m_localPosition; }
 		void SetLocalPositionVector(const DirectX::XMVECTOR& localPos);
 		void SetLocalPosition(const DirectX::XMFLOAT3& localPos);
+		void SetLocalPosition(float x, float y, float z);
 
 		DirectX::XMVECTOR GetRotationVector() const { return DirectX::XMLoadFloat4(&m_rotation); }
 		const DirectX::XMFLOAT4& GetRotation() const { return m_rotation; }
@@ -66,7 +60,7 @@ namespace Dive
 		const DirectX::XMFLOAT3& GetLocalScale() const { return m_localScale; }
 		void SetLocalScaleVector(const DirectX::XMVECTOR& localScale);
 		void SetLocalScale(const DirectX::XMFLOAT3& localScale);
-		
+
 		void Translate(const DirectX::XMFLOAT3& move, eSpace space = eSpace::Local);
 		void Rotate(const DirectX::XMFLOAT4& quaternion, eSpace space = eSpace::Local);
 		void RotateByRadians(const DirectX::XMFLOAT3& radians, eSpace space = eSpace::Local);
@@ -97,7 +91,7 @@ namespace Dive
 		DirectX::XMFLOAT3 GetDown() const;
 
 		DirectX::XMVECTOR GetLocalForwardVector() const;
-		DirectX::XMFLOAT3 GetLocalForward() const;	
+		DirectX::XMFLOAT3 GetLocalForward() const;
 		DirectX::XMVECTOR GetLocalBackwardVector() const;
 		DirectX::XMFLOAT3 GetLocalBackward() const;
 		DirectX::XMVECTOR GetLocalRightVector() const;
@@ -131,8 +125,6 @@ namespace Dive
 
 		size_t GetSiblingIndex();
 		void SetSiblingIndex(size_t index);
-
-		bool IsOverridden();
 
 	private:
 		DirectX::XMFLOAT3 m_localPosition{ 0.0f, 0.0f, 0.0f };

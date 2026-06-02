@@ -12,6 +12,7 @@ namespace Dive
 		: m_vs(vs)
 		, m_ps(ps)
 		, m_il(il)
+		, m_name(name)
 	{
 	}
 

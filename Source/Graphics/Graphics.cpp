@@ -6,6 +6,7 @@
 #include "Shader/Shader.h"
 #include "Shader/InputLayout.h"
 
+#include <DirectXTex/DirectXTex.h>
 
 namespace Dive
 {
@@ -138,7 +139,6 @@ namespace Dive
 		DV_RELEASE(dxgiAdapter);
 		DV_RELEASE(dxgiDevice);
 
-
 		if (!setupViews())
 			return false;
 		if (!createDepthStencilStates())
@@ -148,6 +148,8 @@ namespace Dive
 		if (!createBlendStates())
 			return false;
 		if (!createSamplerStates())
+			return false;
+		if (!createConstantBuffers())
 			return false;
 
 		OnResizeViews();
@@ -195,17 +197,18 @@ namespace Dive
 		ID3D11InputLayout* il = state.inputLayout ? state.inputLayout->GetLayout() : nullptr;
 
 		ID3D11DepthStencilState* dss = state.depthStencilState != eDepthStencilState::Count
-			? m_depthStencilStates[static_cast<size_t>(state.depthStencilState)].get() : nullptr;
+			? m_depthStencilStates[static_cast<size_t>(state.depthStencilState)].Get() : nullptr;
 		ID3D11RasterizerState* rs = state.rasterizerState != eRasterizerState::Count
-			? m_rasterizerStates[static_cast<size_t>(state.rasterizerState)].get() : nullptr;
+			? m_rasterizerStates[static_cast<size_t>(state.rasterizerState)].Get() : nullptr;
 		ID3D11BlendState* bs = state.blendState != eBlendState::Count
-			? m_blendStates[static_cast<size_t>(state.blendState)].get() : nullptr;
+			? m_blendStates[static_cast<size_t>(state.blendState)].Get() : nullptr;
 		ID3D11SamplerState* ss = state.samplerState != eSamplerState::Count
-			? m_samplerStates[static_cast<size_t>(state.samplerState)].get() : nullptr;
+			? m_samplerStates[static_cast<size_t>(state.samplerState)].Get() : nullptr;
 
 		bindVertexShader(vs);
 		bindPixelShader(ps);
 		bindInputLayout(il);
+
 		bindPrimitiveTopology(state.topology);
 
 		bindDepthStencilState(dss, state.stencilRef);
@@ -247,21 +250,19 @@ namespace Dive
 			);
 		}
 
-		/*
 		if (!(m_currentViewport == pass.viewport))
 		{
-			D3D11_VIEWPORT dxViewport{};
-			dxViewport.TopLeftX = pass.viewport.topLeftX;
-			dxViewport.TopLeftY = pass.viewport.topLeftY;
-			dxViewport.Width = pass.viewport.width;
-			dxViewport.Height = pass.viewport.height;
-			dxViewport.MinDepth = 0.0f;
-			dxViewport.MaxDepth = 1.0f;
+			D3D11_VIEWPORT viewport{};
+			viewport.TopLeftX = pass.viewport.topLeftX;
+			viewport.TopLeftY = pass.viewport.topLeftY;
+			viewport.Width = pass.viewport.width;
+			viewport.Height = pass.viewport.height;
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
 
-			m_deviceContext->RSSetViewports(1, &dxViewport);
+			m_deviceContext->RSSetViewports(1, &viewport);
 			m_currentViewport = pass.viewport;
 		}
-		*/
 	}
 
 	void Graphics::EndRenderPass()
@@ -410,6 +411,49 @@ namespace Dive
 		return il;
 	}
 
+	bool Graphics::CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV)
+	{
+		if (m_device == nullptr)
+		{
+			spdlog::error("Graphics::CreateTexture2DFromMemory - ID3D11Device가 유효하지 않습니다.");
+			return false;
+		}
+
+		if (scratchImage == nullptr || metaData == nullptr || outSRV == nullptr)
+		{
+			return false;
+		}
+
+		// 💡 DirectXTex가 제공하는 핵심 GPU 자원 생성 API를 호출합니다.
+		// 내부적으로 ID3D11Texture2D를 만들고, 이어서 ID3D11ShaderResourceView까지 래핑해서 생성해 줍니다.
+		HRESULT hr = DirectX::CreateShaderResourceView(
+			m_device.Get(),               // DX11 하드웨어 디바이스
+			scratchImage->GetImages(),     // 순수 픽셀 데이터 포인터
+			scratchImage->GetImageCount(),  // 이미지 개수 (미입맵 등이 포함된 수)
+			*metaData,                     // 가로, 세로, 포맷 등 정보
+			outSRV                         // 결과물을 받아갈 포인터의 포인터
+		);
+
+		if (FAILED(hr))
+		{
+			// 최하위 DX11 에러 코드를 로깅하여 디버깅을 돕습니다.
+			//spdlog::error("Graphics::CreateTexture2DFromMemory - CreateShaderResourceView 실패 (HRESULT: 0x{X})", hr);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Graphics::CreateRenderTexture(uint32_t width, uint32_t height, DXGI_FORMAT format, ID3D11RenderTargetView** outRTV, ID3D11ShaderResourceView** outSRV)
+	{
+		return false;
+	}
+
+	bool Graphics::CreateCubemap(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV)
+	{
+		return false;
+	}
+
 	void Graphics::BindVertexBuffer(VertexBuffer* vb)
 	{
 		assert(m_deviceContext);
@@ -444,12 +488,12 @@ namespace Dive
 
 		if (ib)
 		{
-			DXGI_FORMAT format = ConvertToDXGIFormat(ib->GetFormat());
 			ID3D11Buffer* rawBuffer = ib->GetRawBuffer();
+			DXGI_FORMAT format = ConvertToDXGIFormat(ib->GetFormat());
 
 			m_deviceContext->IASetIndexBuffer(
-				ib->GetRawBuffer(),
-				ConvertToDXGIFormat(ib->GetFormat()),
+				rawBuffer,
+				format,
 				0
 			);
 		}
@@ -461,32 +505,76 @@ namespace Dive
 		m_currentIB = ib;
 	}
 
+	void Graphics::UpdateConstantBuffer(eCBufferSlot slot, const void* data, uint32_t size)
+	{
+		assert(m_deviceContext);
+
+		uint32_t slotIndex = static_cast<uint32_t>(slot);
+
+		if (m_constantBuffers[slotIndex] == nullptr || data == nullptr)
+		{
+			spdlog::error("Graphics::UpdateConstantBuffer - 비어있는 슬롯 [{}]", slotIndex);
+			return;
+		}
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource{};
+		if (FAILED(m_deviceContext->Map(
+			m_constantBuffers[slotIndex].Get(),
+			0,
+			D3D11_MAP_WRITE_DISCARD,
+			0,
+			&mappedResource
+		)))
+		{
+			spdlog::error("Graphics::UpdateConstantBuffer - 슬롯 [{}] Map 실패", slotIndex);
+			return;
+		}
+
+		std::memcpy(mappedResource.pData, data, size);
+		m_deviceContext->Unmap(m_constantBuffers[slotIndex].Get(), 0);
+	}
+
+	void Graphics::BindConstantBuffer(eCBufferSlot slot)
+	{
+		assert(m_deviceContext);
+
+		uint32_t slotIndex = static_cast<uint32_t>(slot);
+
+		if (m_constantBuffers[slotIndex] == nullptr)
+			return;
+
+		ID3D11Buffer* buffer = m_constantBuffers[slotIndex].Get();
+
+		m_deviceContext->VSSetConstantBuffers(slotIndex, 1, &buffer);
+		m_deviceContext->PSSetConstantBuffers(slotIndex, 1, &buffer);
+	}
+
 	void Graphics::BindVSConstantBuffer(eCBufferSlotVS slot, ConstantBuffer* cb)
 	{
 		assert(m_deviceContext);
 
-		uint32_t slotIdx = static_cast<uint32_t>(slot);
+		uint32_t slotIndex = static_cast<uint32_t>(slot);
 		ID3D11Buffer* rawBuffer = cb ? cb->GetRawBuffer() : nullptr;
 
-		if (m_currentVSCB[slotIdx] == rawBuffer)
+		if (m_currentVSCB[slotIndex] == rawBuffer)
 			return;
 
-		m_currentVSCB[slotIdx] = rawBuffer;
-		m_deviceContext->VSSetConstantBuffers(slotIdx, 1, &rawBuffer);
+		m_currentVSCB[slotIndex] = rawBuffer;
+		m_deviceContext->VSSetConstantBuffers(slotIndex, 1, &rawBuffer);
 	}
 
 	void Graphics::BindPSConstantBuffer(eCBufferSlotPS slot, ConstantBuffer* cb)
 	{
 		assert(m_deviceContext);
 
-		uint32_t slotIdx = static_cast<uint32_t>(slot);
+		uint32_t slotIndex = static_cast<uint32_t>(slot);
 		ID3D11Buffer* rawBuffer = cb ? cb->GetRawBuffer() : nullptr;
 
-		if (m_currentPSCB[slotIdx] == rawBuffer)
+		if (m_currentPSCB[slotIndex] == rawBuffer)
 			return;
 
-		m_currentPSCB[slotIdx] = rawBuffer;
-		m_deviceContext->PSSetConstantBuffers(slotIdx, 1, &rawBuffer);
+		m_currentPSCB[slotIndex] = rawBuffer;
+		m_deviceContext->PSSetConstantBuffers(slotIndex, 1, &rawBuffer);
 	}
 
 	bool Graphics::setupViews()
@@ -502,14 +590,14 @@ namespace Dive
 		HRESULT hr = m_swapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&backBuffer);
 		if (FAILED(hr))
 		{
-			spdlog::error("백버퍼 획득 실패");
+			spdlog::error("Graphics::setupViews - 백버퍼 획득 실패");
 			return false;
 		}
 
 		hr = m_device->CreateRenderTargetView(static_cast<ID3D11Resource*>(backBuffer), nullptr, m_backbufferRTV.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("백버퍼의 렌더타겟 뷰 생성 실패");
+			spdlog::error("Graphics::setupViews - 백버퍼의 렌더타겟 뷰 생성 실패");
 			return false;
 		}
 
@@ -535,7 +623,7 @@ namespace Dive
 		hr = m_device->CreateTexture2D(&texDesc, nullptr, m_backbufferTexture.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("백버퍼의 깊이 스텐실 버퍼 생성 실패");
+			spdlog::error("Graphics::setupViews - 백버퍼의 깊이 스텐실 버퍼 생성 실패");
 			return false;
 		}
 
@@ -547,7 +635,7 @@ namespace Dive
 		hr = m_device->CreateDepthStencilView(static_cast<ID3D11Resource*>(m_backbufferTexture.Get()), &viewDesc, m_backbufferDSV.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("백버퍼의 깊이 스텐실 뷰 생성 실패");
+			spdlog::error("Graphics::setupViews - 백버퍼의 깊이 스텐실 뷰 생성 실패");
 			return false;
 		}
 
@@ -559,22 +647,419 @@ namespace Dive
 
 	bool Graphics::createDepthStencilStates()
 	{
-		return false;
+		assert(m_device);
+
+		HRESULT hr = S_OK;
+
+		D3D11_DEPTH_STENCIL_DESC desc{};
+
+		// Depth Read Write
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = FALSE;
+		desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+		D3D11_DEPTH_STENCILOP_DESC stencilMarkOp = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
+		desc.FrontFace = stencilMarkOp;
+		desc.BackFace = stencilMarkOp;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthReadWrite)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] DepthReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// DepthReadWrite_StencilReadWrite => Skydome에서 on
+		// => rastertek에서 가장 최초에 사용하는 것
+		ZeroMemory(&desc, sizeof(desc));
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = TRUE;
+		desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+		desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+		desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+		desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthReadWrite_StencilReadWrite)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] DepthReadWrite_StencilReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+		}
+
+		// GBuffer
+		ZeroMemory(&desc, sizeof(desc));
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = TRUE;
+		desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+		stencilMarkOp = { D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_COMPARISON_ALWAYS };
+		desc.FrontFace = stencilMarkOp;
+		desc.BackFace = stencilMarkOp;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::GBuffer)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] GBuffer 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// Depth Disabled
+		ZeroMemory(&desc, sizeof(desc));
+		desc.DepthEnable = FALSE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+		desc.StencilEnable = TRUE;
+		desc.StencilReadMask = 0xFF;
+		desc.StencilWriteMask = 0xFF;
+		desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+		desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+		desc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthDisabled)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] DepthDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// Forward Light
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		desc.StencilEnable = FALSE;
+		desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
+		desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+		const D3D11_DEPTH_STENCILOP_DESC noSkyStencilOp = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_EQUAL };
+		desc.FrontFace = noSkyStencilOp;
+		desc.BackFace = noSkyStencilOp;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::ForwardLight)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] ForwardLight 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// Transparent
+		ZeroMemory(&desc, sizeof(desc));
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.DepthFunc = D3D11_COMPARISON_LESS;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Transparent)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] Transparent 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// Skybox
+		ZeroMemory(&desc, sizeof(desc));
+		desc.DepthEnable = FALSE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		desc.StencilEnable = FALSE;
+
+		hr = m_device->CreateDepthStencilState(
+			&desc,
+			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Skybox)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateDepthStencilStates] Skybox 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		return true;
 	}
 
 	bool Graphics::createRasterizerStates()
 	{
-		return false;
+		assert(m_device);
+
+		HRESULT hr = S_OK;
+
+		D3D11_RASTERIZER_DESC desc{};
+
+		// FillSolid_CullFront
+		desc.FillMode = D3D11_FILL_SOLID;
+		desc.CullMode = D3D11_CULL_FRONT;
+		desc.FrontCounterClockwise = TRUE;
+		desc.DepthBias = 0;
+		desc.DepthBiasClamp = 0.0f;
+		desc.SlopeScaledDepthBias = 0.0f;
+		desc.DepthClipEnable = TRUE;
+		desc.ScissorEnable = FALSE;
+		desc.MultisampleEnable = FALSE;
+		desc.AntialiasedLineEnable = FALSE;
+
+		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullFront)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullFront 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// FillSolid_CullBack
+		desc.FrontCounterClockwise = FALSE;
+		desc.CullMode = D3D11_CULL_BACK;
+
+		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullBack)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullBack 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		// FillSolid_CullNone
+		desc.CullMode = D3D11_CULL_NONE;
+
+		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullNone)].GetAddressOf());
+		if (FAILED(hr))
+		{
+			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullNode 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+
+		return true;
 	}
 
 	bool Graphics::createBlendStates()
 	{
-		return false;
+		assert(m_device);
+
+		HRESULT hr = S_OK;
+
+		// Alpha
+		{
+			D3D11_BLEND_DESC desc{};
+			desc.AlphaToCoverageEnable = FALSE;
+			desc.IndependentBlendEnable = FALSE;
+
+			const D3D11_RENDER_TARGET_BLEND_DESC alphaBlendDesc =
+			{
+				TRUE,                                // BlendEnable
+				D3D11_BLEND_SRC_ALPHA,               // SrcBlend
+				D3D11_BLEND_INV_SRC_ALPHA,           // DestBlend
+				D3D11_BLEND_OP_ADD,                  // BlendOp
+
+				D3D11_BLEND_ONE,                     // SrcBlendAlpha
+				D3D11_BLEND_INV_SRC_ALPHA,           // DestBlendAlpha
+				D3D11_BLEND_OP_ADD,                  // BlendOpAlpha
+
+				D3D11_COLOR_WRITE_ENABLE_ALL         // RenderTargetWriteMask
+			};
+
+			for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+				desc.RenderTarget[i] = alphaBlendDesc;
+
+			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::AlphaEnabled)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateBlendState] AlphaEnabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+
+			for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+				desc.RenderTarget[i].BlendEnable = FALSE;
+
+			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::AlphaDisabled)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateBlendState] AlpahDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		// Additive
+		{
+			D3D11_BLEND_DESC desc{};
+			desc.AlphaToCoverageEnable = FALSE;
+			desc.IndependentBlendEnable = FALSE;
+			const D3D11_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc =
+			{
+				TRUE,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_OP_ADD,
+
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_OP_ADD,
+
+				D3D11_COLOR_WRITE_ENABLE_ALL,
+			};
+			for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
+				desc.RenderTarget[i] = defaultRenderTargetBlendDesc;
+
+			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::Additive)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateBlendState] Additive 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	bool Graphics::createSamplerStates()
 	{
-		return false;
+		assert(m_device);
+
+		HRESULT hr = S_OK;
+
+		// WrapLinear
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.MipLODBias = 0.0f;
+			samplerDesc.MaxAnisotropy = 1;
+			samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+			samplerDesc.BorderColor[0] = 0;
+			samplerDesc.BorderColor[1] = 0;
+			samplerDesc.BorderColor[2] = 0;
+			samplerDesc.BorderColor[3] = 0;
+			samplerDesc.MinLOD = 0;
+			samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::WrapLinear)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateSamplerStates] WrapLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		// ClampPoint
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ClampPoint)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateSamplerStates] ClampPoint Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		// ClampLinear
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+
+			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ClampLinear)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateSamplerStates] ClampLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		// Skybox
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+			samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+			samplerDesc.MinLOD = 0;
+			samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::Skybox)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateSamplerStates] Skybox Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		// ShadowCompare
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+			samplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+			samplerDesc.BorderColor[0] = 1.0f;
+			samplerDesc.BorderColor[1] = 1.0f;
+			samplerDesc.BorderColor[2] = 1.0f;
+			samplerDesc.BorderColor[3] = 1.0f;
+			samplerDesc.MinLOD = 0.0f;
+			samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+			samplerDesc.MipLODBias = 0.0f;
+
+			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)].GetAddressOf());
+			if (FAILED(hr))
+			{
+				//spdlog::error("[::CreateSamplerStates] ShadowCompare Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool Graphics::createConstantBuffers()
+	{
+		assert(m_device);
+
+		D3D11_BUFFER_DESC desc{};
+		desc.Usage = D3D11_USAGE_DYNAMIC;
+		desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		desc.ByteWidth = 1024;	// 넉넉한 크기로 생성
+
+		for (uint32_t i = 0; i < static_cast<uint32_t>(eCBufferSlot::Count); ++i)
+		{
+			if (FAILED(m_device->CreateBuffer(&desc, nullptr, m_constantBuffers[i].GetAddressOf())))
+			{
+				spdlog::error("Graphics::createConstantBuffers - 슬롯 [{}]생성 실패", i);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	bool Graphics::resizeSwapChain()

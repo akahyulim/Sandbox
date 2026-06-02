@@ -28,6 +28,12 @@
     <Filter Include="Shader">
       <UniqueIdentifier>{64624f03-7447-4c01-ad03-d92d9d7013c3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{83405098-d49c-47df-bf94-b9884c79ce62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\DirectXTex">
+      <UniqueIdentifier>{09b5f360-bfcb-49eb-8529-76685faadbf3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\ThirdParty\imgui\imconfig.h">
@@ -121,6 +127,78 @@
     <ClInclude Include="Source\Renderer\Renderer.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Scene\Scene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\GameObject.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Components\Component.h">
+      <Filter>Scene\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Components\Transform.h">
+      <Filter>Scene\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Components\Camera.h">
+      <Filter>Scene\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Components\MeshRenderer.h">
+      <Filter>Scene\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Components\Light.h">
+      <Filter>Scene\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Mesh.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\StaticMesh.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ResourceDesc.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ResourceManager.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Preset.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTex.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTexP.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\filters.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\scoped.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\DDS.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\BC.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ThirdParty\DirectXTex\BCDirectCompute.h">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Texture.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Texture2D.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Material.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\ShaderTypes.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\ThirdParty\imgui\imgui.cpp">
@@ -193,5 +271,109 @@
     <ClCompile Include="Source\Renderer\Renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scene\Scene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\GameObject.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Components\Component.cpp">
+      <Filter>Scene\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Components\Transform.cpp">
+      <Filter>Scene\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Components\Camera.cpp">
+      <Filter>Scene\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Components\MeshRenderer.cpp">
+      <Filter>Scene\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Components\Light.cpp">
+      <Filter>Scene\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Resource.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Mesh.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\StaticMesh.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ResourceManager.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Preset.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexD3D11.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexDDS.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexImage.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMipmaps.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexTGA.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexUtil.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexWIC.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexConvert.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexCompress.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexFlipRotate.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexHDR.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMisc.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexNormalMaps.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexPMAlpha.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexResize.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\BC.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\BC4BC5.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ThirdParty\DirectXTex\BC6HBC7.cpp">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Texture2D.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Texture.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Material.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\ThirdParty\DirectXTex\DirectXTex.inl">
+      <Filter>ThirdParty\DirectXTex</Filter>
+    </None>
   </ItemGroup>
 </Project>

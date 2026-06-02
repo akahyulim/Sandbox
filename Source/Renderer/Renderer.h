@@ -4,6 +4,7 @@ namespace Dive
 {
 	class Graphics;
 	struct RenderPass;
+	class Scene;
 
 	class Renderer
 	{
@@ -13,7 +14,7 @@ namespace Dive
 
 		bool Initialize(Graphics* graphics);
 
-		void Render(const RenderPass* externalPass = nullptr);
+		void Render(Scene* scene);
 
 	private:
 	private:

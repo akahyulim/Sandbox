@@ -1,18 +1,13 @@
-﻿#include "stdafx.h"
+﻿#include "pch.h"
 #include "Transform.h"
-#include "../GameObject.h"
-#include "../Scene.h"
-//#include "Core/CoreSystem.h"
-#include "Resource/ResourceSystem.h"
-
-#include "Common/Math.h"
+#include "Core/Math.h"
 
 using namespace DirectX;
 
 namespace Dive
 {
-	Transform::Transform(GameObject* owner, uint64_t id)
-		: Component(owner, id)
+	Transform::Transform(GameObject* owner)
+		: Component(owner)
 	{
 		XMStoreFloat4x4(&m_localTransform, XMMatrixIdentity());
 		m_transform = m_localTransform;
@@ -27,74 +22,13 @@ namespace Dive
 			child->m_parent = nullptr;
 	}
 
-	bool Transform::IsEqualTo(const Component* other) const
-	{
-		auto target = dynamic_cast<const Transform*>(other);
-		if (!target) return false;
-
-		return Math::XMFLOAT3Equal(m_localPosition, target->m_localPosition) &&
-			Math::XMFLOAT4Equal(m_localRotation, target->m_localRotation)&&
-			Math::XMFLOAT3Equal(m_localScale, target->m_localScale);
-	}
-
-	std::unique_ptr<Component> Transform::Clone(GameObject* owner) const
-	{
-		auto clone = std::make_unique<Transform>(owner);
-		
-		clone->m_localPosition = m_localPosition;
-		clone->m_localRotation = m_localRotation;
-		clone->m_localScale = m_localScale;
-
-		// 나머지는 캐시 데이터
-
-		// 계층구조는 Prefab에서 설정
-		clone->m_parent = nullptr;
-		clone->m_children.clear();
-
-		// 캐시 데이터 계산
-		clone->m_isDirty = true;
-
-		return clone;
-	}
-
-	void Transform::Serialize(YAML::Emitter& out)
-	{
-		// Transform의 특징인가.. Update에서 결국 false로 초기화된다.
-		//if (!m_isDirty)
-		//	return;
-		
-		out << YAML::Key << "Transform" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "ID" << YAML::Value << GetInstanceID();
-		out << YAML::Key << "Position" << YAML::Value << m_localPosition;
-		out << YAML::Key << "Rotation" << YAML::Value << m_localRotation;
-		out << YAML::Key << "Scale" << YAML::Value << m_localScale;
-		if (auto parent = GetParent())	out << YAML::Key << "Parent" << YAML::Value << parent->GetInstanceID();
-		out << YAML::EndMap;
-
-		//m_isDirty = false;
-	}
-
-	void Transform::Deserialize(const YAML::Node& node)
-	{
-		SetInstanceID(node["ID"].as<uint64_t>());
-		SetLocalPosition(node["Position"].as<XMFLOAT3>());
-		SetLocalRotation(node["Rotation"].as<XMFLOAT4>());
-		SetLocalScale(node["Scale"].as<XMFLOAT3>());
-
-		// 계층구조 형성은 일단 직렬화를 끝낸 후로 미루기
-		// Scene에 관려 메서드를 만들고 호출
-		// 문제는 부모 Transform의 ID를 기반으로 형성해야 한다는 거다.
-
-		//m_isDirty = true;
-	}
-
 	void Transform::Update()
 	{
-		if (!m_owner || !m_owner->IsActiveSelf())
-			return;
+		//if (!m_owner || !m_owner->IsActiveSelf())
+		//	return;
 
-		if (!m_isDirty)
-			return;
+		//if (!m_isDirty)
+		//	return;
 
 		auto localMat =
 			XMMatrixScalingFromVector(XMLoadFloat3(&m_localScale)) *
@@ -123,11 +57,11 @@ namespace Dive
 			m_scale = m_localScale;
 		}
 
-		m_isDirty = false;
+		//m_isDirty = false;
 
 		// 루트부터 시작해 하향식으로 자식들을 갱신 필요상태로 변경
-		for (auto child : m_children)
-			child->m_isDirty = true;
+		//for (auto child : m_children)
+		//	child->m_isDirty = true;
 	}
 
 	void Transform::SetPositionVector(const XMVECTOR& worldPos)
@@ -141,6 +75,7 @@ namespace Dive
 		else
 		{
 			XMStoreFloat3(&m_localPosition, worldPos);
+			m_position = m_localPosition;
 		}
 
 		m_isDirty = true;
@@ -149,6 +84,11 @@ namespace Dive
 	void Transform::SetPosition(const XMFLOAT3& worldPos)
 	{
 		SetPositionVector(XMLoadFloat3(&worldPos));
+	}
+
+	void Transform::SetPosition(float x, float y, float z)
+	{
+		SetPosition({ x, y, z });
 	}
 
 	void Transform::SetLocalPositionVector(const XMVECTOR& localPos)
@@ -160,6 +100,12 @@ namespace Dive
 	void Transform::SetLocalPosition(const XMFLOAT3& localPos)
 	{
 		m_localPosition = localPos;
+		m_isDirty = true;
+	}
+
+	void Transform::SetLocalPosition(float x, float y, float z)
+	{
+		m_localPosition = { x, y, z };
 		m_isDirty = true;
 	}
 
@@ -257,7 +203,7 @@ namespace Dive
 			XMConvertToRadians(degrees.y),
 			XMConvertToRadians(degrees.z)
 		);
-		
+
 		XMStoreFloat4(&m_localRotation, q);
 
 		m_isDirty = true;
@@ -347,7 +293,7 @@ namespace Dive
 		}
 	}
 	*/
-	
+
 	void Transform::Translate(const DirectX::XMFLOAT3& move, eSpace space)
 	{
 		auto moveVec = XMLoadFloat3(&move);
@@ -418,7 +364,7 @@ namespace Dive
 	void Transform::RotateByRadians(const XMFLOAT3& radians, eSpace space)
 	{
 		auto rotVec = XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&radians));
-		
+
 		XMFLOAT4 quaternion;
 		XMStoreFloat4(&quaternion, rotVec);
 		Rotate(quaternion, space);
@@ -444,7 +390,7 @@ namespace Dive
 		XMVECTOR forward = XMVector3Normalize(XMVectorSubtract(tgt, pos));
 		XMVECTOR right = XMVector3Normalize(XMVector3Cross(up, forward));
 		XMVECTOR newUp = XMVector3Cross(forward, right);
-		
+
 		XMMATRIX lookAtMat = {
 			XMVectorGetX(right),   XMVectorGetY(right),   XMVectorGetZ(right),   0.0f,
 			XMVectorGetX(newUp),   XMVectorGetY(newUp),   XMVectorGetZ(newUp),   0.0f,
@@ -695,8 +641,8 @@ namespace Dive
 			parent->m_children.push_back(this);
 			m_parent = parent;
 
-			if (GetGameObject()->GetWorld())
-				GetGameObject()->OnParentChanged();
+		//	if (GetGameObject()->GetWorld())
+		//		GetGameObject()->OnParentChanged();
 		}
 	}
 
@@ -713,8 +659,8 @@ namespace Dive
 		m_parent = nullptr;
 		m_isDirty = true;
 
-		if (GetGameObject()->GetWorld())
-			GetGameObject()->OnParentChanged();
+		//if (GetGameObject()->GetWorld())
+		//	GetGameObject()->OnParentChanged();
 	}
 
 	bool Transform::IsParentOf(Transform* target)
@@ -739,12 +685,12 @@ namespace Dive
 
 	bool Transform::IsChildOf(Transform* parent)
 	{
-		if(!parent ||  m_parent == nullptr)
+		if (!parent || m_parent == nullptr)
 			return false;
 
 		if (m_parent == parent)
 			return true;
-		
+
 		return m_parent->IsChildOf(parent);
 	}
 
@@ -757,8 +703,8 @@ namespace Dive
 	{
 		for (auto& child : m_children)
 		{
-			if (child->GetGameObject()->GetName() == name)
-				return child;
+			//if (child->GetGameObject()->GetName() == name)
+			//	return child;
 		}
 
 		return nullptr;
@@ -773,7 +719,7 @@ namespace Dive
 	{
 		for (auto& child : m_children)
 			child->SetParent(nullptr);
-		
+
 		m_children.clear();
 	}
 
@@ -791,27 +737,27 @@ namespace Dive
 
 	size_t Transform::GetSiblingIndex()
 	{
-		assert(GetGameObject());
+		//assert(GetGameObject());
 
 		if (HasParent())
 		{
 			const auto& sibling = m_parent->GetChildren();
 			auto it = std::find(sibling.begin(), sibling.end(), this);
-			
+
 			return (it != sibling.end()) ? std::distance(sibling.begin(), it) : std::numeric_limits<size_t>::max();
 		}
 		else
 		{
-			const auto& roots = GetGameObject()->GetWorld()->m_rootGameObjects;
-			auto it = std::find(roots.begin(), roots.end(), GetGameObject());
+			//const auto& roots = GetGameObject()->GetWorld()->m_rootGameObjects;
+			//auto it = std::find(roots.begin(), roots.end(), GetGameObject());
 
-			return (it != roots.end()) ? std::distance(roots.begin(), it) : std::numeric_limits<size_t>::max();
+			//return (it != roots.end()) ? std::distance(roots.begin(), it) : std::numeric_limits<size_t>::max();
 		}
 	}
 
 	void Transform::SetSiblingIndex(size_t index)
 	{
-		assert(GetGameObject());
+		//assert(GetGameObject());
 
 		if (HasParent())
 		{
@@ -828,22 +774,16 @@ namespace Dive
 		}
 		else
 		{
-			auto& roots = GetGameObject()->GetWorld()->m_rootGameObjects;
-			if (index >= roots.size())
-				return;
+			//auto& roots = GetGameObject()->GetWorld()->m_rootGameObjects;
+			//if (index >= roots.size())
+			//	return;
 
-			auto it = std::find(roots.begin(), roots.end(), GetGameObject());
-			if (it != roots.end())
+			//auto it = std::find(roots.begin(), roots.end(), GetGameObject());
+			//if (it != roots.end())
 			{
-				roots.erase(it);
-				roots.insert(roots.begin() + index, GetGameObject());
+			//	roots.erase(it);
+			//	roots.insert(roots.begin() + index, GetGameObject());
 			}
 		}
-	}
-
-	bool Transform::IsOverridden()
-	{
-		// 프리팹 제거 과정에서 구현 제거
-		return false;
 	}
 }

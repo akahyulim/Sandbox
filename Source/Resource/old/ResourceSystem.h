@@ -1,0 +1,15 @@
+﻿#pragma once
+#include "Resource.h"
+#include "Texture.h"
+#include "Texture2D.h"
+#include "RenderTexture.h"
+#include "Cubemap.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "StaticMesh.h"
+#include "SkinnedMesh.h"
+#include "ResourceManager.h"
+#include "Model.h"
+#include "YamlHelper.h"
+
+#include "API/Resources.h"

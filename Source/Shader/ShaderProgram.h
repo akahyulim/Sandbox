@@ -18,6 +18,10 @@ namespace Dive
 
 		void Bind(Graphics* graphics);
 
+		std::shared_ptr<VertexShader> GetVertexShader() const { return m_vs; }
+		std::shared_ptr<PixelShader> GetPixelShader() const { return m_ps; }
+		std::shared_ptr<InputLayout> GetInputLayout() const { return m_il; }
+
 		std::string GetName() const { return m_name; }
 
 	private:

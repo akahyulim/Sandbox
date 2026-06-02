@@ -2,8 +2,16 @@
 #include "Sandbox.h"
 #include "Core/Window.h"
 #include "Core/EventDispatcher.h"
+#include "Core/Timer.h"
 #include "Graphics/Graphics.h"
 #include "Renderer/Renderer.h"
+#include "Scene/Scene.h"
+#include "Scene/Components/Camera.h"
+#include "Scene/Components/Transform.h"
+#include "Shader/ShaderManager.h"
+#include "Resource/ResourceManager.h"
+
+#include "Resource/Texture2D.h" // test
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
 
@@ -28,7 +36,7 @@ namespace Dive
             }
             case WM_CLOSE:
             {
-                Dive::Window::GetInstance()->Close();
+                Dive::Window::GetInst().Close();
                 return 0;
             }
             case WM_DESTROY:
@@ -42,6 +50,11 @@ namespace Dive
 
     Sandbox::Sandbox()
     {
+        m_timer = std::make_unique<Timer>();
+        m_graphics = std::make_unique<Graphics>();
+        m_renderer = std::make_unique<Renderer>();
+
+        m_scene = std::make_unique<Scene>();
     }
 
     Sandbox::~Sandbox()
@@ -50,20 +63,21 @@ namespace Dive
 
     bool Sandbox::Initialize()
     {
-        Window::GetInstance()->Initialize();
-        Window::GetInstance()->SetMessageCallback((LONG_PTR)SandboxMessageHandler);
+        if (!Window::GetInst().Initialize())
+            return false;
+        Window::GetInst().SetMessageCallback((LONG_PTR)SandboxMessageHandler);
 
-        m_graphics = std::make_unique<Graphics>();
-        m_graphics->Initialize(
-            Window::GetInstance()->GetWindowHandle(),
-            Window::GetInstance()->GetWidth(),
-            Window::GetInstance()->GetHeight(),
-            Window::GetInstance()->IsWindowed()
-        );
+        if (!m_graphics->Initialize(
+            Window::GetInst().GetWindowHandle(),
+            Window::GetInst().GetWidth(),
+            Window::GetInst().GetHeight(),
+            Window::GetInst().IsWindowed()
+        ))
+            return false;
         s_graphics = m_graphics.get();
 
-        m_renderer = std::make_unique<Renderer>();
-        m_renderer->Initialize(m_graphics.get());
+        if (!m_renderer->Initialize(m_graphics.get()))
+            return false;
 
         // ImGui 초기화
         {
@@ -79,19 +93,44 @@ namespace Dive
             //ImGui::StyleColorsClassic();
 
             // Setup Platform/Renderer backends
-            ImGui_ImplWin32_Init(Window::GetInstance()->GetWindowHandle());
+            ImGui_ImplWin32_Init(Window::GetInst().GetWindowHandle());
             ImGui_ImplDX11_Init(m_graphics->GetDevice(), m_graphics->GetDeviceContext());
         }
+
+        {
+            if (!ShaderManager::GetInst().Initialize(m_graphics.get()))
+                return false;
+        }
+
+        // scene 초기화
+        {
+            m_scene->SetClearColor(Color::LightSkyBlue);
+            auto* mainCamera = m_scene->GetMainCamera();
+            auto* transform = mainCamera->GetTransform();
+            transform->SetPosition(0.0f, 0.0f, -5.0f);
+            auto* cameraCom = mainCamera->GetComponent<Camera>();
+            cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
+        }
+
+        {
+            if (!ResourceManager::GetInst().Initialize(m_graphics.get()))
+                return false;
+
+            auto tex = ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/DokeV.jpeg");
+        }
+
+        m_timer->Start();
 
         return true;
     }
 
     void Sandbox::Run()
     {
-        while (Window::GetInstance()->Run())
+        while (Window::GetInst().Run())
         {
-            // 3D 공간 렌더링 (Renderer 레이어)
-            m_renderer->Render();
+            m_timer->Tick();
+
+            m_scene->Update(m_timer->GetDeltaTimeMS());
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
@@ -102,7 +141,7 @@ namespace Dive
             {
                 if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
                 {
-                    Window::GetInstance()->Close();
+                    Window::GetInst().Close();
                 }
 
                 // 나중에 Ctrl+S(저장), Ctrl+C(복사) 등도 여기에 줄줄이 얹으시면 됩니다.
@@ -132,69 +171,72 @@ namespace Dive
                 {
                     if (ImGui::MenuItem("New"))
                     {
+                        m_scene->ClearAll();
                     }
 
                     if (ImGui::MenuItem("Open"))
                     {
+                        //m_scene->LoadFromFile();
                     }
 
                     ImGui::Separator();
 
-                    if (ImGui::BeginMenu("3D Object"))
+                    if (ImGui::BeginMenu("Ground"))
                     {
-                        if (ImGui::MenuItem("Triangle", nullptr, nullptr))
+                        if (ImGui::MenuItem("Grid"))
                         {
+
                         }
-                        if (ImGui::MenuItem("Quad", nullptr, nullptr))
+                        if (ImGui::MenuItem("Terrain", nullptr, nullptr, false))
                         {
+
                         }
-                        if (ImGui::MenuItem("Plane", nullptr, nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Cube", nullptr, nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Sphere", nullptr, nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Capsule", nullptr, nullptr))
-                        {
-                        }
+
                         ImGui::EndMenu();
                     }
 
-                    if (ImGui::MenuItem("Export Model File"))
+                    if (ImGui::BeginMenu("3D Object"))
                     {
-
-                    }
-                    
-                    if (ImGui::BeginMenu("Light"))
-                    {
-                        if (ImGui::MenuItem("Directional Light"))
+                        if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Triangle);
+                        }
+                        if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Quad);
+                        }
+                        if (ImGui::MenuItem("Plane", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Plane);
+                        }
+                        if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Cube);
+                        }
+                        if (ImGui::MenuItem("Sphere", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Sphere);
+                        }
+                        if (ImGui::MenuItem("Capsule", nullptr, nullptr, m_scene != nullptr))
+                        {
+                            m_scene->AddPresetObject(ePresetType::Capsule);
+                        }
+                        if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
                         {
 
                         }
-                        if (ImGui::MenuItem("Point Light"))
-                        {
-
-                        }
-                        if (ImGui::MenuItem("Spot Light"))
-                        {
-
-                        }
-
                         ImGui::EndMenu();
                     }
 
                     ImGui::Separator(); // 구분선
 
-                    if (ImGui::MenuItem("Copy"))
+                    if (ImGui::MenuItem("Copy", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
-                    if (ImGui::MenuItem("Paste"))
+                    if (ImGui::MenuItem("Paste", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
-                    if (ImGui::MenuItem("Delete"))
+                    if (ImGui::MenuItem("Delete", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
 
@@ -211,13 +253,16 @@ namespace Dive
 
                     if (ImGui::MenuItem("Exit", "Ctrl+Q"))
                     {
-                        Window::GetInstance()->Close();
+                        Window::GetInst().Close();
                     }
 
                     ImGui::EndPopup();
                 }
             }
             ImGui::End();
+
+            // 3D 공간 렌더링 (Renderer 레이어)
+            m_renderer->Render(m_scene.get());
 
             m_graphics->BindMainRenderTarget();
 

@@ -1,117 +1,56 @@
 ﻿#pragma once
 #include <string>
-#include <cstdint>
 #include <memory>
 #include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include "Core/Object.h"
+#include <filesystem>
+
+#include "Core/Types.h"
+#include "Resource/Preset.h"
+
 #include "GameObject.h"
 
 namespace Dive
 {
-	struct Ray;
-	struct RaycastHit;
-
-	class Camera;
-	class Light;
-	class Transform;
-	class MeshRenderer;
-	class Model;
-
-	struct LightBuckets
-	{
-		Light* directionalLight = nullptr;
-		std::vector<Light*> pointLights;
-		std::vector<Light*> spotLights;
-
-		void Clear()
-		{
-			directionalLight = nullptr;
-			pointLights.clear();
-			spotLights.clear();
-		}
-	};
-	
-	struct RenderQueue
-	{
-		std::vector<MeshRenderer*> opaques;
-		std::vector<MeshRenderer*> transparents;
-
-		void Clear()
-		{
-			opaques.clear();
-			transparents.clear();
-		}
-	};
-
-	struct RenderPacket
-	{
-		LightBuckets lights;
-		RenderQueue meshes;
-	};
+	// 이유는 모르겠지만 전방선언만으로 해결되지 않는다.
+	//class GameObject;
 
 	class Scene
 	{
 	public:
-		Scene() = default;
-		Scene(const std::string& name);
+		Scene();
 		~Scene();
 
-		void Clear();
+		void Update(float deltaTime);
 
-		void Update();
+		GameObject* AddPresetObject(ePresetType type);
+		GameObject* AddModelObject(const std::filesystem::path& modelPath);
 
-		void CullAndSort(Camera* camera);
-		RenderPacket NewCullAndSort(Camera* camera);
+		void DeleteSelectedObject();
+		void ClearAll();
 
-		GameObject* Instantiate(std::shared_ptr<Model> model, uint64_t rootId = AUTO_ID);
+		bool SaveToFile(const std::filesystem::path& filepath);
+		bool LoadFromFile(const std::filesystem::path& filepath);
 
-		GameObject* CreateGameObject(const std::string& name = "GameObject", uint64_t id = AUTO_ID);
-		GameObject* CreatePresetGameObject(ePresetType type);
-		GameObject* RegisterGameObject(std::unique_ptr<GameObject> obj);
+		Color GetClearColor() const { return m_clearColor; }
+		void SetClearColor(const Color& color) { m_clearColor = color; }
 
-		void DestroyGameObject(GameObject* obj, bool destroyChildren);
-		void QueueDestroy(GameObject* obj);
-		void FlushDestoryQueue();
+		GameObject* GetMainCamera() { return m_mainCamera.get(); }
+		const std::vector<std::unique_ptr<GameObject>>& GetGameObjects() const { return m_objects; }
 
-		bool HasGameObject(GameObject* obj);
-		bool HasGameObject(uint64_t id);
+		GameObject* GetSelectedObject() const { return m_selectedObject; }
+		void SetSelectedObject(GameObject* target) { m_selectedObject = target; }
 
-		GameObject* FindGameObject(uint64_t id);
-
-		bool Raycast(const Ray& ray, RaycastHit* outHit, bool allowInsideHits = false) const;
-
-		size_t AllGameObjectCount() const { return m_gameObjectMap.size(); }
-		std::vector<GameObject*> GetAllGameObjects();
-
-		size_t RootGameObjectCount() const { return m_rootGameObjects.size(); }
-		const std::vector<GameObject*>& GetRootGameObjects() { return m_rootGameObjects; }
-		
-		const std::vector<Light*>& GetLights() const { return m_lights; }
-
-		const std::vector<MeshRenderer*>& GetTransparentMeshRenderers() const { return m_transparents; }
-		const std::vector<MeshRenderer*>& GetOpaqueMeshRenderers() const { return m_opaques; }
-
-		std::string GetName() const { return m_name; }
-		void SetName(const std::string& name) { m_name = name; }
-
-		void NotifyParentChanged(GameObject* obj);
+		std::vector<GameObject*> GetDrawable();
 
 	private:
-		std::string m_name{};
 
-		std::unordered_map<uint64_t, std::unique_ptr<GameObject>> m_gameObjectMap;
-		std::vector<GameObject*> m_rootGameObjects;
-		std::unordered_set<uint64_t> m_destroyQueue;
+	private:
+		Color m_clearColor = Color::White;
 
-		std::vector<Light*> m_lights;
-
-		std::vector<MeshRenderer*> m_transparents;
-		std::vector<MeshRenderer*> m_opaques;
-
-		// 메인 카메라 정도는 관리했으면 좋겠다.
-
-		friend class Transform;
+		std::unique_ptr<GameObject> m_mainCamera;
+		std::unique_ptr<GameObject> m_ground;
+		std::vector<std::unique_ptr<GameObject>> m_objects;
+		GameObject* m_selectedObject = nullptr;
+		
 	};
 }

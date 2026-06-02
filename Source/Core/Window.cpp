@@ -11,16 +11,6 @@ namespace Dive
 		constexpr int DEFAULT_HEIGHT = 720;
 	}
 
-	Window* Window::s_instance = nullptr;
-
-	Window* Window::GetInstance()
-	{
-		if (s_instance == nullptr)
-			s_instance = new Window;
-
-		return s_instance;
-	}
-
 	bool Window::Initialize()
 	{
 		HINSTANCE hInstance = ::GetModuleHandle(nullptr);

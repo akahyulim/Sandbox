@@ -6,10 +6,17 @@
 #include <DXGI1_3.h>
 #include <Windows.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
 
 #include "Core/Types.h"
 #include "PipelineState.h"
 #include "RenderPass.h"
+
+namespace DirectX
+{
+	class ScratchImage;
+	struct TexMetadata;
+}
 
 namespace Dive
 {
@@ -19,6 +26,16 @@ namespace Dive
 	class VertexShader;
 	class PixelShader;
 	class InputLayout;
+
+	enum class eCBufferSlot : uint32_t
+	{
+		Camera = 0,
+		Material,
+		Object,
+		Light,
+
+		Count
+	};
 
 	class Graphics
 	{
@@ -41,8 +58,15 @@ namespace Dive
 
 		void Present() const;
 
+		// 외분에서 생성 후 바인딩하는 게 아니라
+		// Graphics에 미리 생성한 후
+		// 데이터를 넘겨 업데이트 하고
+		// 슬롯 인덱스를 넘겨 바인딩하는 방식을
+		// 재미나이가 추천한다.
 		template<typename T>
 		std::unique_ptr<ConstantBuffer> CreateConstantBuffer();
+		
+		
 		std::unique_ptr<VertexBuffer> CreateVertexBuffer(uint32_t stride, uint32_t count, const void* data);
 		std::unique_ptr<IndexBuffer> CreateIndexBuffer(eFormat format, uint32_t count, const void* data);
 
@@ -50,8 +74,16 @@ namespace Dive
 		std::shared_ptr<PixelShader> CreatePixelShader(const void* byteCode, size_t size);
 		std::shared_ptr<InputLayout> CreateInputLayout(eInputLayout type, const void* byteCode, size_t size);
 
+		bool CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV);
+		bool CreateRenderTexture(uint32_t width, uint32_t height, DXGI_FORMAT format, ID3D11RenderTargetView** outRTV, ID3D11ShaderResourceView** outSRV);
+		bool CreateCubemap(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV);
+
 		void BindVertexBuffer(VertexBuffer* vb);
 		void BindIndexBuffer(IndexBuffer* ib);
+
+		// 위의 CreateConstantBuffer는 지우고 UpdateConstantBuffer를 추가하자.
+		void UpdateConstantBuffer(eCBufferSlot slot, const void* data, uint32_t size);
+		void BindConstantBuffer(eCBufferSlot slot);
 		void BindVSConstantBuffer(eCBufferSlotVS slot, ConstantBuffer* cb);
 		void BindPSConstantBuffer(eCBufferSlotPS slot, ConstantBuffer* cb);
 
@@ -75,6 +107,7 @@ namespace Dive
 		bool createRasterizerStates();
 		bool createBlendStates();
 		bool createSamplerStates();
+		bool createConstantBuffers();
 		bool resizeSwapChain();
 
 		void bindVertexShader(ID3D11VertexShader* vs);
@@ -100,10 +133,11 @@ namespace Dive
 
 		bool m_vSync = false;
 
-		std::array<std::unique_ptr<ID3D11DepthStencilState>, static_cast<size_t>(eDepthStencilState::Count)> m_depthStencilStates;
-		std::array<std::unique_ptr<ID3D11RasterizerState>, static_cast<size_t>(eRasterizerState::Count)> m_rasterizerStates;
-		std::array<std::unique_ptr<ID3D11BlendState>, static_cast<size_t>(eBlendState::Count)> m_blendStates;
-		std::array<std::unique_ptr<ID3D11SamplerState>, static_cast<size_t>(eSamplerState::Count)> m_samplerStates;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Count)];
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerStates[static_cast<size_t>(eRasterizerState::Count)];
+		Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendStates[static_cast<size_t>(eBlendState::Count)];
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerStates[static_cast<size_t>(eSamplerState::Count)];
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffers[static_cast<uint32_t>(eCBufferSlot::Count)];
 
 		uint32_t m_currentStencilRef = 0;
 		float m_currentBlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };

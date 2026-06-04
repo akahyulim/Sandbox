@@ -34,6 +34,9 @@
     <Filter Include="ThirdParty\DirectXTex">
       <UniqueIdentifier>{09b5f360-bfcb-49eb-8529-76685faadbf3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{6c62ed73-5797-41f0-aa0e-31d9e8df2f6e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\ThirdParty\imgui\imconfig.h">
@@ -198,6 +201,9 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\ShaderTypes.h">
       <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input\Input.h">
+      <Filter>Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -369,6 +375,9 @@
     </ClCompile>
     <ClCompile Include="Source\Resource\Material.cpp">
       <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input\Input.cpp">
+      <Filter>Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

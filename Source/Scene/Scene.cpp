@@ -18,8 +18,10 @@ namespace Dive
 	{
 	}
 
-	void Scene::Update(float deltaTime)
+	void Scene::Update(float dt)
 	{
+		m_mainCamera->Update();
+
 		for (auto& obj : m_objects)
 		{
 			obj->Update();
@@ -69,7 +71,6 @@ namespace Dive
 	{
 		m_selectedObject = nullptr;
 		m_objects.clear();
-		m_ground.reset();
 		m_mainCamera.reset();
 	}
 

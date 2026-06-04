@@ -18,6 +18,8 @@ namespace Dive
 		void Run();
 
 	private:
+		void cameraControll(float dt);
+
 	private:
 		std::unique_ptr<Timer> m_timer;
 		std::unique_ptr<Graphics> m_graphics;

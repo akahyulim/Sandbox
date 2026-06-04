@@ -437,7 +437,7 @@ namespace Dive
 		if (FAILED(hr))
 		{
 			// 최하위 DX11 에러 코드를 로깅하여 디버깅을 돕습니다.
-			//spdlog::error("Graphics::CreateTexture2DFromMemory - CreateShaderResourceView 실패 (HRESULT: 0x{X})", hr);
+			spdlog::error("Graphics::CreateTexture2DFromMemory - CreateShaderResourceView 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -669,7 +669,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthReadWrite)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] DepthReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] DepthReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -696,7 +696,8 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthReadWrite_StencilReadWrite)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] DepthReadWrite_StencilReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] DepthReadWrite_StencilReadWrite 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
 		}
 
 		// GBuffer
@@ -716,7 +717,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::GBuffer)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] GBuffer 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] GBuffer 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -742,7 +743,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::DepthDisabled)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] DepthDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] DepthDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -762,7 +763,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::ForwardLight)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] ForwardLight 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] ForwardLight 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -777,7 +778,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Transparent)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] Transparent 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] Transparent 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -793,7 +794,7 @@ namespace Dive
 			m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Skybox)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateDepthStencilStates] Skybox 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateDepthStencilStates] Skybox 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -823,7 +824,7 @@ namespace Dive
 		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullFront)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullFront 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateRasterizerStates] FillSolid_CullFront 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -834,7 +835,7 @@ namespace Dive
 		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullBack)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullBack 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateRasterizerStates] FillSolid_CullBack 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -844,7 +845,7 @@ namespace Dive
 		hr = m_device->CreateRasterizerState(&desc, m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullNone)].GetAddressOf());
 		if (FAILED(hr))
 		{
-			//spdlog::error("[::CreateRasterizerStates] FillSolid_CullNode 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+			spdlog::error("[::CreateRasterizerStates] FillSolid_CullNode 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 			return false;
 		}
 
@@ -883,7 +884,7 @@ namespace Dive
 			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::AlphaEnabled)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateBlendState] AlphaEnabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateBlendState] AlphaEnabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 
@@ -893,7 +894,7 @@ namespace Dive
 			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::AlphaDisabled)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateBlendState] AlpahDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateBlendState] AlpahDisabled 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -922,7 +923,7 @@ namespace Dive
 			hr = m_device->CreateBlendState(&desc, m_blendStates[static_cast<size_t>(eBlendState::Additive)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateBlendState] Additive 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateBlendState] Additive 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -956,7 +957,7 @@ namespace Dive
 			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::WrapLinear)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateSamplerStates] WrapLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateSamplerStates] WrapLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -972,7 +973,7 @@ namespace Dive
 			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ClampPoint)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateSamplerStates] ClampPoint Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateSamplerStates] ClampPoint Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -989,7 +990,7 @@ namespace Dive
 			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ClampLinear)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateSamplerStates] ClampLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateSamplerStates] ClampLinear Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -1008,7 +1009,7 @@ namespace Dive
 			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::Skybox)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateSamplerStates] Skybox Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateSamplerStates] Skybox Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}
@@ -1032,7 +1033,7 @@ namespace Dive
 			hr = m_device->CreateSamplerState(&samplerDesc, m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)].GetAddressOf());
 			if (FAILED(hr))
 			{
-				//spdlog::error("[::CreateSamplerStates] ShadowCompare Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				spdlog::error("[::CreateSamplerStates] ShadowCompare Sampler 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				return false;
 			}
 		}

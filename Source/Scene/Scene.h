@@ -20,7 +20,7 @@ namespace Dive
 		Scene();
 		~Scene();
 
-		void Update(float deltaTime);
+		void Update(float dt);
 
 		GameObject* AddPresetObject(ePresetType type);
 		GameObject* AddModelObject(const std::filesystem::path& modelPath);
@@ -48,7 +48,6 @@ namespace Dive
 		Color m_clearColor = Color::White;
 
 		std::unique_ptr<GameObject> m_mainCamera;
-		std::unique_ptr<GameObject> m_ground;
 		std::vector<std::unique_ptr<GameObject>> m_objects;
 		GameObject* m_selectedObject = nullptr;
 		

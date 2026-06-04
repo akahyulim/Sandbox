@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <wrl/client.h>
+#include <memory>
 #include <d3d11_3.h>
 #include <DXGI1_3.h>
 #include <Windows.h>

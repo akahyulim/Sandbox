@@ -102,52 +102,79 @@ namespace Dive
 		outIndices[3] = 2;	outIndices[4] = 1;	outIndices[5] = 3;
 	}
 
+	// 10 x 10의 xz 평면(바닥용)
 	void Preset::GeneratePlane(std::vector<StaticVertex>& outVertices, std::vector<uint32_t>& outIndices)
 	{
 		outVertices.clear();
 		outIndices.clear();
 
-		outVertices.resize(4);
+		// 1. 유니티 Plane 규격 설정 (10x10 격자)
+		const uint32_t subdivisions = 10;
+		const uint32_t vertexCount = (subdivisions + 1) * (subdivisions + 1); // 11 * 11 = 121
+		const uint32_t indexCount = subdivisions * subdivisions * 6;          // 10 * 10 * 6 = 600
 
-		// 좌후면
-		outVertices[0] = {
-			XMFLOAT3(-PLANE_SIZE / 2.0f, 0.0f, PLANE_SIZE / 2.0f),   // Position
-			XMFLOAT2(0.0f, 0.0f),                                    // UV
-			XMFLOAT3(0.0f, 1.0f, 0.0f),                              // Normal
-			XMFLOAT3(1.0f, 0.0f, 0.0f),                              // Tangent
-			XMFLOAT3(0.0f, 0.0f, -1.0f)                              // Binormal
-		};
+		outVertices.resize(vertexCount);
+		outIndices.resize(indexCount);
 
-		// 우후면
-		outVertices[1] = {
-			XMFLOAT3(PLANE_SIZE / 2.0f, 0.0f, PLANE_SIZE / 2.0f),
-			XMFLOAT2(1.0f, 0.0f),
-			XMFLOAT3(0.0f, 1.0f, 0.0f),
-			XMFLOAT3(1.0f, 0.0f, 0.0f),
-			XMFLOAT3(0.0f, 0.0f, -1.0f)
-		};
+		// 2. 정점(Vertices) 생성 및 TBN 계산
+		// 기존 좌후면(-PLANE_SIZE/2, PLANE_SIZE/2)에서 출발하여 바닥 공간을 채웁니다.
+		float startX = -PLANE_SIZE / 2.0f;
+		float startZ = PLANE_SIZE / 2.0f;
+		float cellSize = PLANE_SIZE / static_cast<float>(subdivisions);
 
-		// 좌전면
-		outVertices[2] = {
-			XMFLOAT3(-PLANE_SIZE / 2.0f, 0.0f, -PLANE_SIZE / 2.0f),
-			XMFLOAT2(0.0f, 1.0f),
-			XMFLOAT3(0.0f, 1.0f, 0.0f),
-			XMFLOAT3(1.0f, 0.0f, 0.0f),
-			XMFLOAT3(0.0f, 0.0f, -1.0f)
-		};
+		uint32_t vIndex = 0;
+		for (uint32_t row = 0; row <= subdivisions; ++row)
+		{
+			for (uint32_t col = 0; col <= subdivisions; ++col)
+			{
+				// 위치(Position) 계산: 바닥이므로 Y는 0 고정
+				outVertices[vIndex].Position.x = startX + (static_cast<float>(col) * cellSize);
+				outVertices[vIndex].Position.y = 0.0f;
+				outVertices[vIndex].Position.z = startZ - (static_cast<float>(row) * cellSize);
 
-		// 우전면
-		outVertices[3] = {
-			XMFLOAT3(PLANE_SIZE / 2.0f, 0.0f, -PLANE_SIZE / 2.0f),
-			XMFLOAT2(1.0f, 1.0f),
-			XMFLOAT3(0.0f, 1.0f, 0.0f),
-			XMFLOAT3(1.0f, 0.0f, 0.0f),
-			XMFLOAT3(0.0f, 0.0f, -1.0f)
-		};
+				// UV(TexCoord) 계산: 좌상단(0,0) ~ 우하단(1,1) 매핑
+				outVertices[vIndex].TexCoord.x = static_cast<float>(col) / static_cast<float>(subdivisions);
+				outVertices[vIndex].TexCoord.y = static_cast<float>(row) / static_cast<float>(subdivisions);
 
-		outIndices.resize(6);
-		outIndices[0] = 0;	outIndices[1] = 1;	outIndices[2] = 2;
-		outIndices[3] = 1;	outIndices[4] = 3;	outIndices[5] = 2;
+				// 하늘을 바라보는 법선 벡터 (Normal)
+				outVertices[vIndex].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+				// UV의 U축 증가 방향 (Tangent)
+				outVertices[vIndex].Tangent = XMFLOAT3(1.0f, 0.0f, 0.0f);
+
+				// UV의 V축 증가 방향 (Binormal / Bitangent)
+				// DirectX 왼손 좌표계 기준: Normal X Tangent에 직교하는 전방 벡터
+				outVertices[vIndex].BiNormal = XMFLOAT3(0.0f, 0.0f, 1.0f);
+
+				vIndex++;
+			}
+		}
+
+		// 3. 인덱스(Indices) 생성 (유니티 및 DX 기본 시계 방향 와인딩)
+		uint32_t iIndex = 0;
+		for (uint32_t row = 0; row < subdivisions; ++row)
+		{
+			for (uint32_t col = 0; col < subdivisions; ++col)
+			{
+				// 현재 셀의 네 모퉁이 정점 인덱스 계산
+				uint32_t topLeft = row * (subdivisions + 1) + col;
+				uint32_t topRight = topLeft + 1;
+				uint32_t bottomLeft = (row + 1) * (subdivisions + 1) + col;
+				uint32_t bottomRight = bottomLeft + 1;
+
+				// 첫 번째 삼각형 (유저님의 기존 오더: 0 -> 1 -> 2 매칭)
+				// TopLeft -> TopRight -> BottomLeft
+				outIndices[iIndex++] = topLeft;
+				outIndices[iIndex++] = topRight;
+				outIndices[iIndex++] = bottomLeft;
+
+				// 두 번째 삼각형 (유저님의 기존 오더: 1 -> 3 -> 2 매칭)
+				// TopRight -> BottomRight -> BottomLeft
+				outIndices[iIndex++] = topRight;
+				outIndices[iIndex++] = bottomRight;
+				outIndices[iIndex++] = bottomLeft;
+			}
+		}
 	}
 
 	void Preset::GenerateCube(std::vector<StaticVertex>& outVertices, std::vector<uint32_t>& outIndices)

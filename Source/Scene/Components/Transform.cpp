@@ -27,8 +27,8 @@ namespace Dive
 		//if (!m_owner || !m_owner->IsActiveSelf())
 		//	return;
 
-		//if (!m_isDirty)
-		//	return;
+		if (!m_isDirty)
+			return;
 
 		auto localMat =
 			XMMatrixScalingFromVector(XMLoadFloat3(&m_localScale)) *
@@ -57,11 +57,11 @@ namespace Dive
 			m_scale = m_localScale;
 		}
 
-		//m_isDirty = false;
+		m_isDirty = false;
 
 		// 루트부터 시작해 하향식으로 자식들을 갱신 필요상태로 변경
-		//for (auto child : m_children)
-		//	child->m_isDirty = true;
+		for (auto child : m_children)
+			child->m_isDirty = true;
 	}
 
 	void Transform::SetPositionVector(const XMVECTOR& worldPos)
@@ -75,7 +75,6 @@ namespace Dive
 		else
 		{
 			XMStoreFloat3(&m_localPosition, worldPos);
-			m_position = m_localPosition;
 		}
 
 		m_isDirty = true;
@@ -752,6 +751,7 @@ namespace Dive
 			//auto it = std::find(roots.begin(), roots.end(), GetGameObject());
 
 			//return (it != roots.end()) ? std::distance(roots.begin(), it) : std::numeric_limits<size_t>::max();
+			return 0;
 		}
 	}
 

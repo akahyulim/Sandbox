@@ -5,6 +5,7 @@
 #include "Core/Timer.h"
 #include "Graphics/Graphics.h"
 #include "Renderer/Renderer.h"
+#include "Input/Input.h"
 #include "Scene/Scene.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
@@ -19,6 +20,10 @@ namespace Dive
 {
     namespace
     {
+        constexpr float BOOST_SPEED = 10.0f;
+        constexpr float MIN_SPEED = 0.5f;
+        constexpr float MAX_SPEED = 99.0f;
+
         Graphics* s_graphics = nullptr;
 
         static LRESULT CALLBACK SandboxMessageHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam)
@@ -67,6 +72,9 @@ namespace Dive
             return false;
         Window::GetInst().SetMessageCallback((LONG_PTR)SandboxMessageHandler);
 
+        if (!Input::GetInst().Initialize(Window::GetInst().GetWindowHandle()))
+            return false;
+
         if (!m_graphics->Initialize(
             Window::GetInst().GetWindowHandle(),
             Window::GetInst().GetWidth(),
@@ -110,6 +118,8 @@ namespace Dive
             transform->SetPosition(0.0f, 0.0f, -5.0f);
             auto* cameraCom = mainCamera->GetComponent<Camera>();
             cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
+
+
         }
 
         {
@@ -129,8 +139,13 @@ namespace Dive
         while (Window::GetInst().Run())
         {
             m_timer->Tick();
+            float dt = m_timer->GetDeltaTimeMS();
 
-            m_scene->Update(m_timer->GetDeltaTimeMS());
+            Input::GetInst().Update();
+
+            this->cameraControll(dt);
+
+            m_scene->Update(dt);
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
@@ -181,29 +196,18 @@ namespace Dive
 
                     ImGui::Separator();
 
-                    if (ImGui::BeginMenu("Ground"))
-                    {
-                        if (ImGui::MenuItem("Grid"))
-                        {
-
-                        }
-                        if (ImGui::MenuItem("Terrain", nullptr, nullptr, false))
-                        {
-
-                        }
-
-                        ImGui::EndMenu();
-                    }
-
                     if (ImGui::BeginMenu("3D Object"))
                     {
                         if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Triangle);
+                            auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
+                            triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+
                         }
                         if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Quad);
+                            auto quad = m_scene->AddPresetObject(ePresetType::Quad);
+                            quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
                         }
                         if (ImGui::MenuItem("Plane", nullptr, nullptr, m_scene != nullptr))
                         {
@@ -211,15 +215,18 @@ namespace Dive
                         }
                         if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Cube);
+                            auto cube = m_scene->AddPresetObject(ePresetType::Cube);
+                            cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
                         }
                         if (ImGui::MenuItem("Sphere", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Sphere);
+                            auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
+                            sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
                         }
                         if (ImGui::MenuItem("Capsule", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Capsule);
+                            auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
+                            capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
                         }
                         if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
                         {
@@ -277,5 +284,126 @@ namespace Dive
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
+    }
+
+    void Sandbox::cameraControll(float dt)
+    {
+        if (auto mainCamera = m_scene->GetMainCamera())
+        {
+            auto& input = Input::GetInst();
+
+            auto transform = mainCamera->GetTransform();
+            float moveSpeed = 0.001f * dt;
+            if (input.KeyPress(DIK_LSHIFT))
+                moveSpeed *= BOOST_SPEED;
+
+            if (input.MouseButtonPress(1))
+            {
+                //if (ImGui::IsWindowHovered())
+                {
+                    auto mouseMoveDelta = input.GetMouseMoveDelta();
+                    if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
+                    {
+                        transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, mouseMoveDelta.x * moveSpeed, 0.0f));
+                        transform->RotateByDegrees(DirectX::XMFLOAT3(mouseMoveDelta.y * moveSpeed, 0.0f, 0.0f));
+                    }
+
+                    auto mouseWheelDelta = input.GetMouseWheelDelta();
+                    if (mouseWheelDelta != 0.0f)
+                        transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, mouseWheelDelta * moveSpeed));
+                }
+            }
+
+            if (input.MouseButtonDown(0))
+            {
+                //if (ImGui::IsWindowHovered())
+                {
+                    //Ray ray = EditorContext::EditorCamera->GetComponent<Camera>()->ScreenPointToRay(GetMousePosition());
+                    //RaycastHit hit;
+                    //EditorContext::Selected =
+                    //    EditorContext::ActiveScene->Raycast(ray, &hit) ? hit.hitObject : nullptr;
+                }
+            }
+
+            //if (input.KeyDown(DIK_ESCAPE) && EditorContext::Selected != nullptr)
+            //    EditorContext::Selected = nullptr;
+
+            /*
+            if (input.KeyDown(DIK_F) && EditorContext::Selected != nullptr)
+            {
+                auto selected = EditorContext::Selected;
+
+                // 선택된 오브젝트의 모든 MeshRenderer를 합쳐서 Bounds 계산
+                auto calculateCombineBounds = [](GameObject* target) -> Bounds
+                    {
+                        std::vector<MeshRenderer*> meshRenderers = target->GetComponentsInChildren<MeshRenderer>();
+
+                        if (meshRenderers.empty())
+                            return Bounds(target->GetTransform()->GetPosition(), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
+
+                        Bounds combineBounds = meshRenderers[0]->GetBounds();
+
+                        for (size_t i = 1; i < meshRenderers.size(); ++i)
+                            combineBounds.Encapsulate(meshRenderers[i]->GetBounds());
+
+                        return combineBounds;
+                    };
+
+                Bounds bounds = calculateCombineBounds(selected);
+
+                auto transform = EditorContext::EditorCamera->GetTransform();
+                transform->LookAt(bounds.center, transform->GetUp());
+            }
+            */
+            if (input.KeyPress(DIK_W))
+            {
+                transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, moveSpeed));
+            }
+            if (input.KeyPress(DIK_S))
+            {
+                transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, -moveSpeed));
+            }
+            if (input.KeyPress(DIK_A))
+            {
+                transform->Translate(DirectX::XMFLOAT3(-moveSpeed, 0.0f, 0.0f));
+            }
+            if (input.KeyPress(DIK_D))
+            {
+                transform->Translate(DirectX::XMFLOAT3(moveSpeed, 0.0f, 0.0f));
+            }
+            if (input.KeyPress(DIK_Q))
+            {
+                transform->Translate(DirectX::XMFLOAT3(0.0f, -moveSpeed, 0.0f));
+            }
+            if (input.KeyPress(DIK_E))
+            {
+                transform->Translate(DirectX::XMFLOAT3(0.0f, moveSpeed, 0.0f));
+            }
+
+            {
+                auto mouseWheelDelta = input.GetMouseWheelDelta();
+                if (mouseWheelDelta != 0.0f)
+                {
+                    //AddCameraSpeed(mouseWheelDelta);
+                }
+
+                if (input.KeyPress(DIK_LEFT))
+                {
+                    transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, -moveSpeed * 2.0f, 0.0f));
+                }
+                if (input.KeyPress(DIK_RIGHT))
+                {
+                    transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, moveSpeed * 2.0f, 0.0f));
+                }
+                if (input.KeyPress(DIK_UP))
+                {
+                    transform->RotateByDegrees(DirectX::XMFLOAT3(-moveSpeed * 2.0f, 0.0f, 0.0f));
+                }
+                if (input.KeyPress(DIK_DOWN))
+                {
+                    transform->RotateByDegrees(DirectX::XMFLOAT3(moveSpeed * 2.0f, 0.0f, 0.0f));
+                }
+            }
+        }
     }
 }

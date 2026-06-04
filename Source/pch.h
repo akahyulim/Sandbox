@@ -23,6 +23,7 @@
 #include <DXGI1_3.h>
 #include <d3dcompiler.h>
 #include <directxmath.h>
+#include <dinput.h>
 #include <wrl/client.h>
 
 #include <DirectXTex/DirectXTex.h>

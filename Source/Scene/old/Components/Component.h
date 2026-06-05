@@ -13,7 +13,7 @@ namespace Dive
 		Undefined,
 		Transform,
 		Camera,
-		Light,
+		cbLight,
 		MeshRenderer,
 		SkinnedMeshRender,
 		MonoBehaviour

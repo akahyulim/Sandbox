@@ -5,6 +5,8 @@
 #include "ConstantBuffer.h"
 #include "Shader/Shader.h"
 #include "Shader/InputLayout.h"
+#include "Shader/ShaderProgram.h"
+#include "Resource/Texture2D.h"
 
 #include <DirectXTex/DirectXTex.h>
 
@@ -192,29 +194,32 @@ namespace Dive
 
 	void Graphics::SetPipelineState(const PipelineState& state)
 	{
-		ID3D11VertexShader* vs = state.vertexShader ? state.vertexShader->GetShader() : nullptr;
-		ID3D11PixelShader* ps = state.pixelShader ? state.pixelShader->GetShader() : nullptr;
-		ID3D11InputLayout* il = state.inputLayout ? state.inputLayout->GetLayout() : nullptr;
+		bindPrimitiveTopology(state.topology);
+
+		if (state.shaderProgram)
+		{
+			bindVertexShader(state.shaderProgram->GetVertexShader());
+			bindPixelShader(state.shaderProgram->GetPixelShader());
+			bindInputLayout(state.shaderProgram->GetInputLayout());
+		}
+		else
+		{
+			bindVertexShader(nullptr);
+			bindPixelShader(nullptr);
+			bindInputLayout(nullptr);
+		}
 
 		ID3D11DepthStencilState* dss = state.depthStencilState != eDepthStencilState::Count
 			? m_depthStencilStates[static_cast<size_t>(state.depthStencilState)].Get() : nullptr;
+		bindDepthStencilState(dss, state.stencilRef);
+
 		ID3D11RasterizerState* rs = state.rasterizerState != eRasterizerState::Count
 			? m_rasterizerStates[static_cast<size_t>(state.rasterizerState)].Get() : nullptr;
+		bindRasterizerState(rs);
+
 		ID3D11BlendState* bs = state.blendState != eBlendState::Count
 			? m_blendStates[static_cast<size_t>(state.blendState)].Get() : nullptr;
-		ID3D11SamplerState* ss = state.samplerState != eSamplerState::Count
-			? m_samplerStates[static_cast<size_t>(state.samplerState)].Get() : nullptr;
-
-		bindVertexShader(vs);
-		bindPixelShader(ps);
-		bindInputLayout(il);
-
-		bindPrimitiveTopology(state.topology);
-
-		bindDepthStencilState(dss, state.stencilRef);
-		bindRasterizerState(rs);
 		bindBlendState(bs, state.blendFactor, state.sampleMask);
-		bindSamplerState(0, ss);
 	}
 
 	void Graphics::BeginRenderPass(const RenderPass& pass)
@@ -549,32 +554,27 @@ namespace Dive
 		m_deviceContext->PSSetConstantBuffers(slotIndex, 1, &buffer);
 	}
 
-	void Graphics::BindVSConstantBuffer(eCBufferSlotVS slot, ConstantBuffer* cb)
+	void Graphics::BindAllSamplers()
 	{
-		assert(m_deviceContext);
+		ID3D11SamplerState* samplers[static_cast<size_t>(eSamplerState::Count)] =
+		{
+			m_samplerStates[static_cast<size_t>(eSamplerState::WrapLinear)].Get(),
+			m_samplerStates[static_cast<size_t>(eSamplerState::ClampPoint)].Get(),
+			m_samplerStates[static_cast<size_t>(eSamplerState::ClampLinear)].Get(),
+			m_samplerStates[static_cast<size_t>(eSamplerState::Skybox)].Get(),
+			m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)].Get()
+		};
 
-		uint32_t slotIndex = static_cast<uint32_t>(slot);
-		ID3D11Buffer* rawBuffer = cb ? cb->GetRawBuffer() : nullptr;
-
-		if (m_currentVSCB[slotIndex] == rawBuffer)
-			return;
-
-		m_currentVSCB[slotIndex] = rawBuffer;
-		m_deviceContext->VSSetConstantBuffers(slotIndex, 1, &rawBuffer);
+		m_deviceContext->PSSetSamplers(0, static_cast<UINT>(eSamplerState::Count), samplers);
 	}
 
-	void Graphics::BindPSConstantBuffer(eCBufferSlotPS slot, ConstantBuffer* cb)
+	void Graphics::BindTexture(std::shared_ptr<Texture2D> tex)
 	{
-		assert(m_deviceContext);
-
-		uint32_t slotIndex = static_cast<uint32_t>(slot);
-		ID3D11Buffer* rawBuffer = cb ? cb->GetRawBuffer() : nullptr;
-
-		if (m_currentPSCB[slotIndex] == rawBuffer)
+		if (tex == nullptr)
 			return;
 
-		m_currentPSCB[slotIndex] = rawBuffer;
-		m_deviceContext->PSSetConstantBuffers(slotIndex, 1, &rawBuffer);
+		auto srv = tex->GetShaderResourceView();
+		m_deviceContext->PSSetShaderResources(0, 1, &srv);
 	}
 
 	bool Graphics::setupViews()
@@ -747,7 +747,7 @@ namespace Dive
 			return false;
 		}
 
-		// Forward Light
+		// Forward cbLight
 		desc.DepthEnable = TRUE;
 		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;

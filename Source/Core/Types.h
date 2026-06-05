@@ -73,7 +73,7 @@ namespace Dive
 		Skybox,
 		Count
 	};
-
+	/*
 	enum class eCBufferSlotVS : uint8_t
 	{
 		Camera = 0,
@@ -85,10 +85,10 @@ namespace Dive
 	{
 		Camera = 0,
 		Material = 1,
-		Light = 2,
+		cbLight = 2,
 		Count
 	};
-
+	*/
 	enum class eInputLayout : uint8_t
 	{
 		None = 0,

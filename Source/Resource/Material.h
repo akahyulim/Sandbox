@@ -10,6 +10,7 @@ namespace Dive
 {
 	class Graphics;
 	class Texture2D;
+	class ShaderProgram;
 
 	enum class eTextureMapType
 	{
@@ -17,15 +18,6 @@ namespace Dive
 		Normal,
 		Specular,
 		Count
-	};
-
-	struct MaterialConstantData
-	{
-		DirectX::XMFLOAT4 ambientColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 diffuseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 specularColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		float specularPower = 32.0f;
-		float padding[3];
 	};
 
 	class Material : public Resource
@@ -38,11 +30,11 @@ namespace Dive
 
 		virtual bool Create(Graphics* graphics) override;
 
-		void SetShader(const std::string& name) { m_shaderName = name; }
-		const std::string& GetShader() const { return m_shaderName; }
+		void Bind(Graphics* graphics);
 
-		void SetConstantData(const MaterialConstantData& data) { m_data = data; }
-		const MaterialConstantData& GetConstantData() const { return m_data; }
+		void SetShader(const std::string& name);
+		const std::string& GetShaderProgramName() const { return m_shaderName; }
+		std::shared_ptr<ShaderProgram> GetShaderProgram();
 
 		void SetTexture(eTextureMapType type, const std::filesystem::path& filepath);
 		std::shared_ptr<Texture2D> GetTexture(eTextureMapType type) const;
@@ -51,6 +43,6 @@ namespace Dive
 		std::unordered_map<eTextureMapType, std::filesystem::path> m_texturePaths;
 		std::unordered_map<eTextureMapType, std::shared_ptr<Texture2D>> m_textures;
 		std::string m_shaderName = "DefaultLit";
-		MaterialConstantData m_data;
+		std::shared_ptr<ShaderProgram> m_shaderProgram;
 	};
 }

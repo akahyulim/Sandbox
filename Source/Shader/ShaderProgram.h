@@ -16,11 +16,9 @@ namespace Dive
 			const std::string& name);
 		~ShaderProgram() = default;
 
-		void Bind(Graphics* graphics);
-
-		std::shared_ptr<VertexShader> GetVertexShader() const { return m_vs; }
-		std::shared_ptr<PixelShader> GetPixelShader() const { return m_ps; }
-		std::shared_ptr<InputLayout> GetInputLayout() const { return m_il; }
+		ID3D11VertexShader* GetVertexShader() const;
+		ID3D11PixelShader* GetPixelShader() const;
+		ID3D11InputLayout* GetInputLayout() const;
 
 		std::string GetName() const { return m_name; }
 

@@ -24,6 +24,8 @@ namespace Dive
 		Mesh(eMeshType type) : m_meshType(type) {}
 		virtual ~Mesh();
 
+		void Bind(Graphics* graphics);
+
 		eMeshType GetMeshType() const { return m_meshType; }
 		
 		ePrimitiveTopology GetTopology() const { return m_primitiveTopology; }

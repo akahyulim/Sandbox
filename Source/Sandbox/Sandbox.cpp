@@ -9,10 +9,12 @@
 #include "Scene/Scene.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
+#include "Scene/Components/MeshRenderer.h"
 #include "Shader/ShaderManager.h"
 #include "Resource/ResourceManager.h"
 
 #include "Resource/Texture2D.h" // test
+#include "Resource/Material.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
 
@@ -211,7 +213,9 @@ namespace Dive
                         }
                         if (ImGui::MenuItem("Plane", nullptr, nullptr, m_scene != nullptr))
                         {
-                            m_scene->AddPresetObject(ePresetType::Plane);
+                            auto plane = m_scene->AddPresetObject(ePresetType::Plane);
+                            auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
+                            mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/DokeV.jpeg");
                         }
                         if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
                         {

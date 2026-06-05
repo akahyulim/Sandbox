@@ -27,13 +27,16 @@ namespace Dive
 	class VertexShader;
 	class PixelShader;
 	class InputLayout;
+	
+	class Texture2D;
 
+	// ShaderType.h로 옮겨야 한다.
 	enum class eCBufferSlot : uint32_t
 	{
 		Camera = 0,
 		Material,
 		Object,
-		Light,
+		cbLight,
 
 		Count
 	};
@@ -59,15 +62,6 @@ namespace Dive
 
 		void Present() const;
 
-		// 외분에서 생성 후 바인딩하는 게 아니라
-		// Graphics에 미리 생성한 후
-		// 데이터를 넘겨 업데이트 하고
-		// 슬롯 인덱스를 넘겨 바인딩하는 방식을
-		// 재미나이가 추천한다.
-		template<typename T>
-		std::unique_ptr<ConstantBuffer> CreateConstantBuffer();
-		
-		
 		std::unique_ptr<VertexBuffer> CreateVertexBuffer(uint32_t stride, uint32_t count, const void* data);
 		std::unique_ptr<IndexBuffer> CreateIndexBuffer(eFormat format, uint32_t count, const void* data);
 
@@ -85,8 +79,10 @@ namespace Dive
 		// 위의 CreateConstantBuffer는 지우고 UpdateConstantBuffer를 추가하자.
 		void UpdateConstantBuffer(eCBufferSlot slot, const void* data, uint32_t size);
 		void BindConstantBuffer(eCBufferSlot slot);
-		void BindVSConstantBuffer(eCBufferSlotVS slot, ConstantBuffer* cb);
-		void BindPSConstantBuffer(eCBufferSlotPS slot, ConstantBuffer* cb);
+		
+		void BindAllSamplers();
+
+		void BindTexture(std::shared_ptr<Texture2D> tex);
 
 		// 이것도 바꿔야 한다. BackBuffer랑 Cur의 구분이 필요하다.
 		ID3D11RenderTargetView* GetRenderTargetView() const { return m_backbufferRTV.Get(); }
@@ -166,24 +162,4 @@ namespace Dive
 		ePrimitiveTopology m_currentTopology = ePrimitiveTopology::None;
 		Viewport m_currentViewport;
 	};
-
-	template<typename T>
-	std::unique_ptr<ConstantBuffer> Graphics::CreateConstantBuffer()
-	{
-		auto cb = std::make_unique<ConstantBuffer>(sizeof(T));
-
-		D3D11_BUFFER_DESC desc{};
-		desc.Usage = D3D11_USAGE_DYNAMIC;
-		desc.ByteWidth = static_cast<UINT>(cb->GetSize());
-		desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-		if (FAILED(m_device->CreateBuffer(&desc, nullptr, cb->GetAddressOf())))
-		{
-			spdlog::error("상수 버퍼 생성 실패");
-			return nullptr;
-		}
-
-		return cb;
-	}
 }

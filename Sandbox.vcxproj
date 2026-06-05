@@ -157,7 +157,7 @@
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Renderer\ShaderTypes.h" />
+    <ClInclude Include="Source\Renderer\ShaderType.h" />
     <ClInclude Include="Source\Resource\Material.h" />
     <ClInclude Include="Source\Resource\Mesh.h" />
     <ClInclude Include="Source\Resource\Preset.h" />

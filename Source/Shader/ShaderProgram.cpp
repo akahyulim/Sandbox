@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "ShaderProgram.h"
 #include "Graphics/Graphics.h"
+#include "Shader.h"
+#include "InputLayout.h"
 
 namespace Dive
 {
@@ -16,10 +18,18 @@ namespace Dive
 	{
 	}
 
-	void ShaderProgram::Bind(Graphics* graphics)
+	ID3D11VertexShader* ShaderProgram::GetVertexShader() const
 	{
-		//graphics->BindVertexShader(m_vs.get());
-		//graphics->BindPixelShader(m_ps.get());
-		//graphics->BindInputLayout(m_il.get());
+		return m_vs ? m_vs->GetShader() : nullptr;
+	}
+
+	ID3D11PixelShader* ShaderProgram::GetPixelShader() const
+	{
+		return m_ps ? m_ps->GetShader() : nullptr;
+	}
+	
+	ID3D11InputLayout* ShaderProgram::GetInputLayout() const
+	{
+		return m_il ? m_il->GetLayout() : nullptr;
 	}
 }

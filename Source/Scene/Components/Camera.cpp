@@ -14,8 +14,8 @@ namespace Dive
 		static constexpr float NEAR_CLIP_PLANE = 0.1f;
 	}
 
-	Camera::Camera(GameObject* obj)
-		: Component(obj)
+	Camera::Camera(GameObject* owner)
+		: Component(owner)
 	{
 	}
 

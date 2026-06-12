@@ -12,7 +12,7 @@ namespace Dive
 	class MeshRenderer : public Component
 	{
 	public:
-		MeshRenderer(GameObject* obj);
+		MeshRenderer(GameObject* owner);
 		virtual ~MeshRenderer() override = default;
 
 		std::shared_ptr<Material> GetMaterial() const { return m_material; }

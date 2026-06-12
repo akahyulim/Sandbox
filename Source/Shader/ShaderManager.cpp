@@ -39,21 +39,7 @@ namespace Dive
 			spdlog::error("LitVS 생성 실패");
 			return false;
 		}
-		if (!createVertexShaderAndInputLayout(graphics, "Assets/Shaders/ResolveSceneVS.cso", eInputLayout::None))
-		{
-			spdlog::error("ResolbeSceneVS 생성 실패");
-			return false;
-		}
-		if (!createVertexShaderAndInputLayout(graphics, "Assets/Shaders/GridVS.cso", eInputLayout::None))
-		{
-			spdlog::error("GridVS 생성 실패");
-			return false;
-		}
-		if (!createVertexShaderAndInputLayout(graphics, "Assets/Shaders/SkyboxVS.cso", eInputLayout::None))
-		{
-			spdlog::error("SkyboxVS 생성 실패");
-			return false;
-		}
+		
 
 		// pixel shader
 		if(!createPixelShader(graphics, "Assets/Shaders/UnlitPS.cso"))
@@ -71,21 +57,7 @@ namespace Dive
 			spdlog::error("PbsPS 생성 실패");
 			return false;
 		}
-		if (!createPixelShader(graphics, "Assets/Shaders/ResolveScenePS.cso"))
-		{
-			spdlog::error("ResolveScenePS 생성 실패");
-			return false;
-		}
-		if (!createPixelShader(graphics, "Assets/Shaders/GridPS.cso"))
-		{
-			spdlog::error("GridPS 생성 실패");
-			return false;
-		}
-		if (!createPixelShader(graphics, "Assets/Shaders/SkyboxPS.cso"))
-		{
-			spdlog::error("SkyboxPS 생성 실패");
-			return false;
-		}
+		
 
 		// shader program
 		if(!createShaderProgram("UnlitVS", "UnlitPS", "Unlit"))
@@ -103,22 +75,7 @@ namespace Dive
 			spdlog::error("DefaultLit ShaderProgram 생성 실패");
 			return false;
 		}
-		if (!createShaderProgram("ResolveSceneVS", "ResolveScenePS", "ResolveScene"))
-		{
-			spdlog::error("ResolveScene ShaderProgram 생성 실패");
-			return false;
-		}
-		if (!createShaderProgram("GridVS", "GridPS", "Grid"))
-		{
-			spdlog::error("Grid ShaderProgram 생성 실패");
-			return false;
-		}
-		if (!createShaderProgram("SkyboxVS", "SkyboxPS", "Skybox"))
-		{
-			spdlog::error("Skybox ShaderProgram 생성 실패");
-			return false;
-		}
-		if (!createShaderProgram("LitVS", "UnlitPS", "Test"))
+		if (!createShaderProgram("LitVS", "UnlitPS", "DefaultUnlit"))
 		{
 			spdlog::error("Legacy ShaderProgram 생성 실패");
 			return false;

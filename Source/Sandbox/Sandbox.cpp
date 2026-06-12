@@ -10,6 +10,7 @@
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/MeshRenderer.h"
+#include "Scene/Components/Light.h"
 #include "Shader/ShaderManager.h"
 #include "Resource/ResourceManager.h"
 
@@ -112,23 +113,32 @@ namespace Dive
                 return false;
         }
 
-        // scene 초기화
-        {
-            m_scene->SetClearColor(Color::LightSkyBlue);
-            auto* mainCamera = m_scene->GetMainCamera();
-            auto* transform = mainCamera->GetTransform();
-            transform->SetPosition(0.0f, 0.0f, -5.0f);
-            auto* cameraCom = mainCamera->GetComponent<Camera>();
-            cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
-
-
-        }
-
         {
             if (!ResourceManager::GetInst().Initialize(m_graphics.get()))
                 return false;
 
-            auto tex = ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/DokeV.jpeg");
+            //ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/DokeV.jpeg");
+            ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/stone01.tga");
+            ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/normal01.tga");
+        }
+
+        // scene 초기화
+        // => New Scene으로 메서드화?
+        {
+            m_scene->SetClearColor(Color::LightSkyBlue);
+            auto plane = m_scene->AddPresetObject(ePresetType::Plane);
+            auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
+            mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/stone01.tga");
+            mat->SetTexture(eTextureMapType::Normal, "Assets/Textures/normal01.tga");
+            mat->SetTiling(5.0f, 5.0f);
+
+            auto* mainCamera = m_scene->GetMainCamera();
+            auto* transform = mainCamera->GetTransform();
+            transform->SetPosition(0.0f, 3.0f, -5.0f);
+            transform->LookAt(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
+
+            auto* cameraCom = mainCamera->GetComponent<Camera>();
+            cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
         }
 
         m_timer->Start();
@@ -148,28 +158,26 @@ namespace Dive
             this->cameraControll(dt);
 
             m_scene->Update(dt);
+            m_scene->PrepareRenderChannels();
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            // 텍스트 박스에 타이핑 중이 아닐 때만 단축키 가동 (방어 코드)
+            // 단축키 가동 (방어 코드)
             if (!ImGui::IsAnyItemActive())
             {
                 if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
                 {
                     Window::GetInst().Close();
                 }
-
-                // 나중에 Ctrl+S(저장), Ctrl+C(복사) 등도 여기에 줄줄이 얹으시면 됩니다.
             }
 
-            // 💡 [핵심] 현재 메인 윈도우 창의 위치와 크기를 그대로 가져옵니다.
+            // 현재 메인 윈도우 창의 위치와 크기 확보
             const ImGuiViewport* viewport = ImGui::GetMainViewport();
             ImGui::SetNextWindowPos(viewport->WorkPos);
             ImGui::SetNextWindowSize(viewport->WorkSize);
 
-            // 창의 외각선, 타이틀바, 크기 조절, 스크롤바 등을 전부 무력화하는 플래그 설정
             ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration |
                 ImGuiWindowFlags_NoMove |
                 ImGuiWindowFlags_NoResize |
@@ -198,24 +206,33 @@ namespace Dive
 
                     ImGui::Separator();
 
+                    if (ImGui::BeginMenu("Settings"))
+                    {
+                        ImGui::MenuItem("Light", nullptr, &m_showLightDialog, m_scene != nullptr);
+                        
+                        if (ImGui::MenuItem("Sky", nullptr, nullptr, m_scene != nullptr))
+                        {
+                        }
+                        if (ImGui::MenuItem("Ground", nullptr, nullptr, m_scene != nullptr))
+                        {
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::Separator();
+
                     if (ImGui::BeginMenu("3D Object"))
                     {
                         if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
                         {
                             auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
                             triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-
                         }
                         if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
                         {
                             auto quad = m_scene->AddPresetObject(ePresetType::Quad);
                             quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Plane", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto plane = m_scene->AddPresetObject(ePresetType::Plane);
-                            auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
-                            mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/DokeV.jpeg");
                         }
                         if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
                         {
@@ -234,12 +251,11 @@ namespace Dive
                         }
                         if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
                         {
-
                         }
                         ImGui::EndMenu();
                     }
 
-                    ImGui::Separator(); // 구분선
+                    ImGui::Separator();
 
                     if (ImGui::MenuItem("Copy", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
                     {
@@ -272,12 +288,74 @@ namespace Dive
             }
             ImGui::End();
 
+            if (m_showLightDialog)
+            {
+                const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+                ImVec2 windowPos = ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x - 320.0f, mainViewport->WorkPos.y + 20.0f);
+                ImVec2 windowSize = ImVec2(300.0f, 200.0f);
+
+                ImGui::SetNextWindowPos(windowPos, ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
+
+                if (ImGui::Begin("Light Manager", &m_showLightDialog, ImGuiWindowFlags_NoSavedSettings))
+                {
+                    ImGui::Text("Directional Light Settings");
+                    ImGui::Separator();
+
+                    // 🌟 변경 감지를 위해 하나로 묶기
+                    bool isChanged = false;
+                    if (ImGui::ColorEdit3("Color", &m_lightEditorData.color.x)) isChanged = true;
+                    if (ImGui::SliderFloat("Intensity", &m_lightEditorData.intensity, 0.0f, 5.0f, "%.2f")) isChanged = true;
+
+                    ImGui::Spacing();
+                    ImGui::Text("Rotation Angles");
+                    if (ImGui::SliderFloat("Pitch", &m_lightEditorData.pitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
+                    if (ImGui::SliderFloat("Yaw", &m_lightEditorData.yaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
+
+                    static bool isFirstFrame = true;
+                    if (isChanged || isFirstFrame)
+                    {
+                        // 1. 컴포넌트 포인터 확보
+                        if (auto lightObj = m_scene->GetDirectionalLight())
+                        {
+                            if (auto dirLight = lightObj->GetComponent<Light>())
+                            {
+                                // 2. [색상 및 강도 적용] 결합하여 최종 컬러 생성 후 즉시 셋업
+                                DirectX::XMFLOAT4 finalColor = DirectX::XMFLOAT4(
+                                    m_lightEditorData.color.x * m_lightEditorData.intensity,
+                                    m_lightEditorData.color.y * m_lightEditorData.intensity,
+                                    m_lightEditorData.color.z * m_lightEditorData.intensity,
+                                    m_lightEditorData.intensity
+                                );
+                                dirLight->SetColor(finalColor);
+
+
+                                // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
+                                float pitchRad = DirectX::XMConvertToRadians(m_lightEditorData.pitch);
+                                float yawRad = DirectX::XMConvertToRadians(m_lightEditorData.yaw);
+
+                                DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
+                                DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+                                DirectX::XMVECTOR finalDir = DirectX::XMVector3TransformNormal(baseDir, rotMatrix);
+                                finalDir = DirectX::XMVector3Normalize(finalDir);
+
+                                DirectX::XMFLOAT3 finalDirF3;
+                                DirectX::XMStoreFloat3(&finalDirF3, finalDir);
+                                dirLight->SetDirection(finalDirF3);
+                            }
+                        }
+                        isFirstFrame = false;
+                    }
+                }
+                ImGui::End();
+            }
+
             // 3D 공간 렌더링 (Renderer 레이어)
             m_renderer->Render(m_scene.get());
 
             m_graphics->BindMainRenderTarget();
 
-            // 4. UI 출력 및 Present (이전과 동일)
+            // 4. UI 출력 및 Present
             ImGui::Render();
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -295,118 +373,99 @@ namespace Dive
         if (auto mainCamera = m_scene->GetMainCamera())
         {
             auto& input = Input::GetInst();
-
             auto transform = mainCamera->GetTransform();
+
+            // Camera Pitch, Yaw 때문에 튀는 것을 방지
+            static bool isInitialized = false;
+            if (!isInitialized)
+            {
+                DirectX::XMFLOAT3 initialEuler = transform->GetLocalRotationRadians();
+
+                m_cameraPitch = initialEuler.x;
+                m_cameraYaw = initialEuler.y;
+                isInitialized = true;
+            }
+
             float moveSpeed = 0.001f * dt;
             if (input.KeyPress(DIK_LSHIFT))
                 moveSpeed *= BOOST_SPEED;
 
+            float rotSpeed = 0.5f * dt * 0.002f;
+
+            bool isRotated = false;
+
             if (input.MouseButtonPress(1))
             {
-                //if (ImGui::IsWindowHovered())
+                auto mouseMoveDelta = input.GetMouseMoveDelta();
+                if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
                 {
-                    auto mouseMoveDelta = input.GetMouseMoveDelta();
-                    if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
-                    {
-                        transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, mouseMoveDelta.x * moveSpeed, 0.0f));
-                        transform->RotateByDegrees(DirectX::XMFLOAT3(mouseMoveDelta.y * moveSpeed, 0.0f, 0.0f));
-                    }
-
-                    auto mouseWheelDelta = input.GetMouseWheelDelta();
-                    if (mouseWheelDelta != 0.0f)
-                        transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, mouseWheelDelta * moveSpeed));
+                    m_cameraYaw += mouseMoveDelta.x * rotSpeed;
+                    m_cameraPitch += mouseMoveDelta.y * rotSpeed;
+                    isRotated = true;
                 }
             }
 
-            if (input.MouseButtonDown(0))
+            if (input.KeyPress(DIK_LEFT))
             {
-                //if (ImGui::IsWindowHovered())
-                {
-                    //Ray ray = EditorContext::EditorCamera->GetComponent<Camera>()->ScreenPointToRay(GetMousePosition());
-                    //RaycastHit hit;
-                    //EditorContext::Selected =
-                    //    EditorContext::ActiveScene->Raycast(ray, &hit) ? hit.hitObject : nullptr;
-                }
+                m_cameraYaw -= rotSpeed;
+                isRotated = true;
+            }
+            if (input.KeyPress(DIK_RIGHT))
+            {
+                m_cameraYaw += rotSpeed;
+                isRotated = true;
+            }
+            if (input.KeyPress(DIK_UP))
+            {
+                m_cameraPitch -= rotSpeed;
+                isRotated = true;
+            }
+            if (input.KeyPress(DIK_DOWN))
+            {
+                m_cameraPitch += rotSpeed;
+                isRotated = true;
             }
 
-            //if (input.KeyDown(DIK_ESCAPE) && EditorContext::Selected != nullptr)
-            //    EditorContext::Selected = nullptr;
+            m_cameraPitch = std::clamp(m_cameraPitch, DirectX::XMConvertToRadians(-89.0f), DirectX::XMConvertToRadians(89.0f));
 
-            /*
-            if (input.KeyDown(DIK_F) && EditorContext::Selected != nullptr)
+            if (isRotated)
             {
-                auto selected = EditorContext::Selected;
-
-                // 선택된 오브젝트의 모든 MeshRenderer를 합쳐서 Bounds 계산
-                auto calculateCombineBounds = [](GameObject* target) -> Bounds
-                    {
-                        std::vector<MeshRenderer*> meshRenderers = target->GetComponentsInChildren<MeshRenderer>();
-
-                        if (meshRenderers.empty())
-                            return Bounds(target->GetTransform()->GetPosition(), DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
-
-                        Bounds combineBounds = meshRenderers[0]->GetBounds();
-
-                        for (size_t i = 1; i < meshRenderers.size(); ++i)
-                            combineBounds.Encapsulate(meshRenderers[i]->GetBounds());
-
-                        return combineBounds;
-                    };
-
-                Bounds bounds = calculateCombineBounds(selected);
-
-                auto transform = EditorContext::EditorCamera->GetTransform();
-                transform->LookAt(bounds.center, transform->GetUp());
+                DirectX::XMVECTOR cleanRotQuat = DirectX::XMQuaternionRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f);
+                transform->SetLocalRotationVector(cleanRotQuat);
             }
-            */
+
+            DirectX::XMVECTOR forward = transform->GetLocalForwardVector();
+            DirectX::XMVECTOR right = transform->GetLocalRightVector();
+            DirectX::XMVECTOR up = transform->GetLocalUpVector();
+
+            DirectX::XMVECTOR translation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
             if (input.KeyPress(DIK_W))
-            {
-                transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, moveSpeed));
-            }
+                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(forward, moveSpeed));
             if (input.KeyPress(DIK_S))
-            {
-                transform->Translate(DirectX::XMFLOAT3(0.0f, 0.0f, -moveSpeed));
-            }
-            if (input.KeyPress(DIK_A))
-            {
-                transform->Translate(DirectX::XMFLOAT3(-moveSpeed, 0.0f, 0.0f));
-            }
+                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(forward, moveSpeed));
             if (input.KeyPress(DIK_D))
-            {
-                transform->Translate(DirectX::XMFLOAT3(moveSpeed, 0.0f, 0.0f));
-            }
-            if (input.KeyPress(DIK_Q))
-            {
-                transform->Translate(DirectX::XMFLOAT3(0.0f, -moveSpeed, 0.0f));
-            }
+                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(right, moveSpeed));
+            if (input.KeyPress(DIK_A))
+                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(right, moveSpeed));
             if (input.KeyPress(DIK_E))
-            {
-                transform->Translate(DirectX::XMFLOAT3(0.0f, moveSpeed, 0.0f));
-            }
+                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(up, moveSpeed));
+            if (input.KeyPress(DIK_Q))
+                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(up, moveSpeed));
+
+            transform->TranslateVector(translation, eSpace::World);
 
             {
-                auto mouseWheelDelta = input.GetMouseWheelDelta();
-                if (mouseWheelDelta != 0.0f)
-                {
-                    //AddCameraSpeed(mouseWheelDelta);
-                }
-
-                if (input.KeyPress(DIK_LEFT))
-                {
-                    transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, -moveSpeed * 2.0f, 0.0f));
-                }
-                if (input.KeyPress(DIK_RIGHT))
-                {
-                    transform->RotateByDegrees(DirectX::XMFLOAT3(0.0f, moveSpeed * 2.0f, 0.0f));
-                }
-                if (input.KeyPress(DIK_UP))
-                {
-                    transform->RotateByDegrees(DirectX::XMFLOAT3(-moveSpeed * 2.0f, 0.0f, 0.0f));
-                }
-                if (input.KeyPress(DIK_DOWN))
-                {
-                    transform->RotateByDegrees(DirectX::XMFLOAT3(moveSpeed * 2.0f, 0.0f, 0.0f));
-                }
+                auto* dirLight = m_scene->GetDirectionalLight()->GetComponent<Light>();
+           
+                if (input.KeyDown(DIK_1))
+                    dirLight->SetDirection(-1.0f, -1.0f, 1.0f);
+                if (input.KeyDown(DIK_2))
+                    dirLight->SetDirection(1.0f, -1.0f, 1.0f);
+                if (input.KeyDown(DIK_3))
+                    dirLight->SetDirection(1.0f, -1.0f, -1.0f);
+                if (input.KeyDown(DIK_4))
+                    dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
             }
         }
     }

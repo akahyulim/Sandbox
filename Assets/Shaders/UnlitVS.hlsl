@@ -14,8 +14,8 @@ VSOutput MainVS(VSInput_Unlit input)
     float4 position = input.Position;
     position.w = 1.0f;
     
-    output.Position = mul(position, cbObjectVS.worldMatrix);
-    output.Position = mul(output.Position, cbCamera.viewProjMatrix);
+    output.Position = mul(position, gObject.worldMatrix);
+    output.Position = mul(output.Position, gCamera.viewProjMatrix);
 
     output.UV = input.UV;
     

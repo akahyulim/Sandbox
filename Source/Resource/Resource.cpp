@@ -29,7 +29,7 @@ namespace Dive
 		file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
 		file.close();
 
-		std::wstring_view extension = filePath.extension().native();
+		std::wstring extension = filePath.extension().wstring();
 
 		if (!Deserialize(buffer, extension))
 		{

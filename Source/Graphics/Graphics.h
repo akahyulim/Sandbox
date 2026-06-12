@@ -36,7 +36,7 @@ namespace Dive
 		Camera = 0,
 		Material,
 		Object,
-		cbLight,
+		Light,
 
 		Count
 	};
@@ -83,6 +83,7 @@ namespace Dive
 		void BindAllSamplers();
 
 		void BindTexture(std::shared_ptr<Texture2D> tex);
+		void BindTexture(UINT startSlot, std::shared_ptr<Texture2D> tex);
 
 		// 이것도 바꿔야 한다. BackBuffer랑 Cur의 구분이 필요하다.
 		ID3D11RenderTargetView* GetRenderTargetView() const { return m_backbufferRTV.Get(); }

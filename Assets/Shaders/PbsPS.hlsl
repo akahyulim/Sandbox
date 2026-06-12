@@ -72,21 +72,15 @@ struct PSInput
 
 float4 MainPS(PSInput input) : SV_TARGET
 {
-    //return float4(1.0f, 0.0f, 0.0f, 1.0);
-
-return HasDiffuseMap() ? 
-DiffuseMap.Sample(WrapLinearSampler, input.UV) : float4(1.0, 0.0, 1.0, 1.0);
-
-    /*
     // Albedo
     float4 albedo = HasDiffuseMap() ?
-        DiffuseMap.Sample(WrapLinearSampler, input.UV) * cbMaterialPS.diffuseColor : cbMaterialPS.diffuseColor;
+        DiffuseMap.Sample(WrapLinearSampler, input.UV) * gMaterial.diffuseColor : gMaterial.diffuseColor;
 
     // Metallic & Roughness
     float metallic = 1.0;//HasMetallicMap() ?
-        //MetallicMap.Sample(WrapLinearSampler, input.UV).r : cbMaterialPS.metallic;
+        //MetallicMap.Sample(WrapLinearSampler, input.UV).r : gMaterial.metallic;
     float roughness = 0.2;//HasRoughnessMap() ?
-        //RoughnessMap.Sample(WrapLinearSampler, input.UV).r : cbMaterialPS.roughness;
+        //RoughnessMap.Sample(WrapLinearSampler, input.UV).r : gMaterial.roughness;
 
     // Normal
     float3 normal = input.Normal;
@@ -97,8 +91,9 @@ DiffuseMap.Sample(WrapLinearSampler, input.UV) : float4(1.0, 0.0, 1.0, 1.0);
         normal = normalize(mul(bumpMap, TBN));
     }
 
-    float3 V = normalize(cbCamera.position.xyz - input.WorldPos);
+    float3 V = normalize(gCamera.position.xyz - input.WorldPos);
 
+/*
     float3 finalColor = cbForwardLightPS.ambientColor;
     for (int i = 0; i < cbForwardLightPS.lightCount; ++i)
     {
@@ -112,7 +107,11 @@ DiffuseMap.Sample(WrapLinearSampler, input.UV) : float4(1.0, 0.0, 1.0, 1.0);
 
         finalColor += BRDF_PBR(normal, V, L, albedo.xyz, metallic, roughness) * light.color * light.intensity;
     }
-
+*/
+    float3 finalColor = float3(0.1, 0.1, 0.1);
+    LightData light = gLight;
+    float3 L = normalize(-light.direction);
+    finalColor += BRDF_PBR(normal, V, L, albedo.xyz, metallic, roughness) * light.color;
+    
     return float4(finalColor, albedo.a);//1.0f);
-    */
 }

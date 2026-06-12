@@ -5,13 +5,13 @@
 
 namespace Dive
 {
-	Component::Component(GameObject* gameObject)
-		: m_owner(gameObject)
+	Component::Component(GameObject* owner)
+		: m_owner(owner)
 	{
 	}
 
 
-	GameObject* Component::GetGameObject() const
+	GameObject* Component::GetOwner() const
 	{
 		return m_owner;
 	}

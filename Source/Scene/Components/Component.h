@@ -17,7 +17,7 @@ namespace Dive
 	class Component
 	{
 	public:
-		Component(GameObject* gameObject);
+		Component(GameObject* owner);
 		virtual ~Component() = default;
 		
 		virtual void Awake() {}
@@ -34,7 +34,7 @@ namespace Dive
 
 		//std::string GetName() const override;
 
-		GameObject* GetGameObject() const;
+		GameObject* GetOwner() const;
 		Transform* GetTransform() const;
 
 		bool IsDirty() const { return m_isDirty; }

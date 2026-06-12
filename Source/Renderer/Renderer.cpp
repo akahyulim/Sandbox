@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "Renderer.h"
-#include "ShaderType.h"
+#include "Graphics/ShaderType.h"
 #include "Graphics/Graphics.h"
 #include "Graphics/RenderPass.h"
 #include "Graphics/PipelineState.h"
@@ -10,6 +10,7 @@
 #include "Scene/Components/MeshRenderer.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
+#include "Scene/Components/Light.h"
 #include "Resource/Material.h"
 #include "Resource/StaticMesh.h"
 
@@ -56,13 +57,20 @@ namespace Dive
 				cameraData.viewMatrix = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
 				cameraData.projMatrix = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
 				cameraData.viewProjMatrix = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
-				auto& pos = camera->GetTransform()->GetPosition();
+				auto pos = camera->GetTransform()->GetPosition();
 				cameraData.position = DirectX::XMFLOAT4(pos.x, pos.y, pos.z, 1.0f);
 				//cameraData.backgroundColor = camera->GetBackgroundColor();
 
 				// Graphics가 가진 b0 전역 버퍼에 데이터를 밀어 넣고 바인딩합니다.
 				m_graphics->UpdateConstantBuffer(eCBufferSlot::Camera, &cameraData, sizeof(cameraData));
 				m_graphics->BindConstantBuffer(eCBufferSlot::Camera);
+			}
+
+			// dir light
+			{
+				auto& dirLightData = scene->GetDirectionalLight()->GetComponent<Light>()->GetLightData();
+				m_graphics->UpdateConstantBuffer(eCBufferSlot::Light, &dirLightData, sizeof(dirLightData));
+				m_graphics->BindConstantBuffer(eCBufferSlot::Light);
 			}
 
 			for (GameObject* drawable : scene->GetDrawable())
@@ -75,7 +83,7 @@ namespace Dive
 				// UpdateObjectConstantBuffer(transform); 역시 이렇게 메서드 활용을 제안하고 있다.
 				{
 					cbObject objData{};
-					objData.worldMatrix = DirectX::XMMatrixTranspose(transform->GetTransformMatrix());
+					objData.worldMatrix = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
 					m_graphics->UpdateConstantBuffer(eCBufferSlot::Object, &objData, sizeof(objData));
 					m_graphics->BindConstantBuffer(eCBufferSlot::Object);
 				}

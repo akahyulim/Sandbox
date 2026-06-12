@@ -16,7 +16,7 @@ namespace Dive
 	class Camera : public Component
 	{
 	public:
-		Camera(GameObject* obj);
+		Camera(GameObject* owner);
 		virtual ~Camera() override = default;
 
 		DirectX::XMFLOAT4X4 GetView() const;

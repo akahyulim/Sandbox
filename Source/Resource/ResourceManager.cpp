@@ -21,6 +21,14 @@ namespace Dive
 		assert(graphics);
 		m_graphics = graphics;
 
+		// Default Material
+		auto defaultMat = std::make_shared<Material>();
+		defaultMat->SetShader("LegacyLit");
+		defaultMat->SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
+		Register("Default_Material", defaultMat);
+
+		// Preset Meshes
+
 		spdlog::info("초기화 성공");
 
 		return true;
@@ -83,52 +91,24 @@ namespace Dive
 		return mesh;
 	}
 	
-	void ResourceManager::Register(const std::shared_ptr<Resource>& resource)
-	{
-		auto& filepath = resource->GetFilepath();
-		auto key = filepath.generic_string();
-		auto it = m_resources.find(key);
-		if (it != m_resources.end())
-		{
-			spdlog::warn("[::Register] 이미 등록된 리소스: {}", filepath.string());
-			return;
-		}
-
-		m_resources[key] = resource;
-	}
-	
 	void ResourceManager::Unload(const std::shared_ptr<Resource>& resource)
 	{
 		if (!resource)
 		{
-			spdlog::warn("[::Unload] 잘못된 리소스 객체 전달");
+			spdlog::warn("ResourceManager::Unload - 잘못된 리소스 객체 전달");
 			return;
 		}
 
-		auto key = resource->GetFilepath().generic_string();
-		if (key.empty())
-		{
-			spdlog::warn("[::Unload] 리소스 Key 불일치");
-			return;
-		}
+		std::string key = resource->GetFilepath().string();
 
-		auto it = m_resources.find(key);
-		if (it != m_resources.end())
-			m_resources.erase(it);
+		Unload(key);
 	}
 
-	void ResourceManager::Unload(const std::filesystem::path& filepath)
+	void ResourceManager::Unload(const std::string& key)
 	{
-		if (filepath.empty())
-		{
-			spdlog::warn("[::Unload] 잘못된 리소스 파일 경로 전달");
-			return;
-		}
-
-		auto key = filepath.generic_string();
 		if (key.empty())
 		{
-			spdlog::warn("[::Unload] 리소스 Key 불일치");
+			spdlog::warn("ResourceManager::Unload -  잘못된 리소스 키 전달: {}", key);
 			return;
 		}
 
@@ -162,12 +142,12 @@ namespace Dive
 		}
 		catch (const std::filesystem::filesystem_error e)
 		{
-			spdlog::error("[::SetResourcePath] 파일 시스템 에러: {}", e.what());
+			spdlog::error("ResourceManager::SetResourcePath - 파일 시스템 에러: {}", e.what());
 			return;
 		}
 		catch(const std::exception e)
 		{
-			spdlog::error("[::SetResourcePath] 예외 처리 발생: {}", e.what());
+			spdlog::error("ResourceManager::SetResourcePath - 예외 처리 발생: {}", e.what());
 			return;
 		}
 	}

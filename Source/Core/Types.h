@@ -73,22 +73,7 @@ namespace Dive
 		Skybox,
 		Count
 	};
-	/*
-	enum class eCBufferSlotVS : uint8_t
-	{
-		Camera = 0,
-		Object = 1,
-		Count
-	};
 
-	enum class eCBufferSlotPS : uint8_t
-	{
-		Camera = 0,
-		Material = 1,
-		cbLight = 2,
-		Count
-	};
-	*/
 	enum class eInputLayout : uint8_t
 	{
 		None = 0,
@@ -196,6 +181,13 @@ namespace Dive
 		None
 	};
 
+	enum class eLightType : uint32_t
+	{
+		Directional = 0,
+		Point,
+		Spot
+	};
+
 	struct Viewport
 	{
 		float topLeftX = 0.0f;
@@ -224,8 +216,14 @@ namespace Dive
 
 		Color() : r(0), g(0), b(0), a(1.0f) {}
 		Color(float red, float green, float blue, float alpha = 1.0f) : r(red), g(green), b(blue), a(alpha) {}
+		Color(const DirectX::XMFLOAT4& color) : r(color.x), g(color.y), b(color.z), a(color.w) {}
 
 		operator const float* () const { return &r; }
+		operator float* () { return &r; }
+		
+		operator DirectX::XMFLOAT4() const { return DirectX::XMFLOAT4(r, g, b, a); }
+
+		//DirectX::XMVECTOR ToVector() const { return DirectX::XMLoadFloat4(&(DirectX::XMFLOAT4)*this); }
 
 		static const Color Black;
 		static const Color White;

@@ -14,6 +14,10 @@ namespace Dive
 	// 이유는 모르겠지만 전방선언만으로 해결되지 않는다.
 	//class GameObject;
 
+	class Camera;
+	class Light;
+	class MeshRenderer;
+
 	class Scene
 	{
 	public:
@@ -21,7 +25,9 @@ namespace Dive
 		~Scene();
 
 		void Update(float dt);
+		void PrepareRenderChannels();
 
+		GameObject* AddLightObject(eLightType type);
 		GameObject* AddPresetObject(ePresetType type);
 		GameObject* AddModelObject(const std::filesystem::path& modelPath);
 
@@ -34,7 +40,8 @@ namespace Dive
 		Color GetClearColor() const { return m_clearColor; }
 		void SetClearColor(const Color& color) { m_clearColor = color; }
 
-		GameObject* GetMainCamera() { return m_mainCamera.get(); }
+		GameObject* GetMainCamera() const { return m_mainCamera.get(); }
+		GameObject* GetDirectionalLight() const { return m_dirLight.get(); }
 		const std::vector<std::unique_ptr<GameObject>>& GetGameObjects() const { return m_objects; }
 
 		GameObject* GetSelectedObject() const { return m_selectedObject; }
@@ -42,14 +49,19 @@ namespace Dive
 
 		std::vector<GameObject*> GetDrawable();
 
-	private:
 
 	private:
 		Color m_clearColor = Color::White;
 
 		std::unique_ptr<GameObject> m_mainCamera;
+		std::unique_ptr<GameObject> m_dirLight;
 		std::vector<std::unique_ptr<GameObject>> m_objects;
-		GameObject* m_selectedObject = nullptr;
 		
+		GameObject* m_selectedObject = nullptr;
+
+		std::vector<Light*> m_pointLights;
+		std::vector<Light*> m_spotLights;
+		std::vector<MeshRenderer*> m_opaqueRenderers;
+		std::vector<MeshRenderer*> m_transparentRenderers;
 	};
 }

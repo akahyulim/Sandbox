@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <DirectXMath.h>
 
-// Graphics로 옮기라고 한다.
 namespace Dive
 {
     // 상수 버퍼 내의 배열 크기 지정을 위한 매크로 (HLSL과 동기화)
@@ -35,22 +34,20 @@ namespace Dive
         DirectX::XMMATRIX worldMatrix;
     };
 
-    // 이건 cbLight라고 보기에 좀 아쉽다.
-    // Light이고 아래의 cbForwardLight에 포함되는 데이터다.
     struct cbLight
     {
-        uint32_t type;
-        DirectX::XMFLOAT3 color;
-        
-        float intensity;
-        DirectX::XMFLOAT3 position;
-        
-        float rangeRcp;
-        DirectX::XMFLOAT3 direction;
-        
-        float innerAngle;
-        float outerAngle;
-        uint32_t padding[2];
+        DirectX::XMFLOAT3 color = { 1.0f, 1.0f, 1.0f };
+        uint32_t type = 0;
+
+        DirectX::XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
+        float rangeRcp = 1.0f / 50.0f;
+
+        DirectX::XMFLOAT3 direction = { 0.0f, -1.0f, 0.0f };
+        float paddingRow3 = 0.0f;
+
+        float cosInnerAngle = 1.0f;
+        float cosOuterAngle = 0.707f;
+        uint32_t paddingRow4[2] = { 0, 0 };
     };
 
     struct cbForwardLight

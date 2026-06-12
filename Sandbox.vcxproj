@@ -152,12 +152,12 @@
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
     <ClInclude Include="Source\Graphics\PipelineState.h" />
     <ClInclude Include="Source\Graphics\RenderPass.h" />
+    <ClInclude Include="Source\Graphics\ShaderType.h" />
     <ClInclude Include="Source\Graphics\Vertex.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Renderer\ShaderType.h" />
     <ClInclude Include="Source\Resource\Material.h" />
     <ClInclude Include="Source\Resource\Mesh.h" />
     <ClInclude Include="Source\Resource\Preset.h" />

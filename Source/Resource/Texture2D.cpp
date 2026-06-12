@@ -25,7 +25,15 @@ namespace Dive
         {
             hr = DirectX::LoadFromDDSMemory(fileBuffer.data(), fileBuffer.size(), DirectX::DDS_FLAGS_NONE, m_metaData.get(), *m_scratchImage);
         }
-        else // .png, .jpg, .tga, .bmp 등
+        else if (EqualsIgnoreCase(extension, L".tga"))
+        {
+            hr = DirectX::LoadFromTGAMemory(
+                fileBuffer.data(), fileBuffer.size(),
+                DirectX::TGA_FLAGS_NONE, // 필요시 TGA_FLAGS_NONE 사용
+                m_metaData.get(), *m_scratchImage
+            );
+        }
+        else // .png, .jpg, .bmp 등
         {
             hr = DirectX::LoadFromWICMemory(fileBuffer.data(), fileBuffer.size(), DirectX::WIC_FLAGS_NONE, m_metaData.get(), *m_scratchImage);
         }

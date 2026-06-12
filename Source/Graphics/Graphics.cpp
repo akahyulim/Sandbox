@@ -577,6 +577,15 @@ namespace Dive
 		m_deviceContext->PSSetShaderResources(0, 1, &srv);
 	}
 
+	void Graphics::BindTexture(UINT startSlot, std::shared_ptr<Texture2D> tex)
+	{
+		if (tex == nullptr)
+			return;
+
+		auto srv = tex->GetShaderResourceView();
+		m_deviceContext->PSSetShaderResources(startSlot, 1, &srv);
+	}
+
 	bool Graphics::setupViews()
 	{
 		assert(m_swapChain.Get());

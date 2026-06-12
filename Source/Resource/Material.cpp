@@ -3,7 +3,7 @@
 #include "Texture2D.h"
 #include "Graphics/Graphics.h"
 #include "ResourceManager.h"
-#include "Renderer/ShaderType.h"
+#include "Graphics/ShaderType.h"
 #include "Shader/ShaderManager.h"
 #include "Shader/ShaderProgram.h"
 
@@ -23,13 +23,21 @@ namespace Dive
 	{
 		assert(graphics);
 
-		auto tex = m_textures[eTextureMapType::Diffuse];
-		if (tex)
-			graphics->BindTexture(tex);
+		auto& diffTex = m_textures[eTextureMapType::Diffuse];
+		if (diffTex)
+			graphics->BindTexture(static_cast<UINT>(eTextureMapType::Diffuse), diffTex);	// 슬롯을 전달해야 한다.
+		auto& norTex = m_textures[eTextureMapType::Normal];
+		if (norTex)
+			graphics->BindTexture(static_cast<UINT>(eTextureMapType::Normal), norTex);
 
 		cbMaterial data{};
-		if (tex)
+		if (diffTex)
 			data.flags |= 1U;
+		if (norTex)
+			data.flags |= 1U << 1;
+		data.diffuseColor = m_diffuseColor;
+		data.tiling = m_tiling;
+		data.offset = m_offset;
 
 		graphics->UpdateConstantBuffer(eCBufferSlot::Material, &data, sizeof(data));
 		graphics->BindConstantBuffer(eCBufferSlot::Material);
@@ -85,7 +93,7 @@ namespace Dive
 			return;
 		}
 
-		std::shared_ptr<Texture2D> tex = filepath.empty() ? nullptr : ResourceManager::GetInst().Get<Texture2D>(filepath);
+		std::shared_ptr<Texture2D> tex = filepath.empty() ? nullptr : ResourceManager::GetInst().GetFromFile<Texture2D>(filepath);
 
 		if (tex != nullptr)
 		{

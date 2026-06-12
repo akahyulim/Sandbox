@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compile VS from current file",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/Scripts/compile-shader.ps1",
+        "-ShaderFile", "${file}",
+        "-Stage", "vs_5_0",
+        "-Entry", "MainVS"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Compile PS from current file",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/Scripts/compile-shader.ps1",
+        "-ShaderFile", "${file}",
+        "-Stage", "ps_5_0",
+        "-Entry", "MainPS"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

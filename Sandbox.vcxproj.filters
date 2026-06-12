@@ -199,11 +199,11 @@
     <ClInclude Include="Source\Resource\Material.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\ShaderType.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Input\Input.h">
       <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ShaderType.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

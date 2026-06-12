@@ -217,32 +217,7 @@ namespace Dive
 		outVertices.emplace_back(XMFLOAT3(CUBE_SIZE / 2, CUBE_SIZE / 2, -CUBE_SIZE / 2), XMFLOAT2(0, 0), XMFLOAT3(1, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, -1, 0));
 		outVertices.emplace_back(XMFLOAT3(CUBE_SIZE / 2, -CUBE_SIZE / 2, CUBE_SIZE / 2), XMFLOAT2(1, 1), XMFLOAT3(1, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, -1, 0));
 		outVertices.emplace_back(XMFLOAT3(CUBE_SIZE / 2, CUBE_SIZE / 2, CUBE_SIZE / 2), XMFLOAT2(1, 0), XMFLOAT3(1, 0, 0), XMFLOAT3(0, 0, 1), XMFLOAT3(0, -1, 0));
-
-		// 전면 (정상)
-		outIndices.emplace_back(0);	outIndices.emplace_back(1);	outIndices.emplace_back(2);
-		outIndices.emplace_back(2);	outIndices.emplace_back(1);	outIndices.emplace_back(3);
-
-		// 후면 (⭕ 수정)
-		outIndices.emplace_back(4);	outIndices.emplace_back(6);	outIndices.emplace_back(5);
-		outIndices.emplace_back(5);	outIndices.emplace_back(6);	outIndices.emplace_back(7);
-
-		// 위 (정상)
-		outIndices.emplace_back(8);	outIndices.emplace_back(9);	outIndices.emplace_back(10);
-		outIndices.emplace_back(10);	outIndices.emplace_back(9);	outIndices.emplace_back(11);
-
-		// 아래 (⭕ 수정)
-		outIndices.emplace_back(12);	outIndices.emplace_back(14);	outIndices.emplace_back(13);
-		outIndices.emplace_back(13);	outIndices.emplace_back(14);	outIndices.emplace_back(15);
-
-		// 왼쪽 (⭕ 수정)
-		outIndices.emplace_back(16);	outIndices.emplace_back(18);	outIndices.emplace_back(17);
-		outIndices.emplace_back(17);	outIndices.emplace_back(18);	outIndices.emplace_back(19);
-
-		// 오른쪽 (정상)
-		outIndices.emplace_back(20);	outIndices.emplace_back(21);	outIndices.emplace_back(22);
-		outIndices.emplace_back(22);	outIndices.emplace_back(21);	outIndices.emplace_back(23);
-
-		/*
+		
 		// 전면
 		outIndices.emplace_back(0);	outIndices.emplace_back(1);	outIndices.emplace_back(2);
 		outIndices.emplace_back(2);	outIndices.emplace_back(1);	outIndices.emplace_back(3);
@@ -266,7 +241,6 @@ namespace Dive
 		// 오른쪽
 		outIndices.emplace_back(20);	outIndices.emplace_back(21);	outIndices.emplace_back(22);
 		outIndices.emplace_back(22);	outIndices.emplace_back(21);	outIndices.emplace_back(23);
-		*/
 	}
 
 	void Preset::GenerateSphere(std::vector<StaticVertex>& outVertices, std::vector<uint32_t>& outIndices)

@@ -6,12 +6,12 @@
 #include <d3d11_3.h>
 #include <DXGI1_3.h>
 #include <Windows.h>
-#include <spdlog/spdlog.h>
 #include <filesystem>
 
 #include "Core/Types.h"
 #include "PipelineState.h"
 #include "RenderPass.h"
+#include "Geometry.h"
 
 namespace DirectX
 {
@@ -23,12 +23,12 @@ namespace Dive
 {
 	class VertexBuffer;
 	class IndexBuffer;
-	class ConstantBuffer;
 	class VertexShader;
 	class PixelShader;
 	class InputLayout;
-	
 	class Texture2D;
+	class RenderTexture;
+	class StaticMesh;
 
 	// ShaderType.h로 옮겨야 한다.
 	enum class eCBufferSlot : uint32_t
@@ -44,7 +44,26 @@ namespace Dive
 	class Graphics
 	{
 	public:
-		Graphics() = default;
+		// 1. 키로 사용할 구조체 정의
+		struct ILKey {
+			eInputLayout type;
+			std::string shaderPath;
+
+			// unordered_map을 위해 == 연산자 오버로딩
+			bool operator==(const ILKey& other) const {
+				return type == other.type && shaderPath == other.shaderPath;
+			}
+		};
+
+		// 2. 해시 함수 정의 (unordered_map용)
+		struct ILHasher {
+			size_t operator()(const ILKey& k) const {
+				// type의 해시와 경로 문자열의 해시를 조합
+				return std::hash<int>{}((int)k.type) ^ (std::hash<std::string>{}(k.shaderPath) << 1);
+			}
+		};
+
+		Graphics();
 		~Graphics();
 
 		bool Initialize(HWND hWnd, uint32_t width, uint32_t height, bool windowed);
@@ -53,6 +72,8 @@ namespace Dive
 		void OnResizeViews();
 
 		void SetPipelineState(const PipelineState& state);
+		void BindPipelineState(const PipelineState& pso, uint32_t stencilRef, float blendFactor[4], uint32_t sampleMask);
+
 		void BeginRenderPass(const RenderPass& pass);
 		void EndRenderPass();
 		void BindMainRenderTarget();
@@ -62,16 +83,23 @@ namespace Dive
 
 		void Present() const;
 
+		std::shared_ptr<StaticMesh> CreateStaticMesh(const StaticGeometryData& data);
+		// CreateSkinnedMesh
+
+		bool CreateRawBuffer(const D3D11_BUFFER_DESC& desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Buffer** ppBuffer);
 		std::unique_ptr<VertexBuffer> CreateVertexBuffer(uint32_t stride, uint32_t count, const void* data);
 		std::unique_ptr<IndexBuffer> CreateIndexBuffer(eFormat format, uint32_t count, const void* data);
 
 		std::shared_ptr<VertexShader> CreateVertexShader(const void* byteCode, size_t size);
 		std::shared_ptr<PixelShader> CreatePixelShader(const void* byteCode, size_t size);
 		std::shared_ptr<InputLayout> CreateInputLayout(eInputLayout type, const void* byteCode, size_t size);
+		ID3D11VertexShader* CreateVS(const void* byteCode, size_t size);
+		ID3D11InputLayout* CreateIL(eInputLayout type, const void* byteCode, size_t size);
+		ID3D11PixelShader* CreatePS(const void* byteCode, size_t size);
 
-		bool CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV);
-		bool CreateRenderTexture(uint32_t width, uint32_t height, DXGI_FORMAT format, ID3D11RenderTargetView** outRTV, ID3D11ShaderResourceView** outSRV);
-		bool CreateCubemap(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV);
+		std::shared_ptr<Texture2D> CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData);
+		std::shared_ptr<RenderTexture> CreateRenderTexture(uint32_t width, uint32_t height, 
+			DXGI_FORMAT colorFormat = DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT depthFormat = DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 		void BindVertexBuffer(VertexBuffer* vb);
 		void BindIndexBuffer(IndexBuffer* ib);
@@ -100,7 +128,7 @@ namespace Dive
 		void SetVSyncEnabled(bool enabled) { m_vSync = enabled; }
 
 	private:
-		bool setupViews();
+		bool updateBackbuffer();
 		bool createDepthStencilStates();
 		bool createRasterizerStates();
 		bool createBlendStates();
@@ -153,8 +181,6 @@ namespace Dive
 		
 		VertexBuffer* m_currentVB = nullptr;
 		IndexBuffer* m_currentIB = nullptr;
-		ID3D11Buffer* m_currentVSCB[14] = { nullptr };
-		ID3D11Buffer* m_currentPSCB[14] = { nullptr };
 
 		ID3D11VertexShader* m_currentVS = nullptr;
 		ID3D11PixelShader* m_currentPS = nullptr;

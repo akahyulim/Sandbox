@@ -7,20 +7,17 @@
 #include <vector>
 #include <memory>
 
-namespace DirectX
-{
-	class ScratchImage;
-	struct TexMetadata;
-}
-
 namespace Dive
 {
 	class Graphics;
 
 	class Texture : public Resource
 	{
+		friend class Graphics;
+
 	public:
 		Texture() = default;
+		Texture(uint32_t width, uint32_t height);
 		virtual ~Texture() override;
 
 		ID3D11ShaderResourceView* GetShaderResourceView() const { return m_srv.Get(); }
@@ -29,12 +26,9 @@ namespace Dive
 		uint32_t GetHeight() const { return m_height; }
 
 	protected:
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_srv;
-
-		std::unique_ptr<DirectX::ScratchImage> m_scratchImage;
-		std::unique_ptr<DirectX::TexMetadata> m_metaData;
-
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_srv;
 	};
 }

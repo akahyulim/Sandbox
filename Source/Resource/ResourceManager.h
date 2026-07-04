@@ -9,11 +9,14 @@
 #include "Preset.h"
 #include "Texture2D.h"
 #include "Material.h"
+#include "DvPipelineState.h"
+#include "ResourceDataLoader.h"
+#include "Graphics/Graphics.h"
 
 namespace Dive
 {
 	class Graphics;
-	
+
 	class ResourceManager
 	{
 	public:
@@ -52,7 +55,7 @@ namespace Dive
 
 		std::filesystem::path GetResourcePath() const;
 		void SetResourcePath(const std::filesystem::path& path);
-		
+
 	private:
 		ResourceManager();
 		~ResourceManager();
@@ -66,8 +69,8 @@ namespace Dive
 		std::unordered_map<ePresetType, std::shared_ptr<StaticMesh>> m_presetMeshes;
 	};
 
-	template<typename T>
-	std::shared_ptr<T> ResourceManager::Load(const std::filesystem::path& filepath)
+	template<>
+	inline std::shared_ptr<Texture2D> ResourceManager::Load<Texture2D>(const std::filesystem::path& filepath)
 	{
 		assert(m_graphics);
 
@@ -75,30 +78,31 @@ namespace Dive
 		// 절대 경로는 사용자에 따라 다를 수 있다.
 		if (filepath.is_absolute())
 		{
-			spdlog::error("[::Load] 절대경로를 전달받았습니다: {}", filepath.string());
-			return {};
+			spdlog::error("ResourceManager::Load - 절대경로를 전달받았습니다: {}", filepath.string());
+			return nullptr;
 		}
 
 		if (filepath.empty())
-			return {};
+			return nullptr;
 
 		std::string key = filepath.string();
 		auto it = m_resources.find(key);
 		if (it != m_resources.end())
-			return std::dynamic_pointer_cast<T>(it->second);
-
-		auto resource = std::make_shared<T>();
+			return std::dynamic_pointer_cast<Texture2D>(it->second);
 
 		std::filesystem::path fullpath = std::filesystem::path(m_resourcePath) / filepath;
 
-		if (!resource->LoadFromFile(fullpath))
-			return {};
-		if (!resource->Create(m_graphics))
-			return {};
-		resource->SetFilepath(filepath);
+		auto texData = ResourceDataLoader::LoadTextureData(fullpath);
+		if (!texData) 
+			return nullptr;
 
-		m_resources[key] = resource;
-		return resource;
+		auto texture = m_graphics->CreateTexture2D(texData->scratchImage.get(), texData->metaData.get());
+		if (!texture) 
+			return nullptr;
+
+		texture->SetFilepath(filepath);
+		m_resources[key] = texture;
+		return texture;
 	}
 
 	template<typename T>

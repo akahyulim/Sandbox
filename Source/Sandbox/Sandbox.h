@@ -1,16 +1,20 @@
 ﻿#pragma once
 #include <memory>
 
+#include "Core/Types.h"
+
 namespace Dive
 {
-	struct DirectionalLightEditor
+	struct EnviromentData
 	{
-		DirectX::XMFLOAT3 color = { 1.0f, 1.0f, 1.0f };
-		float intensity = 1.0f;
+		Color skyColor;
+		Color groundColor;
 
-		// 🌟 유저가 슬라이더로 조절할 회전 각도 (도 단위)
-		float pitch = 45.0f; // 상하 각도
-		float yaw = 45.0f;   // 좌우 각도
+		// 여전히 좀 아쉽다. cbLight에 intensity를 포함하는 쪽도 생각해보자.
+		Color lightColor = Color{ 1.0f, 1.0f, 1.0f, 1.0f };	// color = r, g, b, intensity = a
+
+		float lightPitch = 45.0f; // 상하 각도
+		float lightYaw = 45.0f;   // 좌우 각도
 	};
 
 	class Timer;
@@ -40,8 +44,8 @@ namespace Dive
 		float m_cameraPitch = 0.0f;
 		float m_cameraYaw = 0.0f;
 
-		bool m_showLightDialog = false;
+		bool m_showEnvDiralog = false;
 
-		DirectionalLightEditor m_lightEditorData;
+		EnviromentData m_enviromentData;
 	};
 }

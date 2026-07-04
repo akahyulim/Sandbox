@@ -7,12 +7,6 @@
     <Filter Include="Graphics">
       <UniqueIdentifier>{f01c0762-677e-41ca-b975-54b47404c631}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty">
-      <UniqueIdentifier>{d40db7ab-980d-4b53-81c7-6354c2bb5e68}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\ImGui">
-      <UniqueIdentifier>{69f898de-9eeb-49ee-96eb-f9e04bf5f6bc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Sandbox">
       <UniqueIdentifier>{a7df5f0b-26b8-4d9a-bd2b-fed5468bf0af}</UniqueIdentifier>
     </Filter>
@@ -25,44 +19,20 @@
     <Filter Include="Scene\Components">
       <UniqueIdentifier>{55e47961-63be-4e8e-9849-4b9413a6def7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader">
-      <UniqueIdentifier>{64624f03-7447-4c01-ad03-d92d9d7013c3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource">
       <UniqueIdentifier>{83405098-d49c-47df-bf94-b9884c79ce62}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\DirectXTex">
-      <UniqueIdentifier>{09b5f360-bfcb-49eb-8529-76685faadbf3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Input">
       <UniqueIdentifier>{6c62ed73-5797-41f0-aa0e-31d9e8df2f6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{06fd73a6-7054-4137-8c42-0a1b29474141}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\ImGui">
+      <UniqueIdentifier>{e520428b-0922-490c-a91f-27919b44f6bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\ThirdParty\imgui\imconfig.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imgui.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_impl_dx11.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_impl_win32.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_internal.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_rectpack.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_textedit.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_truetype.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\StringUtils.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -93,33 +63,15 @@
     <ClInclude Include="Source\Core\EventDispatcher.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ThirdParty\imgui\ImGuizmo.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\Graphics\ConstantBuffer.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Graphics\IndexBuffer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\Vertex.h">
+    <ClInclude Include="Source\Graphics\Geometry.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\VertexBuffer.h">
       <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Shader\Shader.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Shader\ShaderManager.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Shader\ShaderProgram.h">
-      <Filter>Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Shader\InputLayout.h">
-      <Filter>Shader</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\PipelineState.h">
       <Filter>Graphics</Filter>
@@ -169,27 +121,6 @@
     <ClInclude Include="Source\Resource\Preset.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTex.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTexP.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\filters.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\scoped.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DDS.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\BC.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ThirdParty\DirectXTex\BCDirectCompute.h">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Resource\Texture.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -205,29 +136,59 @@
     <ClInclude Include="Source\Graphics\ShaderType.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Resource\RenderTexture.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ResourceDataLoader.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\DvPipelineState.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\InputLayout.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Shader.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ShaderManager.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\ShaderProgram.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Runtime.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imconfig.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imgui.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imgui_impl_dx11.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imgui_impl_win32.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imgui_internal.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\ImGuizmo.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imstb_rectpack.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imstb_textedit.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\imstb_truetype.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_demo.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_draw.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_impl_dx11.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_impl_win32.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_tables.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_widgets.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Core\StringUtils.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -252,27 +213,12 @@
     <ClCompile Include="Source\Sandbox\Main.cpp">
       <Filter>Sandbox</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\ImGuizmo.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="Source\pch.cpp" />
-    <ClCompile Include="Source\Graphics\ConstantBuffer.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Graphics\IndexBuffer.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\VertexBuffer.cpp">
       <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Shader\Shader.cpp">
-      <Filter>Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Shader\ShaderManager.cpp">
-      <Filter>Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Shader\ShaderProgram.cpp">
-      <Filter>Shader</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\Renderer.cpp">
       <Filter>Renderer</Filter>
@@ -313,60 +259,6 @@
     <ClCompile Include="Source\Resource\Preset.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexD3D11.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexDDS.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexImage.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMipmaps.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexTGA.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexUtil.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexWIC.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexConvert.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexCompress.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexFlipRotate.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexHDR.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMisc.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexNormalMaps.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexPMAlpha.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexResize.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC4BC5.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC6HBC7.cpp">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Resource\Texture2D.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -379,10 +271,47 @@
     <ClCompile Include="Source\Input\Input.cpp">
       <Filter>Input</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Source\ThirdParty\DirectXTex\DirectXTex.inl">
-      <Filter>ThirdParty\DirectXTex</Filter>
-    </None>
+    <ClCompile Include="Source\Resource\RenderTexture.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ResourceDataLoader.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Shader.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ShaderManager.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\ShaderProgram.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Runtime.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_demo.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_draw.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_dx11.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_win32.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_tables.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_widgets.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\ImGuizmo.cpp">
+      <Filter>External\ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

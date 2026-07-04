@@ -12,16 +12,23 @@ namespace Dive
 	{
 		ePrimitiveTopology topology = ePrimitiveTopology::None;
 		
-		//std::shared_ptr<VertexShader> vertexShader;
-		//std::shared_ptr<PixelShader> pixelShader;
-		//std::shared_ptr<InputLayout> inputLayout;
-		std::shared_ptr<ShaderProgram> shaderProgram;
+		std::shared_ptr<ShaderProgram> shaderProgram = nullptr;
 		
 		eDepthStencilState depthStencilState = eDepthStencilState::Count;
 		eRasterizerState rasterizerState = eRasterizerState::Count;
 		eBlendState blendState = eBlendState::Count; 
-	//	eSamplerState samplerState = eSamplerState::Count;
 
+		bool operator==(const PipelineState& other) const
+		{
+			return topology == other.topology &&
+				shaderProgram == other.shaderProgram &&
+				depthStencilState == other.depthStencilState &&
+				rasterizerState == other.rasterizerState &&
+				blendState == other.blendState;
+		}
+
+		// 아래의 값들은 변경이 필요할 수 있다.
+		// 분리하는 편이 낫다.
 		uint32_t stencilRef = 0;
 		float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		uint32_t sampleMask = 0xFFFFFFFF;

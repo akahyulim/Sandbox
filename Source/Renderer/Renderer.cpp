@@ -1,18 +1,19 @@
 ﻿#include "pch.h"
 #include "Renderer.h"
 #include "Graphics/ShaderType.h"
-#include "Graphics/Graphics.h"
+//#include "Graphics/Graphics.h"
 #include "Graphics/RenderPass.h"
-#include "Graphics/PipelineState.h"
+//#include "Graphics/PipelineState.h"
 #include "Scene/Scene.h"
-#include "Shader/ShaderManager.h"
-#include "Shader/ShaderProgram.h"
+#include "Resource/ShaderManager.h"
+#include "Resource/ShaderProgram.h"
 #include "Scene/Components/MeshRenderer.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/Light.h"
 #include "Resource/Material.h"
 #include "Resource/StaticMesh.h"
+#include "Resource/RenderTexture.h"
 
 namespace Dive
 {
@@ -37,15 +38,25 @@ namespace Dive
 		if (scene == nullptr)
 			return;
 
+		ID3D11ShaderResourceView* srv = nullptr;
+
 		if (Camera* camera = scene->GetMainCamera()->GetComponent<Camera>())
 		{
-			RenderPass finalPass{};
-			finalPass.clearColor = scene->GetClearColor();	// camera에서 가지는 게 나을 듯?
-			finalPass.count = 1;
-			finalPass.rtvs[0] = m_graphics->GetRenderTargetView();
-			finalPass.dsv = m_graphics->GetDepthStencilView();
-			finalPass.viewport = camera->GetViewport();
-			m_graphics->BeginRenderPass(finalPass);
+			RenderPass opaquePass{};
+			opaquePass.clearColor = camera->GetClearColor();
+			opaquePass.count = 1;
+			opaquePass.rtvs[0] = camera->GetTargetTexture() ? camera->GetTargetTexture()->GetRenderTargetView() : m_graphics->GetRenderTargetView();
+			opaquePass.dsv = camera->GetTargetTexture() ? camera->GetTargetTexture()->GetDepthStencilView() : m_graphics->GetDepthStencilView();
+			{
+				auto width = m_graphics->GetWidth();
+				auto height = m_graphics->GetHeight();
+				Viewport viewport;
+				viewport.width = (float)width;
+				viewport.height = (float)height;
+				viewport.maxDepth = 1.0f;
+				opaquePass.viewport = viewport;// camera->GetViewport();
+			}
+			m_graphics->BeginRenderPass(opaquePass);
 
 			m_graphics->BindAllSamplers();
 
@@ -106,8 +117,156 @@ namespace Dive
 				m_graphics->DrawIndexed(mesh->GetIndexCount());
 				
 			}
+
+			srv = camera->GetTargetTexture()->GetShaderResourceView();
+
 			m_graphics->EndRenderPass();
 		}
+
+
+		// Resolve pass
+		{
+			RenderPass finalPass{};
+			finalPass.clearColor = Color::White;
+			finalPass.count = 1;
+			finalPass.rtvs[0] = m_graphics->GetRenderTargetView();
+			finalPass.dsv = m_graphics->GetDepthStencilView();
+			{
+				auto width = m_graphics->GetWidth();
+				auto height = m_graphics->GetHeight();
+				Viewport viewport;
+				viewport.width = (float)width;
+				viewport.height = (float)height;
+				viewport.maxDepth = 1.0f;
+				finalPass.viewport = viewport;// camera->GetViewport();
+			}
+			m_graphics->BeginRenderPass(finalPass);
+
+			m_graphics->GetDeviceContext()->PSSetShaderResources(30, 1, &srv);
+
+			PipelineState state{};
+			state.topology = ePrimitiveTopology::TriangleStrip;
+			state.shaderProgram = ShaderManager::GetInst().GetProgram("ResolveScene");
+			state.depthStencilState = eDepthStencilState::DepthReadWrite;
+			state.rasterizerState = eRasterizerState::FillSolid_CullBack;
+			m_graphics->SetPipelineState(state);
+
+			m_graphics->GetDeviceContext()->IASetVertexBuffers(0, 0, NULL, NULL, NULL);
+			m_graphics->Draw(4, 0);
+		}
+	}
+
+	void Renderer::SetPipelineState(const PipelineState& pso, uint32_t stencilRef, float blendFactor[4], uint32_t sampleMask)
+	{
+		if (m_currentPSO == pso &&
+			m_currentStencilRef == stencilRef &&
+			m_currentBlendFactor[0] == blendFactor[0] &&
+			m_currentBlendFactor[1] == blendFactor[1] &&
+			m_currentBlendFactor[2] == blendFactor[2] &&
+			m_currentBlendFactor[3] == blendFactor[3] &&
+			m_currentSampleMask == sampleMask)
+			return;
+
+		assert(m_graphics);
+
+		m_graphics->BindPipelineState(pso, stencilRef, blendFactor, sampleMask);
+
+		m_currentPSO = pso;
+		m_currentStencilRef = stencilRef;
+		m_currentBlendFactor[0] = blendFactor[0];
+		m_currentBlendFactor[1] = blendFactor[1];
+		m_currentBlendFactor[2] = blendFactor[2];
+		m_currentBlendFactor[3] = blendFactor[3];
+		m_currentSampleMask = sampleMask;
+	}
+
+	void Renderer::UpdateCameraBuffer(const cbCamera& data)
+	{
+		if (memcmp(&m_currentCameraData, &data, sizeof(cbCamera)) == 0)
+			return;
+
+		UpdateConstantBuffer(eCBufferSlot::Camera, &data, sizeof(data));
+
+		m_currentCameraData = data;
+	}
+
+	void Renderer::UpdateMaterialBuffer(const cbMaterial& data)
+	{
+		if (memcmp(&m_currentMaterialData, &data, sizeof(cbMaterial)) == 0)
+			return;
+
+		UpdateConstantBuffer(eCBufferSlot::Material, &data, sizeof(data));
+
+		m_currentMaterialData = data;
+	}
+
+	void Renderer::UpdateObjectBuffer(const cbObject& data)
+	{
+		if (memcmp(&m_currentObjectData, &data, sizeof(cbObject)) == 0)
+			return;
+
+		UpdateConstantBuffer(eCBufferSlot::Object, &data, sizeof(data));
+
+		m_currentObjectData = data;
+	}
+
+	void Renderer::UpdateLightBuffer(const cbLight& data)
+	{
+		if (memcmp(&m_currentLightData, &data, sizeof(cbLight)) == 0)
+			return;
+
+		UpdateConstantBuffer(eCBufferSlot::Light, &data, sizeof(data));
+
+		m_currentLightData = data;
+	}
+
+	void Renderer::DrawMesh(MeshRenderer* mr)
+	{
+		if (mr == nullptr)
+			return;
+
+		// 예시에선 raw ptr로 받았다.
+		auto mesh = mr->GetMesh();
+		auto mat = mr->GetMaterial();
+
+		// pso를 Resource로 다루는 게 나을 것 같다.
+		//BindPipelineState(mat->)
+		
+		//UpdateObjectBuffer(mr->)
+
+		BindVertexBuffer(mesh->GetVertexBuffer());
+		BindIndexBuffer(mesh->GetIndexBuffer());
+
+		m_graphics->DrawIndexed(mesh->GetIndexCount());
+	}
+
+	void Renderer::BindVertexBuffer(VertexBuffer* vb)
+	{
+		if (m_currentVB == vb)
+			return;
+
+		assert(m_graphics);
+
+		m_graphics->BindVertexBuffer(vb);
+		m_currentVB = vb;
+	}
+
+	void Renderer::BindIndexBuffer(IndexBuffer* ib)
+	{
+		if (m_currentIB == ib)
+			return;
+
+		assert(m_graphics);
+
+		m_graphics->BindIndexBuffer(ib);
+		m_currentIB = ib;
+	}
+
+	void Renderer::UpdateConstantBuffer(eCBufferSlot slot, const void* data, uint32_t size)
+	{
+		assert(m_graphics);
+
+		m_graphics->UpdateConstantBuffer(slot, data, size);
 	}
 
 	/*

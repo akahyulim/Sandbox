@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "ResourceManager.h"
-#include "Graphics/Graphics.h"
+#include "ShaderManager.h"
+#include "Graphics/Geometry.h"
 
 namespace Dive
 {
@@ -29,6 +30,20 @@ namespace Dive
 
 		// Preset Meshes
 
+		// PipelineStates
+		{
+			auto opaque = std::make_shared<DvPipelineState>();
+			opaque->topology = ePrimitiveTopology::TriangleList;
+			// ShaderMahager 초기화가 먼저 수행되어야 한다.
+			// 차라리 이름으로 저장하는 편이 나으려나...
+			// => ShaderManager를 ResourceManager로 통합하라고 한다.
+			// => 이 부분을 수행하자. ShaderProgram이 Resource를 상속해야 한다고 한다.
+			opaque->shaderProgram = ShaderManager::GetInst().GetProgram("DefaultLit");
+			opaque->depthStencilState = eDepthStencilState::DepthReadWrite;
+			opaque->rasterizerState = eRasterizerState::FillSolid_CullBack;
+			opaque->blendState = eBlendState::AlphaEnabled;
+		}
+
 		spdlog::info("초기화 성공");
 
 		return true;
@@ -45,52 +60,46 @@ namespace Dive
 		if (m_presetMeshes.contains(type))
 			return m_presetMeshes[type];
 
-		auto mesh = std::make_shared<StaticMesh>();
-		std::vector<StaticVertex> vertices;
-		std::vector<uint32_t> indices;
-		std::string name = "";
+		StaticGeometryData data;
+		std::string name;
 
 		switch (type)
 		{
 		case ePresetType::Triangle:
-			Preset::GenerateTriangle(vertices, indices);
+			data = Preset::GenerateTriangle();
 			name = "Triangle";
 			break;
 		case ePresetType::Quad:
-			Preset::GenerateQuad(vertices, indices);
+			data = Preset::GenerateQuad();
 			name = "Quad";
 			break;
 		case ePresetType::Plane:
-			Preset::GeneratePlane(vertices, indices);
+			data = Preset::GeneratePlane();
 			name = "Plane";
 			break;
 		case ePresetType::Cube:
-			Preset::GenerateCube(vertices, indices);
+			data = Preset::GenerateCube();
 			name = "Cube";
 			break;
 		case ePresetType::Sphere:
-			Preset::GenerateSphere(vertices, indices);
+			data = Preset::GenerateSphere();
 			name = "Sphere";
 			break;
 		case ePresetType::Capsule:
-			Preset::GenerateCapsule(vertices, indices);
+			data = Preset::GenerateCapsule();
 			name = "Capsule";
 			break;
 		}
 
-		mesh->SetVertices(vertices);
-		mesh->SetIndices(indices);
-		mesh->SetName(name);
-
-		if (!mesh->Create(m_graphics))
+		auto presetMesh = m_graphics->CreateStaticMesh(data);
+		if (presetMesh)
 		{
-			spdlog::error("ResourceManager::GetPresetMesh - 버퍼 생성 실패: {}", name);
-			return nullptr;
+			presetMesh->SetName(name);
+			m_presetMeshes[type] = presetMesh;
 		}
-
-		return mesh;
+		return presetMesh;
 	}
-	
+
 	void ResourceManager::Unload(const std::shared_ptr<Resource>& resource)
 	{
 		if (!resource)

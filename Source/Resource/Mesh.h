@@ -20,6 +20,8 @@ namespace Dive
 
 	class Mesh : public Resource
 	{
+		friend class Graphics;
+
 	public:
 		Mesh(eMeshType type) : m_meshType(type) {}
 		virtual ~Mesh();
@@ -31,11 +33,8 @@ namespace Dive
 		ePrimitiveTopology GetTopology() const { return m_primitiveTopology; }
 		void SetPrimitiveTopology(ePrimitiveTopology primitiveTopology) { m_primitiveTopology = primitiveTopology; }
 
-		virtual uint32_t GetVertexCount() const = 0;
-
-		std::vector<uint32_t> GetIndices() { return m_indices; }
-		void SetIndices(const std::vector<uint32_t>& indices) { m_indices = indices; }
-		uint32_t GetIndexCount() const { return static_cast<uint32_t>(m_indices.size()); }
+		uint32_t GetVertexCount() const { return m_vertexBuffer ? m_vertexBuffer->GetCount() : 0; }
+		uint32_t GetIndexCount() const { return m_indexBuffer ? m_indexBuffer->GetCount() : 0; }
 	
 		VertexBuffer* GetVertexBuffer() const { return m_vertexBuffer.get(); }
 		IndexBuffer* GetIndexBuffer() const { return m_indexBuffer.get(); }
@@ -46,8 +45,6 @@ namespace Dive
 		eMeshType m_meshType = eMeshType::None;
 
 		ePrimitiveTopology m_primitiveTopology = ePrimitiveTopology::TriangleList;
-
-		std::vector<uint32_t> m_indices;
 
 		std::unique_ptr<VertexBuffer> m_vertexBuffer;
 		std::unique_ptr<IndexBuffer> m_indexBuffer;

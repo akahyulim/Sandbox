@@ -27,10 +27,6 @@ namespace Dive
 		Material() = default;
 		virtual ~Material() override = default;
 
-		virtual bool Deserialize(const std::vector<uint8_t>& fileBuffer, std::wstring_view extension) override;
-
-		virtual bool Create(Graphics* graphics) override;
-
 		void Bind(Graphics* graphics);
 		
 		const std::string& GetShaderProgramName() const { return m_shaderName; }
@@ -50,6 +46,7 @@ namespace Dive
 
 		DirectX::XMFLOAT2 GetOffset() const { return m_offset; }
 		void SetOffset(float x, float y) { m_offset = { x, y }; }
+
 
 	private:
 		std::string m_shaderName = "DefaultLit";

@@ -6,6 +6,7 @@
 namespace Dive
 {
 	class GameObject;
+	class RenderTexture;
 
 	enum class eProjectionType
 	{
@@ -46,7 +47,15 @@ namespace Dive
 		void SetViewport(float topLeftX, float topLeftY, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
 		Viewport GetViewport() const { return m_viewport; }
 
-		static constexpr eComponentType GetType() { return eComponentType::Camera; }
+		std::shared_ptr<RenderTexture> GetTargetTexture() const { return m_targetTexture; }
+		void SetTargetTexture(std::shared_ptr<RenderTexture> rt) { m_targetTexture = rt; }
+
+		Color GetClearColor() const { return m_clearColor; }
+		void SetClearColor(const Color& color) { m_clearColor = color; }
+		void SetClearColor(float r, float g, float b) { m_clearColor = Color{ r, g, b, 1.0f }; }
+
+		// 사용하는 곳이 있나...?
+		//static constexpr eComponentType GetType() { return eComponentType::Camera; }
 
 	private:
 		eProjectionType m_projectionType = eProjectionType::Perspective;
@@ -56,5 +65,8 @@ namespace Dive
 		float m_farClip = 5000.0f;
 
 		Viewport m_viewport;
+		std::shared_ptr<RenderTexture> m_targetTexture;
+
+		Color m_clearColor = Color::DeepSkyBlue;
 	};
 }

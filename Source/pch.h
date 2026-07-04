@@ -4,6 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
+#include <commdlg.h>
 
 #include <memory>
 #include <cstdint>
@@ -35,6 +36,8 @@
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_impl_dx11.h>
 #include <imgui/ImGuizmo.h>
+
+#include <assimp/Importer.hpp>
 
 #include <nlohmann/json.hpp>
 

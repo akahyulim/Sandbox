@@ -40,6 +40,11 @@ namespace Dive
 	using EventData = std::variant<float, int, void*>;
 	using EventListener = std::function<void(const EventData&)>;
 
+	/*
+	1. 자동 구독 해제 (Smart Handle): AddListener가 std::shared_ptr나 std::weak_ptr을 활용해 객체가 사라지면 자동으로 리스트에서 제거되도록 설계해 보세요.
+	2. 데이터 구조화: std::variant도 훌륭하지만, Event라는 기본 클래스를 상속받는 구체적인 이벤트 클래스들을 만들어보세요. 
+	그러면 Dispatch 시점에 데이터 해석이 훨씬 깔끔해집니다.
+	*/
 	class EventDispatcher
 	{
 	public:

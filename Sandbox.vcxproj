@@ -105,7 +105,7 @@
       <PreprocessorDefinitions>_D3D11_CONVERSION_;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source\ThirdParty;$(ProjectDir)source;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)Source\ThirdParty;$(ProjectDir)source;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -113,7 +113,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;DirectXTex.lib;dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\Libs\Debug;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,7 +126,7 @@
       <PreprocessorDefinitions>_D3D11_CONVERSION_;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Source\ThirdParty;$(ProjectDir)source;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)Source\ThirdParty;$(ProjectDir)source;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -135,35 +136,52 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;DirectXTex.lib;dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\Libs\Release;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="External\imgui\imconfig.h" />
+    <ClInclude Include="External\imgui\imgui.h" />
+    <ClInclude Include="External\imgui\ImGuizmo.h" />
+    <ClInclude Include="External\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="External\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="External\imgui\imgui_internal.h" />
+    <ClInclude Include="External\imgui\imstb_rectpack.h" />
+    <ClInclude Include="External\imgui\imstb_textedit.h" />
+    <ClInclude Include="External\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Core\Common.h" />
     <ClInclude Include="Source\Core\EventDispatcher.h" />
     <ClInclude Include="Source\Core\Math.h" />
     <ClInclude Include="Source\Core\Object.h" />
+    <ClInclude Include="Source\Core\Runtime.h" />
     <ClInclude Include="Source\Core\StringUtils.h" />
     <ClInclude Include="Source\Core\Timer.h" />
     <ClInclude Include="Source\Core\Types.h" />
     <ClInclude Include="Source\Core\Window.h" />
-    <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
     <ClInclude Include="Source\Graphics\Graphics.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
     <ClInclude Include="Source\Graphics\PipelineState.h" />
     <ClInclude Include="Source\Graphics\RenderPass.h" />
     <ClInclude Include="Source\Graphics\ShaderType.h" />
-    <ClInclude Include="Source\Graphics\Vertex.h" />
+    <ClInclude Include="Source\Graphics\Geometry.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Renderer\Renderer.h" />
+    <ClInclude Include="Source\Resource\DvPipelineState.h" />
+    <ClInclude Include="Source\Resource\InputLayout.h" />
     <ClInclude Include="Source\Resource\Material.h" />
     <ClInclude Include="Source\Resource\Mesh.h" />
     <ClInclude Include="Source\Resource\Preset.h" />
+    <ClInclude Include="Source\Resource\RenderTexture.h" />
     <ClInclude Include="Source\Resource\Resource.h" />
+    <ClInclude Include="Source\Resource\ResourceDataLoader.h" />
     <ClInclude Include="Source\Resource\ResourceDesc.h" />
     <ClInclude Include="Source\Resource\ResourceManager.h" />
+    <ClInclude Include="Source\Resource\Shader.h" />
+    <ClInclude Include="Source\Resource\ShaderManager.h" />
+    <ClInclude Include="Source\Resource\ShaderProgram.h" />
     <ClInclude Include="Source\Resource\StaticMesh.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
     <ClInclude Include="Source\Resource\Texture2D.h" />
@@ -175,34 +193,46 @@
     <ClInclude Include="Source\Scene\Components\Transform.h" />
     <ClInclude Include="Source\Scene\GameObject.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
-    <ClInclude Include="Source\Shader\InputLayout.h" />
-    <ClInclude Include="Source\Shader\Shader.h" />
-    <ClInclude Include="Source\Shader\ShaderManager.h" />
-    <ClInclude Include="Source\Shader\ShaderProgram.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\BC.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\BCDirectCompute.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DDS.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTex.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\DirectXTexP.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\filters.h" />
-    <ClInclude Include="Source\ThirdParty\DirectXTex\scoped.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imconfig.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imgui.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\ImGuizmo.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_impl_dx11.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imgui_internal.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_rectpack.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_textedit.h" />
-    <ClInclude Include="Source\ThirdParty\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="External\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\ImGuizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_dx11.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_win32.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\Core\EventDispatcher.cpp" />
     <ClCompile Include="Source\Core\Math.cpp" />
+    <ClCompile Include="Source\Core\Runtime.cpp" />
     <ClCompile Include="Source\Core\StringUtils.cpp" />
     <ClCompile Include="Source\Core\Timer.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
-    <ClCompile Include="Source\Graphics\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Graphics\Graphics.cpp" />
     <ClCompile Include="Source\Graphics\IndexBuffer.cpp" />
     <ClCompile Include="Source\Graphics\VertexBuffer.cpp" />
@@ -215,8 +245,13 @@
     <ClCompile Include="Source\Resource\Material.cpp" />
     <ClCompile Include="Source\Resource\Mesh.cpp" />
     <ClCompile Include="Source\Resource\Preset.cpp" />
+    <ClCompile Include="Source\Resource\RenderTexture.cpp" />
     <ClCompile Include="Source\Resource\Resource.cpp" />
+    <ClCompile Include="Source\Resource\ResourceDataLoader.cpp" />
     <ClCompile Include="Source\Resource\ResourceManager.cpp" />
+    <ClCompile Include="Source\Resource\Shader.cpp" />
+    <ClCompile Include="Source\Resource\ShaderManager.cpp" />
+    <ClCompile Include="Source\Resource\ShaderProgram.cpp" />
     <ClCompile Include="Source\Resource\StaticMesh.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Resource\Texture2D.cpp" />
@@ -229,116 +264,6 @@
     <ClCompile Include="Source\Scene\Components\Transform.cpp" />
     <ClCompile Include="Source\Scene\GameObject.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
-    <ClCompile Include="Source\Shader\Shader.cpp" />
-    <ClCompile Include="Source\Shader\ShaderManager.cpp" />
-    <ClCompile Include="Source\Shader\ShaderProgram.cpp" />
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC4BC5.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\BC6HBC7.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexCompress.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexConvert.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexD3D11.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexDDS.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexFlipRotate.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexHDR.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexImage.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMipmaps.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexMisc.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexNormalMaps.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexPMAlpha.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexResize.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexTGA.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexUtil.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\DirectXTex\DirectXTexWIC.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\ImGuizmo.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_demo.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_draw.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_impl_dx11.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_impl_win32.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_tables.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Source\ThirdParty\imgui\imgui_widgets.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Source\ThirdParty\DirectXTex\DirectXTex.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -18,7 +18,7 @@ namespace Dive
 		m_dirLight = std::make_unique<GameObject>();
 		Light* lightCom = m_dirLight->AddComponent<Light>();
 		lightCom->SetLightType(eLightType::Directional);
-		lightCom->SetColor(Color::White);
+		//lightCom->SetColor(Color::White);
 		//lightCom->SetDirection(-1.0f, -1.0f, 1.0f);
 		lightCom->SetDirection(0.5f, -0.5f, 0.707107f);
 	}
@@ -30,6 +30,7 @@ namespace Dive
 	void Scene::Update(float dt)
 	{
 		m_mainCamera->Update();
+		m_dirLight->Update();
 
 		for (const auto& obj : m_objects)
 		{

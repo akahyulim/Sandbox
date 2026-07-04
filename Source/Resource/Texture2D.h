@@ -7,13 +7,13 @@ namespace Dive
 	{
 	public:
 		Texture2D() = default;
+		Texture2D(uint32_t width, uint32_t height);
 		virtual ~Texture2D() override;
 
-		virtual bool Deserialize(const std::vector<uint8_t>& fileBuffer, std::wstring_view extension) override;
-
-		virtual bool Create(Graphics* graphics) override;
-
 	private:
 	private:
+		// 이 두개도 사실은 필요없다?
+		std::unique_ptr<DirectX::ScratchImage> m_scratchImage;
+		std::unique_ptr<DirectX::TexMetadata> m_metaData;
 	};
 }

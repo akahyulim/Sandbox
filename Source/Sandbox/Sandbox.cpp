@@ -11,10 +11,10 @@
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/MeshRenderer.h"
 #include "Scene/Components/Light.h"
-#include "Shader/ShaderManager.h"
+#include "Resource/ShaderManager.h"
 #include "Resource/ResourceManager.h"
-
-#include "Resource/Texture2D.h" // test
+#include "Resource/Texture2D.h"
+#include "Resource/RenderTexture.h"
 #include "Resource/Material.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
@@ -125,7 +125,6 @@ namespace Dive
         // scene 초기화
         // => New Scene으로 메서드화?
         {
-            m_scene->SetClearColor(Color::LightSkyBlue);
             auto plane = m_scene->AddPresetObject(ePresetType::Plane);
             auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
             mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/stone01.tga");
@@ -139,6 +138,8 @@ namespace Dive
 
             auto* cameraCom = mainCamera->GetComponent<Camera>();
             cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
+            auto targetTexture = m_graphics->CreateRenderTexture(m_graphics->GetWidth(), m_graphics->GetHeight());
+            cameraCom->SetTargetTexture(targetTexture);
         }
 
         m_timer->Start();
@@ -206,19 +207,8 @@ namespace Dive
 
                     ImGui::Separator();
 
-                    if (ImGui::BeginMenu("Settings"))
-                    {
-                        ImGui::MenuItem("Light", nullptr, &m_showLightDialog, m_scene != nullptr);
-                        
-                        if (ImGui::MenuItem("Sky", nullptr, nullptr, m_scene != nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Ground", nullptr, nullptr, m_scene != nullptr))
-                        {
-                        }
-
-                        ImGui::EndMenu();
-                    }
+                    ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr);
+                     
 
                     ImGui::Separator();
 
@@ -288,7 +278,7 @@ namespace Dive
             }
             ImGui::End();
 
-            if (m_showLightDialog)
+            if (m_showEnvDiralog)
             {
                 const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
                 ImVec2 windowPos = ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x - 320.0f, mainViewport->WorkPos.y + 20.0f);
@@ -297,42 +287,57 @@ namespace Dive
                 ImGui::SetNextWindowPos(windowPos, ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
 
-                if (ImGui::Begin("Light Manager", &m_showLightDialog, ImGuiWindowFlags_NoSavedSettings))
+                if (ImGui::Begin("Environment", &m_showEnvDiralog, ImGuiWindowFlags_NoSavedSettings))
                 {
-                    ImGui::Text("Directional Light Settings");
-                    ImGui::Separator();
-
                     // 🌟 변경 감지를 위해 하나로 묶기
                     bool isChanged = false;
-                    if (ImGui::ColorEdit3("Color", &m_lightEditorData.color.x)) isChanged = true;
-                    if (ImGui::SliderFloat("Intensity", &m_lightEditorData.intensity, 0.0f, 5.0f, "%.2f")) isChanged = true;
+
+                    ImGui::Text("Sky");
+                    ImGui::Separator();
+                    m_enviromentData.skyColor = m_scene->GetMainCamera()->GetComponent<Camera>()->GetClearColor();
+                    if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
+
+                    ImGui::Text("Directional Light");
+                    ImGui::Separator();
+
+                    auto dirLight = m_scene->GetDirectionalLight()->GetComponent<Light>();
+                    DirectX::XMFLOAT3 lightColor = {
+                        m_enviromentData.lightColor.r,
+                        m_enviromentData.lightColor.g,
+                        m_enviromentData.lightColor.b
+                    };
+                    float lightIntensity = m_enviromentData.lightColor.a;
+                    if (ImGui::ColorEdit3("Light Color", &m_enviromentData.lightColor.r)) isChanged = true;
+                    if (ImGui::SliderFloat("Intensity", &m_enviromentData.lightColor.a, 0.0f, 5.0f, "%.2f")) isChanged = true;
 
                     ImGui::Spacing();
                     ImGui::Text("Rotation Angles");
-                    if (ImGui::SliderFloat("Pitch", &m_lightEditorData.pitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
-                    if (ImGui::SliderFloat("Yaw", &m_lightEditorData.yaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
+                    if (ImGui::SliderFloat("Pitch", &m_enviromentData.lightPitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
+                    if (ImGui::SliderFloat("Yaw", &m_enviromentData.lightYaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
 
                     static bool isFirstFrame = true;
                     if (isChanged || isFirstFrame)
                     {
+                        auto* mainCamera = m_scene->GetMainCamera()->GetComponent<Camera>();
+                        mainCamera->SetClearColor(m_enviromentData.skyColor);
+
                         // 1. 컴포넌트 포인터 확보
                         if (auto lightObj = m_scene->GetDirectionalLight())
                         {
                             if (auto dirLight = lightObj->GetComponent<Light>())
                             {
-                                // 2. [색상 및 강도 적용] 결합하여 최종 컬러 생성 후 즉시 셋업
-                                DirectX::XMFLOAT4 finalColor = DirectX::XMFLOAT4(
-                                    m_lightEditorData.color.x * m_lightEditorData.intensity,
-                                    m_lightEditorData.color.y * m_lightEditorData.intensity,
-                                    m_lightEditorData.color.z * m_lightEditorData.intensity,
-                                    m_lightEditorData.intensity
-                                );
-                                dirLight->SetColor(finalColor);
+                                Color lightColor = Color{
+                                    m_enviromentData.lightColor.r * m_enviromentData.lightColor.a,
+                                    m_enviromentData.lightColor.g * m_enviromentData.lightColor.a,
+                                    m_enviromentData.lightColor.b * m_enviromentData.lightColor.a,
+                                    m_enviromentData.lightColor.a
+                                };
+                                dirLight->SetColor(lightColor);
 
 
                                 // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
-                                float pitchRad = DirectX::XMConvertToRadians(m_lightEditorData.pitch);
-                                float yawRad = DirectX::XMConvertToRadians(m_lightEditorData.yaw);
+                                float pitchRad = DirectX::XMConvertToRadians(m_enviromentData.lightPitch);
+                                float yawRad = DirectX::XMConvertToRadians(m_enviromentData.lightYaw);
 
                                 DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
                                 DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);

@@ -2,11 +2,13 @@
 #include "Graphics.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-#include "ConstantBuffer.h"
-#include "Shader/Shader.h"
-#include "Shader/InputLayout.h"
-#include "Shader/ShaderProgram.h"
+#include "Resource/Shader.h"
+#include "Resource/InputLayout.h"
+#include "Resource/ShaderProgram.h"
+#include "Resource/Texture.h"
 #include "Resource/Texture2D.h"
+#include "Resource/RenderTexture.h"
+#include "Resource/StaticMesh.h"
 
 #include <DirectXTex/DirectXTex.h>
 
@@ -85,8 +87,15 @@ namespace Dive
 		}
 	}
 
-	Graphics::~Graphics() = default;
+	Graphics::Graphics()
+	{
+	}
 
+	Graphics::~Graphics()
+	{
+	}
+
+	// 그냥 Window를 전달?
 	bool Graphics::Initialize(HWND hWnd, uint32_t width, uint32_t height, bool windowed)
 	{
 		assert(hWnd);
@@ -105,7 +114,7 @@ namespace Dive
 			m_deviceContext.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("그래픽스 디바이스 생성 실패");
+			spdlog::error("Graphics::Initialize - 그래픽스 디바이스 생성 실패");
 			return false;
 		}
 
@@ -141,7 +150,7 @@ namespace Dive
 		DV_RELEASE(dxgiAdapter);
 		DV_RELEASE(dxgiDevice);
 
-		if (!setupViews())
+		if (!updateBackbuffer())
 			return false;
 		if (!createDepthStencilStates())
 			return false;
@@ -186,7 +195,7 @@ namespace Dive
 		if (!resizeSwapChain())
 			return;
 
-		if (!setupViews())
+		if (!updateBackbuffer())
 			return;
 
 		spdlog::info("바뀐 크기: {} x {}", m_width, m_height);
@@ -220,6 +229,33 @@ namespace Dive
 		ID3D11BlendState* bs = state.blendState != eBlendState::Count
 			? m_blendStates[static_cast<size_t>(state.blendState)].Get() : nullptr;
 		bindBlendState(bs, state.blendFactor, state.sampleMask);
+	}
+
+	void Graphics::BindPipelineState(const PipelineState& pso, uint32_t stencilRef, float blendFactor[4], uint32_t sampleMask)
+	{
+		assert(m_deviceContext);
+
+		m_deviceContext->IASetPrimitiveTopology(ConvertToDXTopology(pso.topology));
+
+		m_deviceContext->VSSetShader(
+			pso.shaderProgram ? pso.shaderProgram->GetVertexShader() : nullptr, 
+			nullptr, 0);
+		m_deviceContext->PSSetShader(
+			pso.shaderProgram ? pso.shaderProgram->GetPixelShader() : nullptr,
+			nullptr, 0);
+		m_deviceContext->IASetInputLayout(pso.shaderProgram ? pso.shaderProgram->GetInputLayout() : nullptr);
+
+		ID3D11DepthStencilState* dss = pso.depthStencilState != eDepthStencilState::Count
+			? m_depthStencilStates[static_cast<size_t>(pso.depthStencilState)].Get() : nullptr;
+		m_deviceContext->OMSetDepthStencilState(dss, stencilRef);
+
+		ID3D11RasterizerState* rs = pso.rasterizerState != eRasterizerState::Count
+			? m_rasterizerStates[static_cast<size_t>(pso.rasterizerState)].Get() : nullptr;
+		m_deviceContext->RSSetState(rs);
+
+		ID3D11BlendState* bs = pso.blendState != eBlendState::Count
+			? m_blendStates[static_cast<size_t>(pso.blendState)].Get() : nullptr;
+		m_deviceContext->OMSetBlendState(bs, blendFactor, sampleMask);
 	}
 
 	void Graphics::BeginRenderPass(const RenderPass& pass)
@@ -285,10 +321,12 @@ namespace Dive
 		m_currentDSV = nullptr;
 	}
 
+	// adria의 GfxDevice::SetBackbuffer()와 동일하다.
 	void Graphics::BindMainRenderTarget()
 	{
 		assert(m_deviceContext);
-		m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), m_backbufferDSV.Get());
+		// dsv는 제외했다.
+		m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), nullptr);
 
 		m_currentRTVCount = 1;
 		m_currentRTVs[0] = m_backbufferRTV.Get();
@@ -313,6 +351,105 @@ namespace Dive
 		m_swapChain->Present(m_vSync ? 1 : 0, 0);
 	}
 
+	std::shared_ptr<StaticMesh> Graphics::CreateStaticMesh(const StaticGeometryData& data)
+	{
+		auto mesh = std::make_shared<StaticMesh>();
+
+		// VertexBuffer
+		auto& vertices = data.vertices;
+		uint32_t stride = static_cast<uint32_t>(sizeof(StaticVertex));
+		uint32_t count = static_cast<uint32_t>(vertices.size());
+
+		mesh->m_vertexBuffer = std::move(CreateVertexBuffer(stride, count, vertices.data()));
+		if (mesh->m_vertexBuffer == nullptr)
+		{
+			spdlog::error("Graphics::CreateStaticMesh - VertexBuffer 생성 중 오류 발생");
+			return nullptr;
+		}
+
+		// IndexBuffer
+		auto& indices = data.indices;
+		if (!indices.empty())
+		{
+			bool use32bit = std::any_of(indices.begin(), indices.end(), [](uint32_t i) { return i > 65535; });
+			eFormat format = use32bit ? eFormat::R32_UINT : eFormat::R16_UINT;
+
+			std::vector<uint16_t> indices16;
+			const void* indexData = nullptr;
+
+			if (use32bit)
+			{
+				indexData = indices.data();
+			}
+			else
+			{
+				indices16.reserve(indices.size());
+				for (uint32_t i : indices)
+					indices16.push_back(static_cast<uint16_t>(i));
+				indexData = indices16.data();
+			}
+				
+			uint32_t count = static_cast<uint32_t>(indices.size());
+
+			mesh->m_indexBuffer = CreateIndexBuffer(format, count, indexData);
+			if (mesh->m_indexBuffer == nullptr)
+			{
+				spdlog::error("Graphics::CreateStaticMesh - IndexBuffer 생성 중 오류 발생");
+				return nullptr;
+			}
+		}
+
+		// SetBound
+		/*
+		{
+			XMFLOAT3 min = { FLT_MAX, FLT_MAX, FLT_MAX };
+			XMFLOAT3 max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+			for (const auto& vertex : m_vertices)
+			{
+				const XMFLOAT3& pos = vertex.Position;
+
+				min.x = std::min(min.x, pos.x);
+				min.y = std::min(min.y, pos.y);
+				min.z = std::min(min.z, pos.z);
+
+				max.x = std::max(max.x, pos.x);
+				max.y = std::max(max.y, pos.y);
+				max.z = std::max(max.z, pos.z);
+			}
+
+			m_bounds.center = {
+				(min.x + max.x) * 0.5f,
+				(min.y + max.y) * 0.5f,
+				(min.z + max.z) * 0.5f
+			};
+
+			m_bounds.extents = {
+				(max.x - min.x) * 0.5f,
+				(max.y - min.y) * 0.5f,
+				(max.z - min.z) * 0.5f
+			};
+		}
+		*/
+
+		return mesh;
+	}
+
+	bool Graphics::CreateRawBuffer(const D3D11_BUFFER_DESC& desc, const D3D11_SUBRESOURCE_DATA* initialData, ID3D11Buffer** ppBuffer)
+	{
+		assert(m_device);
+		assert(ppBuffer);
+
+		auto hr = m_device->CreateBuffer(&desc, initialData, ppBuffer);
+		if(FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateBuffer 실패: {}", ErrorUtils::ToVerbose(hr));
+			return false;
+		}
+		
+		return true;
+	}
+
 	std::unique_ptr<VertexBuffer> Graphics::CreateVertexBuffer(uint32_t stride, uint32_t count, const void* data)
 	{
 		auto vb = std::make_unique<VertexBuffer>(stride, count);
@@ -327,9 +464,9 @@ namespace Dive
 		D3D11_SUBRESOURCE_DATA subData{};
 		subData.pSysMem = data;
 
-		if (FAILED(m_device->CreateBuffer(&desc, &subData, vb->GetAddressOf())))
+		if (!CreateRawBuffer(desc, &subData, vb->GetAddressOf()))
 		{
-			spdlog::error("정점 버퍼 생성 실패");
+			spdlog::error("Graphics::VertexBuffer - 버퍼 생성 실패");
 			return nullptr;
 		}
 
@@ -350,9 +487,9 @@ namespace Dive
 		D3D11_SUBRESOURCE_DATA subData{};
 		subData.pSysMem = data;
 
-		if (FAILED(m_device->CreateBuffer(&desc, &subData, ib->GetAddressOf())))
+		if (!CreateRawBuffer(desc, &subData, ib->GetAddressOf()))
 		{
-			spdlog::error("인덱스 버퍼 생성 실패");
+			spdlog::error("Graphics::CreateIndexBuffer - 버퍼 생성 실패");
 			return nullptr;
 		}
 
@@ -370,7 +507,7 @@ namespace Dive
 			vs->GetAddressOf()
 		)))
 		{
-			spdlog::error("정점 셰이더 생성 실패");
+			spdlog::error("Graphics::CreateVertexShader - 정점 셰이더 생성 실패");
 			return nullptr;
 		}
 
@@ -416,47 +553,166 @@ namespace Dive
 		return il;
 	}
 
-	bool Graphics::CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV)
+	ID3D11VertexShader* Graphics::CreateVS(const void* byteCode, size_t size)
 	{
-		if (m_device == nullptr)
+		assert(m_device);
+
+		ID3D11VertexShader* vs = nullptr;
+
+		if (FAILED(m_device->CreateVertexShader(
+			byteCode,
+			size,
+			nullptr,
+			&vs
+		)))
 		{
-			spdlog::error("Graphics::CreateTexture2DFromMemory - ID3D11Device가 유효하지 않습니다.");
-			return false;
+			spdlog::error("Graphics::CreateVertexShader - 정점 셰이더 생성 실패");
+			return nullptr;
 		}
 
-		if (scratchImage == nullptr || metaData == nullptr || outSRV == nullptr)
+		return vs;
+	}
+
+	ID3D11InputLayout* Graphics::CreateIL(eInputLayout type, const void* byteCode, size_t size)
+	{
+		assert(m_device);
+
+		ID3D11InputLayout* il = nullptr;
+
+		auto element = GetInputElements(type);
+
+		if (FAILED(m_device->CreateInputLayout(
+			element.data(),
+			static_cast<UINT>(element.size()),
+			byteCode,
+			size,
+			&il
+		)))
 		{
-			return false;
+			spdlog::error("Graphics::CreateInputLayout - 인풋 레이아웃 샐성 실패");
+			return nullptr;
 		}
 
-		// 💡 DirectXTex가 제공하는 핵심 GPU 자원 생성 API를 호출합니다.
-		// 내부적으로 ID3D11Texture2D를 만들고, 이어서 ID3D11ShaderResourceView까지 래핑해서 생성해 줍니다.
+		return il;
+	}
+
+	ID3D11PixelShader* Graphics::CreatePS(const void* byteCode, size_t size)
+	{
+		assert(m_device);
+
+		ID3D11PixelShader* ps = nullptr;
+
+		if (FAILED(m_device->CreatePixelShader(
+			byteCode,
+			size,
+			nullptr,
+			&ps
+		)))
+		{
+			spdlog::error("Graphics::CreatePixelShader - 픽셀 셰이더 생성 실패");
+			return nullptr;
+		}
+
+		return ps;
+	}
+
+	std::shared_ptr<Texture2D> Graphics::CreateTexture2D(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData)
+	{
+		assert(m_device);
+		assert(scratchImage);
+		assert(metaData);
+
+		std::shared_ptr<Texture2D> texture2D = std::make_shared<Texture2D>(
+			static_cast<uint32_t>(metaData->width), 
+			static_cast<uint32_t>(metaData->height));
+
 		HRESULT hr = DirectX::CreateShaderResourceView(
-			m_device.Get(),               // DX11 하드웨어 디바이스
-			scratchImage->GetImages(),     // 순수 픽셀 데이터 포인터
-			scratchImage->GetImageCount(),  // 이미지 개수 (미입맵 등이 포함된 수)
-			*metaData,                     // 가로, 세로, 포맷 등 정보
-			outSRV                         // 결과물을 받아갈 포인터의 포인터
-		);
+			m_device.Get(),
+			scratchImage->GetImages(),
+			scratchImage->GetImageCount(),
+			*metaData,
+			texture2D->m_srv.GetAddressOf());
 
 		if (FAILED(hr))
 		{
-			// 최하위 DX11 에러 코드를 로깅하여 디버깅을 돕습니다.
 			spdlog::error("Graphics::CreateTexture2DFromMemory - CreateShaderResourceView 실패: {}", ErrorUtils::ToVerbose(hr));
-			return false;
+			return nullptr;
 		}
 
-		return true;
+		return texture2D;
 	}
 
-	bool Graphics::CreateRenderTexture(uint32_t width, uint32_t height, DXGI_FORMAT format, ID3D11RenderTargetView** outRTV, ID3D11ShaderResourceView** outSRV)
+	std::shared_ptr<RenderTexture> Graphics::CreateRenderTexture(uint32_t width, uint32_t height, DXGI_FORMAT colorFormat, DXGI_FORMAT depthFormat)
 	{
-		return false;
-	}
+		assert(m_device);
 
-	bool Graphics::CreateCubemap(DirectX::ScratchImage* scratchImage, DirectX::TexMetadata* metaData, ID3D11ShaderResourceView** outSRV)
-	{
-		return false;
+		std::shared_ptr<RenderTexture> renderTexture = std::make_shared<RenderTexture>(width, height, colorFormat, depthFormat);
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> colorTexture;
+		D3D11_TEXTURE2D_DESC colorDesc{};
+		colorDesc.Width = width;
+		colorDesc.Height = height;
+		colorDesc.MipLevels = 1;
+		colorDesc.ArraySize = 1;
+		colorDesc.Format = colorFormat;
+		colorDesc.SampleDesc.Count = 1;
+		colorDesc.SampleDesc.Quality = 0;
+		colorDesc.Usage = D3D11_USAGE_DEFAULT;
+		colorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		colorDesc.CPUAccessFlags = 0;
+		colorDesc.MiscFlags = 0;
+
+		HRESULT hr = m_device->CreateTexture2D(&colorDesc, nullptr, colorTexture.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateRenderTexture - ColorTexture 생성 실패", ErrorUtils::ToVerbose(hr));
+			return nullptr;
+		}
+
+		hr = m_device->CreateRenderTargetView(colorTexture.Get(), nullptr, renderTexture->m_rtv.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateRenderTexture - RenderTargetView 생성 실패", ErrorUtils::ToVerbose(hr));
+			return nullptr;
+		}
+
+		hr = m_device->CreateShaderResourceView(colorTexture.Get(), nullptr, renderTexture->m_srv.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateRenderTexture - ShaderResourceView 생성 실패", ErrorUtils::ToVerbose(hr));
+			return nullptr;
+		}
+
+		D3D11_TEXTURE2D_DESC depthDesc{};
+		depthDesc.Width = width;
+		depthDesc.Height = height;
+		depthDesc.MipLevels = 1;
+		depthDesc.ArraySize = 1;
+		depthDesc.Format = depthFormat;
+		depthDesc.SampleDesc.Count = 1;
+		depthDesc.SampleDesc.Quality = 0;
+		depthDesc.Usage = D3D11_USAGE_DEFAULT;
+		depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		depthDesc.CPUAccessFlags = 0;
+		depthDesc.MiscFlags = 0;
+
+		renderTexture->m_depthTexture.Reset();
+
+		hr = m_device->CreateTexture2D(&depthDesc, nullptr, renderTexture->m_depthTexture.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateRenderTexture - DepthTexture 생성 실패", ErrorUtils::ToVerbose(hr));
+			return nullptr;
+		}
+
+		hr = m_device->CreateDepthStencilView(renderTexture->m_depthTexture.Get(), nullptr, renderTexture->m_dsv.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::CreateRenderTexture - DepthStencilView 생성 실패", ErrorUtils::ToVerbose(hr));
+			return nullptr;
+		}
+
+		return renderTexture;
 	}
 
 	void Graphics::BindVertexBuffer(VertexBuffer* vb)
@@ -586,7 +842,7 @@ namespace Dive
 		m_deviceContext->PSSetShaderResources(startSlot, 1, &srv);
 	}
 
-	bool Graphics::setupViews()
+	bool Graphics::updateBackbuffer()
 	{
 		assert(m_swapChain.Get());
 		assert(m_device.Get());
@@ -599,14 +855,14 @@ namespace Dive
 		HRESULT hr = m_swapChain->GetBuffer(0, IID_ID3D11Texture2D, (void**)&backBuffer);
 		if (FAILED(hr))
 		{
-			spdlog::error("Graphics::setupViews - 백버퍼 획득 실패");
+			spdlog::error("Graphics::updateBackbuffer - 백버퍼 획득 실패");
 			return false;
 		}
 
 		hr = m_device->CreateRenderTargetView(static_cast<ID3D11Resource*>(backBuffer), nullptr, m_backbufferRTV.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("Graphics::setupViews - 백버퍼의 렌더타겟 뷰 생성 실패");
+			spdlog::error("Graphics::updateBackbuffer - 백버퍼의 렌더타겟 뷰 생성 실패");
 			return false;
 		}
 
@@ -632,7 +888,7 @@ namespace Dive
 		hr = m_device->CreateTexture2D(&texDesc, nullptr, m_backbufferTexture.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("Graphics::setupViews - 백버퍼의 깊이 스텐실 버퍼 생성 실패");
+			spdlog::error("Graphics::updateBackbuffer - 백버퍼의 깊이 스텐실 버퍼 생성 실패");
 			return false;
 		}
 
@@ -644,7 +900,7 @@ namespace Dive
 		hr = m_device->CreateDepthStencilView(static_cast<ID3D11Resource*>(m_backbufferTexture.Get()), &viewDesc, m_backbufferDSV.GetAddressOf());
 		if (FAILED(hr))
 		{
-			spdlog::error("Graphics::setupViews - 백버퍼의 깊이 스텐실 뷰 생성 실패");
+			spdlog::error("Graphics::updateBackbuffer - 백버퍼의 깊이 스텐실 뷰 생성 실패");
 			return false;
 		}
 

@@ -643,6 +643,7 @@ namespace Dive
 
 			return (it != sibling.end()) ? std::distance(sibling.begin(), it) : std::numeric_limits<size_t>::max();
 		}
+		return 0;
 	}
 
 	void Transform::SetSiblingIndex(size_t index)

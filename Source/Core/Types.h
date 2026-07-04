@@ -220,10 +220,29 @@ namespace Dive
 
 		operator const float* () const { return &r; }
 		operator float* () { return &r; }
+
+		Color& operator=(const DirectX::XMFLOAT4& other)
+		{
+			r = other.x; 
+			g = other.y;
+			b = other.z;
+			a = other.w;
+
+			return *this;
+		}
+
+		Color& operator=(DirectX::XMVECTOR other)
+		{
+			DirectX::XMStoreFloat4(reinterpret_cast<DirectX::XMFLOAT4*>(this), other);
+			return *this;
+		}
 		
 		operator DirectX::XMFLOAT4() const { return DirectX::XMFLOAT4(r, g, b, a); }
-
-		//DirectX::XMVECTOR ToVector() const { return DirectX::XMLoadFloat4(&(DirectX::XMFLOAT4)*this); }
+		operator DirectX::XMVECTOR() const
+		{
+			DirectX::XMFLOAT4 temp = { r, g, b, a };
+			return DirectX::XMLoadFloat4(&temp);
+		}
 
 		static const Color Black;
 		static const Color White;

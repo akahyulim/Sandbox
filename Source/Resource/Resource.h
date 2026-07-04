@@ -16,6 +16,8 @@ namespace Dive
 		StaticMesh,
 		SkinnedMesh,
 		Material,
+		ShaderProgram,
+		PipelineState
 	};
 
 	struct ResourceHeader
@@ -33,16 +35,11 @@ namespace Dive
 		Resource() = default;
 		virtual ~Resource() override;
 
-		bool LoadFromFile(const std::filesystem::path& filepath);
-		virtual bool Deserialize(const std::vector<uint8_t>& fileBuffer, std::wstring_view extension) = 0;
-
-		virtual bool Create(Graphics*) = 0;
-
 		const std::filesystem::path& GetFilepath() const { return m_filepath; }
 		void SetFilepath(const std::filesystem::path& path);
 
-		virtual eResourceType GetType() const { return eResourceType::Undefined; }
-		static constexpr eResourceType StaticType() { return eResourceType::Undefined; }
+		//virtual eResourceType GetType() const { return eResourceType::Undefined; }
+		//static constexpr eResourceType StaticType() { return eResourceType::Undefined; }
 
 		std::string GetName() const override;
 

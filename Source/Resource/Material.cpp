@@ -4,21 +4,11 @@
 #include "Graphics/Graphics.h"
 #include "ResourceManager.h"
 #include "Graphics/ShaderType.h"
-#include "Shader/ShaderManager.h"
-#include "Shader/ShaderProgram.h"
+#include "ShaderManager.h"
+#include "ShaderProgram.h"
 
 namespace Dive
 {
-	bool Material::Deserialize(const std::vector<uint8_t>& fileBuffer, std::wstring_view extension)
-	{
-		return false;
-	}
-
-	bool Material::Create(Graphics* graphics)
-	{
-		return false;
-	}
-
 	void Material::Bind(Graphics* graphics)
 	{
 		assert(graphics);

@@ -6,6 +6,8 @@ namespace Dive
     // 상수 버퍼 내의 배열 크기 지정을 위한 매크로 (HLSL과 동기화)
 #define MAX_LIGHTS 16
 
+    // 아무래도 cbXXX보단 XXXData라는 이름이 더 나을 것 같다.
+    
     // [b0] Global / Camera Buffer 구조체
     struct cbCamera
     {

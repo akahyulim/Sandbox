@@ -9,11 +9,12 @@ namespace Dive
 	{
 	}
 
+	// 현재로선 필요없다. Set 메서드에서 직접 전달했다.
 	void Light::Update()
 	{
 		Transform* transform = GetTransform();
 
-		m_data.position = transform->GetPosition();
-		m_data.direction = transform->GetForward();
+		//m_data.position = transform->GetPosition();
+		//m_data.direction = transform->GetForward();z
 	}
 }

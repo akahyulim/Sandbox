@@ -37,9 +37,6 @@ namespace Dive
 		bool SaveToFile(const std::filesystem::path& filepath);
 		bool LoadFromFile(const std::filesystem::path& filepath);
 
-		Color GetClearColor() const { return m_clearColor; }
-		void SetClearColor(const Color& color) { m_clearColor = color; }
-
 		GameObject* GetMainCamera() const { return m_mainCamera.get(); }
 		GameObject* GetDirectionalLight() const { return m_dirLight.get(); }
 		const std::vector<std::unique_ptr<GameObject>>& GetGameObjects() const { return m_objects; }
@@ -51,8 +48,6 @@ namespace Dive
 
 
 	private:
-		Color m_clearColor = Color::White;
-
 		std::unique_ptr<GameObject> m_mainCamera;
 		std::unique_ptr<GameObject> m_dirLight;
 		std::vector<std::unique_ptr<GameObject>> m_objects;

@@ -11,6 +11,7 @@
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/Light.h"
+#include "Scene/GameObject.h"
 #include "Resource/Material.h"
 #include "Resource/StaticMesh.h"
 #include "Resource/RenderTexture.h"
@@ -33,6 +34,36 @@ namespace Dive
 		return true;
 	}
 
+	void Renderer::Update(Scene* scene)
+	{
+		if (!scene->IsDirty())
+			return;
+
+		m_cameras.clear();
+		m_lights.clear();
+		m_drawables.clear();
+
+		for (auto go : scene->GetAll())
+		{
+			if (!go->IsActive())
+				continue;
+
+			if (auto camera = go->GetComponent<Camera>())
+				m_cameras.push_back(go);
+			if (auto light = go->GetComponent<Light>())
+				m_lights.push_back(go);
+			if (auto meshRenderer = go->GetComponent<MeshRenderer>())
+				m_drawables.push_back(go);
+		}
+		
+		// 컬링
+		{
+
+		}
+
+		scene->ClearDirty();
+	}
+
 	void Renderer::Render(Scene* scene)
 	{
 		if (scene == nullptr)
@@ -40,8 +71,10 @@ namespace Dive
 
 		ID3D11ShaderResourceView* srv = nullptr;
 
-		if (Camera* camera = scene->GetMainCamera()->GetComponent<Camera>())
+		for (auto go : m_cameras)
 		{
+			auto camera = go->GetComponent<Camera>();
+
 			RenderPass opaquePass{};
 			opaquePass.clearColor = camera->GetClearColor();
 			opaquePass.count = 1;
@@ -79,12 +112,13 @@ namespace Dive
 
 			// dir light
 			{
-				auto& dirLightData = scene->GetDirectionalLight()->GetComponent<Light>()->GetLightData();
+				auto dirLightGO = m_lights[0];
+				auto& dirLightData = dirLightGO->GetComponent<Light>()->GetLightData();
 				m_graphics->UpdateConstantBuffer(eCBufferSlot::Light, &dirLightData, sizeof(dirLightData));
 				m_graphics->BindConstantBuffer(eCBufferSlot::Light);
 			}
 
-			for (GameObject* drawable : scene->GetDrawable())
+			for (GameObject* drawable : m_drawables)
 			{
 				auto* transform = drawable->GetTransform();
 				auto* meshRenderer = drawable->GetComponent<MeshRenderer>();

@@ -14,11 +14,11 @@ namespace Dive
 
 	Transform::~Transform()
 	{
-		if (m_parent)
-			m_parent->RemoveChild(this);
+		//if (m_parent)
+		//	m_parent->RemoveChild(this);
 
-		for (auto child : m_children)
-			child->m_parent = nullptr;
+		//for (auto child : m_children)
+		//	child->m_parent = nullptr;
 	}
 
 	void Transform::Update()
@@ -540,128 +540,6 @@ namespace Dive
 		for (auto child : m_children)
 		{
 			child->SetDirty();
-		}
-	}
-
-	void Transform::SetParent(Transform* parent)
-	{
-		if (parent == m_parent || IsParentOf(parent))
-			return;
-
-		DetachFromParent();
-
-		if (parent)
-		{
-			parent->m_children.push_back(this);
-			m_parent = parent;
-		}
-	}
-
-	void Transform::DetachFromParent()
-	{
-		if (!m_parent)
-			return;
-
-		auto& siblings = m_parent->m_children;
-		auto it = std::find(siblings.begin(), siblings.end(), this);
-		if (it != siblings.end())
-			siblings.erase(it);
-
-		m_parent = nullptr;
-		m_isDirty = true;
-	}
-
-	bool Transform::IsParentOf(Transform* target)
-	{
-		if (!target || m_children.empty())
-			return false;
-
-		if (target == this)
-			return false;
-
-		if (target->m_parent == this)
-			return true;
-
-		for (auto child : m_children)
-		{
-			if (child->IsParentOf(target))
-				return true;
-		}
-
-		return false;
-	}
-
-	bool Transform::IsChildOf(Transform* parent)
-	{
-		if (!parent || m_parent == nullptr)
-			return false;
-
-		if (m_parent == parent)
-			return true;
-
-		return m_parent->IsChildOf(parent);
-	}
-
-	Transform* Transform::GetChild(size_t index)
-	{
-		return m_children.size() > index ? m_children[index] : nullptr;
-	}
-
-	size_t Transform::GetChildCount()
-	{
-		return m_children.size();
-	}
-
-	void Transform::DetachChildren()
-	{
-		for (auto& child : m_children)
-			child->SetParent(nullptr);
-
-		m_children.clear();
-	}
-
-	void Transform::RemoveChild(Transform* child)
-	{
-		if (!child)
-			return;
-
-		auto it = std::find(m_children.begin(), m_children.end(), child);
-		if (it == m_children.end())
-			return;
-
-		m_children.erase(it);
-	}
-
-	size_t Transform::GetSiblingIndex()
-	{
-		assert(GetOwner());
-
-		if (HasParent())
-		{
-			const auto& sibling = m_parent->GetChildren();
-			auto it = std::find(sibling.begin(), sibling.end(), this);
-
-			return (it != sibling.end()) ? std::distance(sibling.begin(), it) : std::numeric_limits<size_t>::max();
-		}
-		return 0;
-	}
-
-	void Transform::SetSiblingIndex(size_t index)
-	{
-		assert(GetOwner());
-
-		if (HasParent())
-		{
-			auto& sibling = m_parent->GetChildren();
-			if (index >= sibling.size())
-				return;
-
-			auto it = std::find(sibling.begin(), sibling.end(), this);
-			if (it != sibling.end())
-			{
-				sibling.erase(it);
-				sibling.insert(sibling.begin() + index, this);
-			}
 		}
 	}
 }

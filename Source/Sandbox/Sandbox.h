@@ -20,6 +20,7 @@ namespace Dive
 	class Timer;
 	class Graphics;
 	class Renderer;
+	class GameObject;
 	class Scene;
 
 	class Sandbox
@@ -40,6 +41,10 @@ namespace Dive
 		std::unique_ptr<Renderer> m_renderer;
 
 		std::unique_ptr<Scene> m_scene;
+
+		GameObject* m_mainCamera = nullptr;
+		GameObject* m_directionalLight = nullptr;
+		GameObject* m_selected = nullptr;
 
 		float m_cameraPitch = 0.0f;
 		float m_cameraYaw = 0.0f;

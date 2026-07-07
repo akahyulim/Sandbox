@@ -25,38 +25,32 @@ namespace Dive
 		~Scene();
 
 		void Update(float dt);
-		void PrepareRenderChannels();
+		
+		GameObject* CreateGameObject(uint64_t id = AUTO_ID);
 
-		GameObject* AddLightObject(eLightType type);
 		GameObject* AddPresetObject(ePresetType type);
 		GameObject* AddModelObject(const std::filesystem::path& modelPath);
 
-		void DeleteSelectedObject();
 		void ClearAll();
 
 		bool SaveToFile(const std::filesystem::path& filepath);
 		bool LoadFromFile(const std::filesystem::path& filepath);
+	
+		const std::vector<std::unique_ptr<GameObject>>& GetRoots() const { return m_roots; }
+		void AddRoot(std::unique_ptr<GameObject> go);
+		void RemoveRoot(GameObject* go);
+		bool IsRoot(GameObject* go);
+		
+		const std::vector<GameObject*>& GetAll()const { return m_all; }
 
-		GameObject* GetMainCamera() const { return m_mainCamera.get(); }
-		GameObject* GetDirectionalLight() const { return m_dirLight.get(); }
-		const std::vector<std::unique_ptr<GameObject>>& GetGameObjects() const { return m_objects; }
-
-		GameObject* GetSelectedObject() const { return m_selectedObject; }
-		void SetSelectedObject(GameObject* target) { m_selectedObject = target; }
-
-		std::vector<GameObject*> GetDrawable();
-
+		bool IsDirty() const { return m_isDirty; }
+		void SetDirty() { m_isDirty = true; }
+		void ClearDirty() { m_isDirty = false; }
 
 	private:
-		std::unique_ptr<GameObject> m_mainCamera;
-		std::unique_ptr<GameObject> m_dirLight;
-		std::vector<std::unique_ptr<GameObject>> m_objects;
-		
-		GameObject* m_selectedObject = nullptr;
+		std::vector<std::unique_ptr<GameObject>> m_roots;
+		std::vector<GameObject*> m_all;
 
-		std::vector<Light*> m_pointLights;
-		std::vector<Light*> m_spotLights;
-		std::vector<MeshRenderer*> m_opaqueRenderers;
-		std::vector<MeshRenderer*> m_transparentRenderers;
+		bool m_isDirty = false;
 	};
 }

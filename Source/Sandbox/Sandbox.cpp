@@ -61,8 +61,6 @@ namespace Dive
         m_timer = std::make_unique<Timer>();
         m_graphics = std::make_unique<Graphics>();
         m_renderer = std::make_unique<Renderer>();
-
-        m_scene = std::make_unique<Scene>();
     }
 
     Sandbox::~Sandbox()
@@ -71,6 +69,7 @@ namespace Dive
 
     bool Sandbox::Initialize()
     {
+        // Runtime으로 옮겨야 한다.
         if (!Window::GetInst().Initialize())
             return false;
         Window::GetInst().SetMessageCallback((LONG_PTR)SandboxMessageHandler);
@@ -125,21 +124,33 @@ namespace Dive
         // scene 초기화
         // => New Scene으로 메서드화?
         {
-            auto plane = m_scene->AddPresetObject(ePresetType::Plane);
-            auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
-            mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/stone01.tga");
-            mat->SetTexture(eTextureMapType::Normal, "Assets/Textures/normal01.tga");
-            mat->SetTiling(5.0f, 5.0f);
+            m_scene = std::make_unique<Scene>();
 
-            auto* mainCamera = m_scene->GetMainCamera();
-            auto* transform = mainCamera->GetTransform();
-            transform->SetPosition(0.0f, 3.0f, -5.0f);
-            transform->LookAt(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
-
-            auto* cameraCom = mainCamera->GetComponent<Camera>();
-            cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
-            auto targetTexture = m_graphics->CreateRenderTexture(m_graphics->GetWidth(), m_graphics->GetHeight());
-            cameraCom->SetTargetTexture(targetTexture);
+            {
+                m_mainCamera = m_scene->CreateGameObject();
+                auto* transform = m_mainCamera->GetTransform();
+                transform->SetPosition(0.0f, 3.0f, -5.0f);
+                transform->LookAt(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
+                auto* cameraCom = m_mainCamera->AddComponent<Camera>();
+                cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
+                auto targetTexture = m_graphics->CreateRenderTexture(m_graphics->GetWidth(), m_graphics->GetHeight());
+                cameraCom->SetTargetTexture(targetTexture);
+            }
+            {
+                m_directionalLight = m_scene->CreateGameObject();
+                Light* lightCom = m_directionalLight->AddComponent<Light>();
+                lightCom->SetLightType(eLightType::Directional);
+                //lightCom->SetColor(Color::White);
+                //lightCom->SetDirection(-1.0f, -1.0f, 1.0f);
+                lightCom->SetDirection(0.5f, -0.5f, 0.707107f);
+            }
+            {
+                auto plane = m_scene->AddPresetObject(ePresetType::Plane);
+                auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
+                mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/stone01.tga");
+                mat->SetTexture(eTextureMapType::Normal, "Assets/Textures/normal01.tga");
+                mat->SetTiling(5.0f, 5.0f);
+            }
         }
 
         m_timer->Start();
@@ -159,7 +170,7 @@ namespace Dive
             this->cameraControll(dt);
 
             m_scene->Update(dt);
-            m_scene->PrepareRenderChannels();
+            m_renderer->Update(m_scene.get());
 
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
@@ -247,13 +258,13 @@ namespace Dive
 
                     ImGui::Separator();
 
-                    if (ImGui::MenuItem("Copy", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
+                    if (ImGui::MenuItem("Copy", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
-                    if (ImGui::MenuItem("Paste", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
+                    if (ImGui::MenuItem("Paste", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
-                    if (ImGui::MenuItem("Delete", nullptr, nullptr, m_scene->GetSelectedObject() != nullptr))
+                    if (ImGui::MenuItem("Delete", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
                     {
                     }
 
@@ -294,13 +305,13 @@ namespace Dive
 
                     ImGui::Text("Sky");
                     ImGui::Separator();
-                    m_enviromentData.skyColor = m_scene->GetMainCamera()->GetComponent<Camera>()->GetClearColor();
+                    m_enviromentData.skyColor = m_mainCamera->GetComponent<Camera>()->GetClearColor();
                     if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
 
                     ImGui::Text("Directional Light");
                     ImGui::Separator();
 
-                    auto dirLight = m_scene->GetDirectionalLight()->GetComponent<Light>();
+                    auto dirLight = m_directionalLight->GetComponent<Light>();
                     DirectX::XMFLOAT3 lightColor = {
                         m_enviromentData.lightColor.r,
                         m_enviromentData.lightColor.g,
@@ -318,11 +329,11 @@ namespace Dive
                     static bool isFirstFrame = true;
                     if (isChanged || isFirstFrame)
                     {
-                        auto* mainCamera = m_scene->GetMainCamera()->GetComponent<Camera>();
+                        auto* mainCamera = m_mainCamera->GetComponent<Camera>();
                         mainCamera->SetClearColor(m_enviromentData.skyColor);
 
                         // 1. 컴포넌트 포인터 확보
-                        if (auto lightObj = m_scene->GetDirectionalLight())
+                        if (auto lightObj = m_directionalLight)
                         {
                             if (auto dirLight = lightObj->GetComponent<Light>())
                             {
@@ -375,103 +386,103 @@ namespace Dive
 
     void Sandbox::cameraControll(float dt)
     {
-        if (auto mainCamera = m_scene->GetMainCamera())
+        if (m_mainCamera == nullptr)
+            return;
+
+        auto& input = Input::GetInst();
+        auto transform = m_mainCamera->GetTransform();
+
+        // Camera Pitch, Yaw 때문에 튀는 것을 방지
+        static bool isInitialized = false;
+        if (!isInitialized)
         {
-            auto& input = Input::GetInst();
-            auto transform = mainCamera->GetTransform();
+            DirectX::XMFLOAT3 initialEuler = transform->GetLocalRotationRadians();
 
-            // Camera Pitch, Yaw 때문에 튀는 것을 방지
-            static bool isInitialized = false;
-            if (!isInitialized)
+            m_cameraPitch = initialEuler.x;
+            m_cameraYaw = initialEuler.y;
+            isInitialized = true;
+        }
+
+        float moveSpeed = 0.001f * dt;
+        if (input.KeyPress(DIK_LSHIFT))
+            moveSpeed *= BOOST_SPEED;
+
+        float rotSpeed = 0.5f * dt * 0.002f;
+
+        bool isRotated = false;
+
+        if (input.MouseButtonPress(1))
+        {
+            auto mouseMoveDelta = input.GetMouseMoveDelta();
+            if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
             {
-                DirectX::XMFLOAT3 initialEuler = transform->GetLocalRotationRadians();
-
-                m_cameraPitch = initialEuler.x;
-                m_cameraYaw = initialEuler.y;
-                isInitialized = true;
-            }
-
-            float moveSpeed = 0.001f * dt;
-            if (input.KeyPress(DIK_LSHIFT))
-                moveSpeed *= BOOST_SPEED;
-
-            float rotSpeed = 0.5f * dt * 0.002f;
-
-            bool isRotated = false;
-
-            if (input.MouseButtonPress(1))
-            {
-                auto mouseMoveDelta = input.GetMouseMoveDelta();
-                if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
-                {
-                    m_cameraYaw += mouseMoveDelta.x * rotSpeed;
-                    m_cameraPitch += mouseMoveDelta.y * rotSpeed;
-                    isRotated = true;
-                }
-            }
-
-            if (input.KeyPress(DIK_LEFT))
-            {
-                m_cameraYaw -= rotSpeed;
+                m_cameraYaw += mouseMoveDelta.x * rotSpeed;
+                m_cameraPitch += mouseMoveDelta.y * rotSpeed;
                 isRotated = true;
             }
-            if (input.KeyPress(DIK_RIGHT))
-            {
-                m_cameraYaw += rotSpeed;
-                isRotated = true;
-            }
-            if (input.KeyPress(DIK_UP))
-            {
-                m_cameraPitch -= rotSpeed;
-                isRotated = true;
-            }
-            if (input.KeyPress(DIK_DOWN))
-            {
-                m_cameraPitch += rotSpeed;
-                isRotated = true;
-            }
+        }
 
-            m_cameraPitch = std::clamp(m_cameraPitch, DirectX::XMConvertToRadians(-89.0f), DirectX::XMConvertToRadians(89.0f));
+        if (input.KeyPress(DIK_LEFT))
+        {
+            m_cameraYaw -= rotSpeed;
+            isRotated = true;
+        }
+        if (input.KeyPress(DIK_RIGHT))
+        {
+            m_cameraYaw += rotSpeed;
+            isRotated = true;
+        }
+        if (input.KeyPress(DIK_UP))
+        {
+            m_cameraPitch -= rotSpeed;
+            isRotated = true;
+        }
+        if (input.KeyPress(DIK_DOWN))
+        {
+            m_cameraPitch += rotSpeed;
+            isRotated = true;
+        }
 
-            if (isRotated)
-            {
-                DirectX::XMVECTOR cleanRotQuat = DirectX::XMQuaternionRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f);
-                transform->SetLocalRotationVector(cleanRotQuat);
-            }
+        m_cameraPitch = std::clamp(m_cameraPitch, DirectX::XMConvertToRadians(-89.0f), DirectX::XMConvertToRadians(89.0f));
 
-            DirectX::XMVECTOR forward = transform->GetLocalForwardVector();
-            DirectX::XMVECTOR right = transform->GetLocalRightVector();
-            DirectX::XMVECTOR up = transform->GetLocalUpVector();
+        if (isRotated)
+        {
+            DirectX::XMVECTOR cleanRotQuat = DirectX::XMQuaternionRotationRollPitchYaw(m_cameraPitch, m_cameraYaw, 0.0f);
+            transform->SetLocalRotationVector(cleanRotQuat);
+        }
 
-            DirectX::XMVECTOR translation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+        DirectX::XMVECTOR forward = transform->GetLocalForwardVector();
+        DirectX::XMVECTOR right = transform->GetLocalRightVector();
+        DirectX::XMVECTOR up = transform->GetLocalUpVector();
 
-            if (input.KeyPress(DIK_W))
-                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(forward, moveSpeed));
-            if (input.KeyPress(DIK_S))
-                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(forward, moveSpeed));
-            if (input.KeyPress(DIK_D))
-                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(right, moveSpeed));
-            if (input.KeyPress(DIK_A))
-                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(right, moveSpeed));
-            if (input.KeyPress(DIK_E))
-                translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(up, moveSpeed));
-            if (input.KeyPress(DIK_Q))
-                translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(up, moveSpeed));
+        DirectX::XMVECTOR translation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
-            transform->TranslateVector(translation, eSpace::World);
+        if (input.KeyPress(DIK_W))
+            translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(forward, moveSpeed));
+        if (input.KeyPress(DIK_S))
+            translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(forward, moveSpeed));
+        if (input.KeyPress(DIK_D))
+            translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(right, moveSpeed));
+        if (input.KeyPress(DIK_A))
+            translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(right, moveSpeed));
+        if (input.KeyPress(DIK_E))
+            translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(up, moveSpeed));
+        if (input.KeyPress(DIK_Q))
+            translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(up, moveSpeed));
 
-            {
-                auto* dirLight = m_scene->GetDirectionalLight()->GetComponent<Light>();
+        transform->TranslateVector(translation, eSpace::World);
+
+        {
+            auto* dirLight = m_directionalLight->GetComponent<Light>();
            
-                if (input.KeyDown(DIK_1))
-                    dirLight->SetDirection(-1.0f, -1.0f, 1.0f);
-                if (input.KeyDown(DIK_2))
-                    dirLight->SetDirection(1.0f, -1.0f, 1.0f);
-                if (input.KeyDown(DIK_3))
-                    dirLight->SetDirection(1.0f, -1.0f, -1.0f);
-                if (input.KeyDown(DIK_4))
-                    dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
-            }
+            if (input.KeyDown(DIK_1))
+                dirLight->SetDirection(-1.0f, -1.0f, 1.0f);
+            if (input.KeyDown(DIK_2))
+                dirLight->SetDirection(1.0f, -1.0f, 1.0f);
+            if (input.KeyDown(DIK_3))
+                dirLight->SetDirection(1.0f, -1.0f, -1.0f);
+            if (input.KeyDown(DIK_4))
+                dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
         }
     }
 }

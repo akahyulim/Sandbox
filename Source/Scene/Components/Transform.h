@@ -93,28 +93,6 @@ namespace Dive
 
 		void SetDirty();
 
-		// hierarchy
-		bool HasParent() const { return m_parent != nullptr; }
-		Transform* GetParent() const { return m_parent; }
-		void SetParent(Transform* parent);
-		void DetachFromParent();
-		bool IsParentOf(Transform* target);
-
-		bool HasChildren() const { return !m_children.empty(); }
-		std::vector<Transform*>& GetChildren() { return m_children; }
-
-		bool IsChildOf(Transform* parent);
-
-		Transform* GetChild(size_t index);
-
-		size_t GetChildCount();
-
-		void DetachChildren();
-		void RemoveChild(Transform* child);
-
-		size_t GetSiblingIndex();
-		void SetSiblingIndex(size_t index);
-
 	private:
 		DirectX::XMFLOAT3 m_localPosition = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT4 m_localRotation = { 0.0f, 0.0f, 0.0f, 1.0f };

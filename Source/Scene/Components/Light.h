@@ -30,6 +30,8 @@ namespace Dive
 
 		const cbLight& GetLightData() const { return m_data; }
 
+		static constexpr eComponentType GetType() { return eComponentType::Light; }
+
 	private:
 		cbLight m_data{};
 	};

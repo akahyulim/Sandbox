@@ -7,7 +7,7 @@ namespace Dive
 		Undefined,
 		Transform,
 		Camera,
-		cbLight,
+		Light,
 		MeshRenderer,
 	};
 

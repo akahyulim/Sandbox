@@ -55,7 +55,7 @@ namespace Dive
 		void SetClearColor(float r, float g, float b) { m_clearColor = Color{ r, g, b, 1.0f }; }
 
 		// 사용하는 곳이 있나...?
-		//static constexpr eComponentType GetType() { return eComponentType::Camera; }
+		static constexpr eComponentType GetType() { return eComponentType::Camera; }
 
 	private:
 		eProjectionType m_projectionType = eProjectionType::Perspective;

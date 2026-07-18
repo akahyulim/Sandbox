@@ -1,24 +1,39 @@
 ﻿#pragma once
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <string>
 
+#include "Utilities/Delegate.h"
+
 namespace Dive
 {
+	struct WindowInit
+	{
+		int width, height;
+		LPCWSTR title;
+		BOOL maximize;
+	};
+
+	struct WindowEventData
+	{
+		void* handle = nullptr;
+		uint32_t msg = 0;
+		uint64_t wParam = 0;
+		uint64_t lParam = 0;
+		float width = 0.0f;
+		float height = 0.0f;
+	};
+
+	DECLARE_EVENT(WindowEvent, Window, const WindowEventData&);
+
 	class Window
 	{
+		friend LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	public:
-		static Window& GetInst()
-		{
-			static Window instance;
-			return instance;
-		}
-
-		Window(const Window&) = delete;
-		Window(Window&&) = delete;
-		Window& operator=(const Window&) = delete;
-		Window& operator=(Window&&) = delete;
-
-		bool Initialize();
+		Window(const WindowInit& init);
+		~Window();
 
 		bool Run();
 
@@ -29,6 +44,8 @@ namespace Dive
 		uint32_t GetHeight() const;
 
 		HWND GetWindowHandle() const { return m_hWnd; }
+
+		bool IsActive() const;
 
 		void Show() const;
 		void Hide() const;
@@ -44,15 +61,15 @@ namespace Dive
 		void Restore() const;
 		bool IsMaximize() const;
 
-		void SetTitle(const std::string& title);
-		std::string GetTitle() const;
+		void SetTitle(const std::string& title) const;
+
+		WindowEvent& GetWindowEvent() { return m_windowEvent; }
 
 	private:
-		Window() = default;
-		~Window() = default;
+		void broadcastEvent(const WindowEventData& data);
 
 	private:
 		HWND m_hWnd{};
-		std::wstring m_title = L"Untitled";
+		WindowEvent m_windowEvent;
 	};
 }

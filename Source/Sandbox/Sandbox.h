@@ -2,6 +2,8 @@
 #include <memory>
 
 #include "Core/Types.h"
+#include "Core/Engine.h"
+#include "ImGuiManager.h"
 
 namespace Dive
 {
@@ -22,26 +24,35 @@ namespace Dive
 	class Renderer;
 	class GameObject;
 	class Scene;
+	struct WindowEventData;
+
+	struct SandboxInit
+	{
+		EngineInit engin_init;
+	};
 
 	class Sandbox
 	{
 	public:
-		Sandbox();
+		Sandbox(const SandboxInit& init);
 		~Sandbox();
 
 		bool Initialize();
 		void Run();
 
+		void OnWindowEvent(const WindowEventData& data);
+
 	private:
 		void cameraControll(float dt);
+		
+		// 각종 view는 메서드화
 
 	private:
-		std::unique_ptr<Timer> m_timer;
-		std::unique_ptr<Graphics> m_graphics;
-		std::unique_ptr<Renderer> m_renderer;
-
-		std::unique_ptr<Scene> m_scene;
-
+		std::unique_ptr<Engine> m_engine;
+		std::unique_ptr<ImGuiManager> m_gui;
+		
+		// ================================================================
+		
 		GameObject* m_mainCamera = nullptr;
 		GameObject* m_directionalLight = nullptr;
 		GameObject* m_selected = nullptr;

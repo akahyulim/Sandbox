@@ -34,36 +34,6 @@ namespace Dive
 		return true;
 	}
 
-	void Renderer::Update(Scene* scene)
-	{
-		if (!scene->IsDirty())
-			return;
-
-		m_cameras.clear();
-		m_lights.clear();
-		m_drawables.clear();
-
-		for (auto go : scene->GetAll())
-		{
-			if (!go->IsActive())
-				continue;
-
-			if (auto camera = go->GetComponent<Camera>())
-				m_cameras.push_back(go);
-			if (auto light = go->GetComponent<Light>())
-				m_lights.push_back(go);
-			if (auto meshRenderer = go->GetComponent<MeshRenderer>())
-				m_drawables.push_back(go);
-		}
-		
-		// 컬링
-		{
-
-		}
-
-		scene->ClearDirty();
-	}
-
 	void Renderer::Render(Scene* scene)
 	{
 		if (scene == nullptr)
@@ -71,9 +41,10 @@ namespace Dive
 
 		ID3D11ShaderResourceView* srv = nullptr;
 
-		for (auto go : m_cameras)
+		// 일단 카메라가 하나로 고정
+		if (GameObject* gameObect = scene->GetCamera())
 		{
-			auto camera = go->GetComponent<Camera>();
+			auto camera = gameObect->GetComponent<Camera>();
 
 			RenderPass opaquePass{};
 			opaquePass.clearColor = camera->GetClearColor();
@@ -112,16 +83,15 @@ namespace Dive
 
 			// dir light
 			{
-				auto dirLightGO = m_lights[0];
-				auto& dirLightData = dirLightGO->GetComponent<Light>()->GetLightData();
+				auto& dirLightData = scene->GetDirectionalLight()->GetComponent<Light>()->GetLightData();
 				m_graphics->UpdateConstantBuffer(eCBufferSlot::Light, &dirLightData, sizeof(dirLightData));
 				m_graphics->BindConstantBuffer(eCBufferSlot::Light);
 			}
 
-			for (GameObject* drawable : m_drawables)
+			for (GameObject* renderable : scene->GetRenderables())
 			{
-				auto* transform = drawable->GetTransform();
-				auto* meshRenderer = drawable->GetComponent<MeshRenderer>();
+				auto* transform = renderable->GetTransform();
+				auto* meshRenderer = renderable->GetComponent<MeshRenderer>();
 				auto mat = meshRenderer->GetMaterial();
 				auto mesh = meshRenderer->GetMesh();
 

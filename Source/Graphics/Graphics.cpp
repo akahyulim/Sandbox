@@ -2,6 +2,7 @@
 #include "Graphics.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "Core/Window.h"
 #include "Resource/Shader.h"
 #include "Resource/InputLayout.h"
 #include "Resource/ShaderProgram.h"
@@ -16,7 +17,7 @@ namespace Dive
 {
 	namespace
 	{
-		constexpr UINT DV_BUFFER_COUNT = 2;
+		constexpr UINT DV_BACKBUFFER_COUNT = 3;
 		constexpr UINT DV_REFRESHRATE_NUMERATOR = 60;
 		constexpr UINT DV_REFRESHRATE_DENOMINATOR = 1;
 		constexpr DXGI_FORMAT DV_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -87,13 +88,100 @@ namespace Dive
 		}
 	}
 
-	Graphics::Graphics()
+	// 스왑체인 desc는 adria를 참조 -> format은 기존 유지
+	// device -> swapChain 생성은 기존 기조 유지
+	Graphics::Graphics(Window* window)
+		: m_window(window)
 	{
+		m_width = window->GetWidth();
+		m_height = window->GetHeight();
+
+		HRESULT hr = ::D3D11CreateDevice(
+			nullptr,
+			D3D_DRIVER_TYPE_HARDWARE,
+			nullptr,
+			0,
+			nullptr,
+			0,
+			D3D11_SDK_VERSION,
+			m_device.GetAddressOf(),
+			nullptr,
+			m_deviceContext.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("Graphics::Graphics - 그래픽스 디바이스 생성 실패");
+			return;
+		}
+
+		IDXGIDevice* dxgiDevice{};
+		m_device->QueryInterface(IID_IDXGIDevice, (void**)&dxgiDevice);
+		IDXGIAdapter* dxgiAdapter{};
+		dxgiDevice->GetParent(IID_IDXGIAdapter, (void**)&dxgiAdapter);
+		IDXGIFactory* dxgiFactory{};
+		dxgiAdapter->GetParent(IID_IDXGIFactory, (void**)&dxgiFactory);
+
+		DXGI_SWAP_CHAIN_DESC desc{};
+		desc.BufferDesc.Width = 0;
+		desc.BufferDesc.Height = 0;
+		desc.BufferDesc.Format = DV_FORMAT;
+		desc.BufferDesc.RefreshRate.Numerator = 0;
+		desc.BufferDesc.RefreshRate.Denominator = 0;
+		desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+		desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		desc.BufferCount = DV_BACKBUFFER_COUNT;
+		desc.OutputWindow = window->GetWindowHandle();
+		desc.Windowed = TRUE;
+		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		
+		hr = dxgiFactory->CreateSwapChain(m_device.Get(), &desc, m_swapChain.GetAddressOf());
+		if (FAILED(hr))
+		{
+			spdlog::error("그래픽스 스왑체인 생성 실패");
+			return;
+		}
+
+		DV_RELEASE(dxgiFactory);
+		DV_RELEASE(dxgiAdapter);
+		DV_RELEASE(dxgiDevice);
+
+		createBackbufferResources(m_width, m_height);
 	}
 
-	Graphics::~Graphics()
+	Graphics::~Graphics() = default;
+
+	void Graphics::SetBackbuffer()
 	{
+		m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), nullptr);
 	}
+
+	void Graphics::ClearBackbuffer()
+	{
+		float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_deviceContext->ClearRenderTargetView(m_backbufferRTV.Get(), clearColor);
+	}
+
+	void Graphics::ResizeBackbuffer(uint32_t width, uint32_t height)
+	{
+		if ((m_width != width || m_height != height)
+			&& width > 0 && height > 0)
+		{
+			m_width = width;
+			m_height = height;
+
+			createBackbufferResources(width, height);
+		}
+	}
+
+	void Graphics::SwapBuffers(bool vSync)
+	{
+		m_swapChain->Present(vSync ? 1 : 0, 0);
+	}
+
+
+	// ======================================================================================================================================
 
 	// 그냥 Window를 전달?
 	bool Graphics::Initialize(HWND hWnd, uint32_t width, uint32_t height, bool windowed)
@@ -126,7 +214,7 @@ namespace Dive
 		dxgiAdapter->GetParent(IID_IDXGIFactory, (void**)&dxgiFactory);
 
 		DXGI_SWAP_CHAIN_DESC desc{};
-		desc.BufferCount = DV_BUFFER_COUNT;
+		desc.BufferCount = DV_BACKBUFFER_COUNT;
 		desc.BufferDesc.Width = width;
 		desc.BufferDesc.Height = height;
 		desc.BufferDesc.Format = DV_FORMAT;
@@ -908,6 +996,23 @@ namespace Dive
 		m_height = static_cast<uint32_t>(desc.BufferDesc.Height);
 
 		return true;
+	}
+
+	void Graphics::createBackbufferResources(uint32_t width, uint32_t height)
+	{
+		m_deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+
+		if (m_backbufferRTV)
+			m_backbufferRTV.Reset();
+
+		m_swapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+		m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)backBuffer.GetAddressOf());
+		
+		m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_backbufferRTV.GetAddressOf());
+
+		m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), nullptr);
 	}
 
 	bool Graphics::createDepthStencilStates()

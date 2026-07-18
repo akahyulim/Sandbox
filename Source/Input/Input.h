@@ -18,6 +18,9 @@ namespace Dive
 			return instance;
 		}
 
+		Input(HWND hWnd);
+		~Input();
+
 		Input(const Input&) = delete;
 		Input(Input&&) = delete;
 		Input& operator=(const Input&) = delete;
@@ -46,7 +49,7 @@ namespace Dive
 
 	private:
 		Input() = default;
-		virtual ~Input();
+		//virtual ~Input();
 
 	private:
 		HWND m_hWnd{};

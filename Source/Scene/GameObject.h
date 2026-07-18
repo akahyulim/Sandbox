@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "Scene.h"
 #include "Core/Object.h"
 #include "Components/Component.h"
 
@@ -13,8 +14,8 @@ namespace Dive
 	class GameObject : public Object
 	{
 	public:
-		GameObject(uint64_t id);
-		explicit GameObject(uint64_t id, Scene* scene);
+		GameObject(const std::string& name = "GameObject");
+		GameObject(Scene* scene, uint64_t id = AUTO_ID, const std::string& name = "GameObject");
 		GameObject(const GameObject&) = delete;
 		virtual ~GameObject() override;
 
@@ -29,20 +30,24 @@ namespace Dive
 
 		Transform* GetTransform() const { return m_transform.get(); }
 
-		bool IsActive() const { return m_active; }
-		void SetActive(bool active) { m_active = active; }
+		bool IsActive() const;
+		void SetActive(bool active) { m_isActive = active; }
 
 		// Hierarchy
+		GameObject* GetRoot() { return m_parent ? m_parent->GetRoot() : this; }
 		bool HasParent() const { return m_parent != nullptr; }
 		GameObject* GetParent() const { return m_parent; }
 		void SetParent(GameObject* parent);
 		void DetachFromParent();
 
 		uint32_t GetChildCount() { return static_cast<uint32_t>(m_children.size()); }
+		std::vector<GameObject*>& GetChildren() { return m_children; }
+		GameObject* GetChildByIndex(uint32_t index) const;
 		bool HasChildren() const { return !m_children.empty(); }
-		const std::vector<std::unique_ptr<GameObject>>& GetChildren() { return m_children; }
-		void AddChild(std::unique_ptr<GameObject> child);
-		std::unique_ptr<GameObject> RemoveChild(GameObject* child);
+		void DetachChildren();
+		void RemoveChild(GameObject* child);
+		bool IsDescendantOf(GameObject* target) const;
+		void GetDecendants(std::vector<GameObject*>& outDecendants) const;
 
 	private:
 		void notifySceneChanged();
@@ -50,12 +55,12 @@ namespace Dive
 	private:
 		Scene* m_scene = nullptr;
 		GameObject* m_parent = nullptr;
-		std::vector<std::unique_ptr<GameObject>> m_children;
+		std::vector<GameObject*> m_children;
 
 		std::unique_ptr<Transform> m_transform;
 		std::unordered_map<eComponentType, std::unique_ptr<Component>> m_components;
 
-		bool m_active = true;
+		bool m_isActive = true;
 
 		friend class Scene;
 	};

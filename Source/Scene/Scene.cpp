@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Scene.h"
+#include "GameObject.h"
 #include "Resource/ResourceManager.h"
 #include "Resource/StaticMesh.h"
 #include "Resource/Material.h"
@@ -13,107 +14,167 @@ namespace Dive
 	Scene::Scene() = default;
 	Scene::~Scene() = default;
 
-	void Scene::Update(float dt)
+	void Scene::Clear()
 	{
-		std::function<void(GameObject*)> updateNode = [&](GameObject* go) {
-			if (!go->IsActive())
-				return;
-
-			go->Update(dt);
-
-			for (auto& child : go->GetChildren())
-				updateNode(child.get());
-			};
-
-		for (const auto& go : m_roots)
-			updateNode(go.get());
-	}
-
-	GameObject* Scene::CreateGameObject(uint64_t id)
-	{
-		auto newGO = std::make_unique<GameObject>(id, this);
-		GameObject* ptr = newGO.get();
-		m_all.push_back(ptr);
-		m_roots.push_back(std::move(newGO));
+		m_gameObjectMap.clear();
 
 		SetDirty();
+	}
+	
+	// 추후엔 Engine의 상태에 따라 구분해야 한다.
+	// 컬링을 여기에서 수행해야 하나...
+	void Scene::Update(float dt)
+	{
+		if (!m_pendingAdditions.empty())
+		{
+			for (auto& gameObject : m_pendingAdditions)
+			{
+				uint64_t id = gameObject->GetInstanceID();
+				m_gameObjectMap.insert({ id, std::move(gameObject) });
+			}
 
-		return ptr;
+			m_pendingAdditions.clear();
+
+			SetDirty();
+		}
+
+		if (!m_pendingRemovals.empty())
+		{
+			for (auto& gameObject : m_pendingRemovals)
+			{
+				// 부모와의 관계는 끊되, 소멸자에서 다시 RemoveChild를 부르지 않도록
+				// GameObject에 'Scene에서 삭제 중'이라는 상태를 잠시 알려주는 것이 좋습니다.
+				//gameObject->SetPendingDeletion(true);
+				
+				if (gameObject->HasParent())
+					gameObject->DetachFromParent();
+
+				m_gameObjectMap.erase(gameObject->GetInstanceID());
+			}
+
+			m_pendingRemovals.clear();
+
+			SetDirty();
+		}
+
+		for (auto& [id, gameObect] : m_gameObjectMap)
+		{
+			if (gameObect->IsActive())
+			{
+				gameObect->Update(dt);
+			}
+		}
+
+		if (m_isDirty)
+		{
+			m_lights.clear();
+			m_renderables.clear();
+
+			for (auto& [id, gameObect] : m_gameObjectMap)
+			{
+				if (gameObect->IsActive())
+				{
+					if (m_camera == nullptr && gameObect->GetComponent<Camera>())
+					{
+						m_camera = gameObect.get();
+					}
+
+					if (auto light = gameObect->GetComponent<Light>())
+					{
+						if (m_directionalLight == nullptr && light->GetLightType() == eLightType::Directional)
+						{
+							m_directionalLight = gameObect.get();
+						}
+						else
+						{
+							m_lights.emplace_back(gameObect.get());
+						}
+					}
+
+					if (gameObect->GetComponent<MeshRenderer>())
+					{
+						m_renderables.emplace_back(gameObect.get());
+					}
+				}
+			}
+
+			ClearDirty();
+		}
+	}
+
+	GameObject* Scene::CreateGameObject()
+	{
+		auto gameObject = std::make_unique<GameObject>(this);
+		gameObject->AddComponent<Transform>();
+
+		auto rawPtr = gameObject.get();
+
+		m_pendingAdditions.emplace_back(std::move(gameObject));
+
+		return rawPtr;
+	}
+
+	GameObject* Scene::CreateGameObjectFromID(uint64_t id)
+	{
+		auto gameObject = std::make_unique<GameObject>(this, id);
+		gameObject->AddComponent<Transform>();
+
+		auto rawPtr = gameObject.get();
+
+		m_pendingAdditions.emplace_back(std::move(gameObject));
+
+		return rawPtr;
+	}
+
+	void Scene::RemoveGameObject(GameObject* gameObject)
+	{
+		assert(gameObject);
+
+		auto it = std::find(m_pendingRemovals.begin(), m_pendingRemovals.end(), gameObject);
+		if (it != m_pendingRemovals.end())
+			return;
+
+		m_pendingRemovals.emplace_back(gameObject);
+		gameObject->GetDecendants(m_pendingRemovals);
+	}
+
+	void Scene::RemoveGameObjectByID(uint64_t id)
+	{
+		auto it = m_gameObjectMap.find(id);
+		if (it != m_gameObjectMap.end())
+			RemoveGameObject(it->second.get());
 	}
 
 	GameObject* Scene::AddPresetObject(ePresetType type)
 	{
-		auto mesh = ResourceManager::GetInst().GetPresetMesh(type);
-		auto mat = ResourceManager::GetInst().Get<Material>("Default_Material");
-
 		auto ptr = CreateGameObject(); 
 		auto com = ptr->AddComponent<MeshRenderer>();
-		com->SetMaterial(mat);
-		com->SetMesh(mesh);
+		com->SetMaterial(ResourceManager::GetInst().Get<Material>("Default_Material"));
+		com->SetMesh(ResourceManager::GetInst().GetPresetMesh(type));
 
 		return ptr;
 	}
 	
-	void Scene::ClearAll()
+	void Scene::GetRootGameObjects(std::vector<GameObject*>& outRoots)
 	{
-		//m_drawables.clear();
-		m_all.clear();
-		m_roots.clear();
+		outRoots.clear();
+		outRoots.reserve(m_gameObjectMap.size());
 
-		SetDirty();
+		for (auto& [id, gameObect] : m_gameObjectMap)
+		{
+			if (!gameObect->HasParent())
+				outRoots.emplace_back(gameObect.get());
+		}
 	}
 
 	bool Scene::SaveToFile(const std::filesystem::path& filepath)
 	{
 		return false;
 	}
-	
+
 	bool Scene::LoadFromFile(const std::filesystem::path& filepath)
 	{
-		//m_objects.clear();
-
 
 		return false;
-	}
-
-	void Scene::AddRoot(std::unique_ptr<GameObject> go)
-	{
-		if (go == nullptr)
-			return;
-
-		if (IsRoot(go.get()))
-			return;
-
-		m_roots.emplace_back(std::move(go));
-		
-		SetDirty();
-	}
-
-	void Scene::RemoveRoot(GameObject* go)
-	{
-		if (go == nullptr || m_roots.empty())
-			return;
-
-		auto it = std::find_if(m_roots.begin(), m_roots.end(),
-			[go](const auto& ptr) { return ptr.get() == go; });
-
-		if (it != m_roots.end())
-		{
-			go->m_parent = nullptr;
-			m_roots.erase(it);
-		}
-
-		SetDirty();
-	}
-
-	bool Scene::IsRoot(GameObject* go)
-	{
-		if (go == nullptr)
-			return false;
-
-		auto it = std::find_if(m_roots.begin(), m_roots.end(),
-			[go](const auto& ptr) { return ptr.get() == go; });
-
-		return it != m_roots.end();
 	}
 }

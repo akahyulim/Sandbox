@@ -151,12 +151,8 @@
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Core\Common.h" />
-    <ClInclude Include="Source\Core\EventDispatcher.h" />
-    <ClInclude Include="Source\Core\Math.h" />
     <ClInclude Include="Source\Core\Object.h" />
-    <ClInclude Include="Source\Core\Runtime.h" />
-    <ClInclude Include="Source\Core\StringUtils.h" />
-    <ClInclude Include="Source\Core\Timer.h" />
+    <ClInclude Include="Source\Core\Engine.h" />
     <ClInclude Include="Source\Core\Types.h" />
     <ClInclude Include="Source\Core\Window.h" />
     <ClInclude Include="Source\Graphics\Graphics.h" />
@@ -185,6 +181,7 @@
     <ClInclude Include="Source\Resource\StaticMesh.h" />
     <ClInclude Include="Source\Resource\Texture.h" />
     <ClInclude Include="Source\Resource\Texture2D.h" />
+    <ClInclude Include="Source\Sandbox\ImGuiManager.h" />
     <ClInclude Include="Source\Sandbox\Sandbox.h" />
     <ClInclude Include="Source\Scene\Components\MeshRenderer.h" />
     <ClInclude Include="Source\Scene\Components\Camera.h" />
@@ -193,6 +190,12 @@
     <ClInclude Include="Source\Scene\Components\Transform.h" />
     <ClInclude Include="Source\Scene\GameObject.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Utilities\Delegate.h" />
+    <ClInclude Include="Source\Utilities\EventDispatcher.h" />
+    <ClInclude Include="Source\Utilities\FileUtils.h" />
+    <ClInclude Include="Source\Utilities\Math.h" />
+    <ClInclude Include="Source\Utilities\StringUtils.h" />
+    <ClInclude Include="Source\Utilities\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="External\imgui\imgui.cpp">
@@ -227,16 +230,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\Core\EventDispatcher.cpp" />
-    <ClCompile Include="Source\Core\Math.cpp" />
-    <ClCompile Include="Source\Core\Runtime.cpp" />
-    <ClCompile Include="Source\Core\StringUtils.cpp" />
-    <ClCompile Include="Source\Core\Timer.cpp" />
+    <ClCompile Include="Source\Core\Engine.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Graphics\Graphics.cpp" />
     <ClCompile Include="Source\Graphics\IndexBuffer.cpp" />
     <ClCompile Include="Source\Graphics\VertexBuffer.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
+    <ClCompile Include="Source\main.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -255,7 +258,7 @@
     <ClCompile Include="Source\Resource\StaticMesh.cpp" />
     <ClCompile Include="Source\Resource\Texture.cpp" />
     <ClCompile Include="Source\Resource\Texture2D.cpp" />
-    <ClCompile Include="Source\Sandbox\Main.cpp" />
+    <ClCompile Include="Source\Sandbox\ImGuiManager.cpp" />
     <ClCompile Include="Source\Sandbox\Sandbox.cpp" />
     <ClCompile Include="Source\Scene\Components\MeshRenderer.cpp" />
     <ClCompile Include="Source\Scene\Components\Camera.cpp" />
@@ -264,6 +267,11 @@
     <ClCompile Include="Source\Scene\Components\Transform.cpp" />
     <ClCompile Include="Source\Scene\GameObject.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
+    <ClCompile Include="Source\Utilities\EventDispatcher.cpp" />
+    <ClCompile Include="Source\Utilities\FileUtils.cpp" />
+    <ClCompile Include="Source\Utilities\Math.cpp" />
+    <ClCompile Include="Source\Utilities\StringUtils.cpp" />
+    <ClCompile Include="Source\Utilities\Timer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

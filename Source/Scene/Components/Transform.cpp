@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "Transform.h"
-#include "Core/Math.h"
+#include "Utilities/Math.h"
 #include "Scene/GameObject.h" 
 
 using namespace DirectX;
@@ -14,11 +14,6 @@ namespace Dive
 
 	Transform::~Transform()
 	{
-		//if (m_parent)
-		//	m_parent->RemoveChild(this);
-
-		//for (auto child : m_children)
-		//	child->m_parent = nullptr;
 	}
 
 	void Transform::Update()

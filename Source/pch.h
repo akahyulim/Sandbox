@@ -43,4 +43,4 @@
 
 #include "Core/Common.h"
 #include "Core/Types.h"
-#include "Core/StringUtils.h"
+#include "Utilities/StringUtils.h"

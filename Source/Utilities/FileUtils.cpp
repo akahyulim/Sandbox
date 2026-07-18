@@ -1,5 +1,9 @@
-﻿#include "stdafx.h"
+﻿#include "pch.h"
 #include "FileUtils.h"
+
+#include <wrl/client.h>
+#include <shobjidl.h>
+#include <shlwapi.h>
 
 namespace Dive
 {
@@ -83,8 +87,7 @@ namespace Dive
         {
             std::string folderPath;
 
-            using Microsoft::WRL::ComPtr;
-            ComPtr<IFileOpenDialog> fileDialog; // IFileDialog보다 구체적인 IFileOpenDialog 권장
+            Microsoft::WRL::ComPtr<IFileOpenDialog> fileDialog; // IFileDialog보다 구체적인 IFileOpenDialog 권장
 
             // 1. 인스턴스 생성
             HRESULT result = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&fileDialog));
@@ -98,7 +101,7 @@ namespace Dive
                 // 2. 부모 윈도우 핸들 전달 (에디터가 뒤에서 클릭되지 않게 방어)
                 if (SUCCEEDED(fileDialog->Show(owner)))
                 {
-                    ComPtr<IShellItem> shellItem;
+                    Microsoft::WRL::ComPtr<IShellItem> shellItem;
                     if (SUCCEEDED(fileDialog->GetResult(&shellItem)))
                     {
                         PWSTR path = nullptr;

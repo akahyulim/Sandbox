@@ -31,11 +31,11 @@
     <Filter Include="External\ImGui">
       <UniqueIdentifier>{e520428b-0922-490c-a91f-27919b44f6bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{22a4e21e-e605-4587-9689-89e8b3288cad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Core\StringUtils.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Window.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -51,16 +51,7 @@
     <ClInclude Include="Source\Core\Common.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Core\Math.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Core\Timer.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Types.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Core\EventDispatcher.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\pch.h" />
@@ -157,7 +148,7 @@
     <ClInclude Include="Source\Resource\ShaderProgram.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Core\Runtime.h">
+    <ClInclude Include="Source\Core\Engine.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imconfig.h">
@@ -187,11 +178,29 @@
     <ClInclude Include="External\imgui\imstb_truetype.h">
       <Filter>External\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Utilities\EventDispatcher.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\FileUtils.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\StringUtils.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\Timer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\Math.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\Delegate.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Sandbox\ImGuiManager.h">
+      <Filter>Sandbox</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Core\StringUtils.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Core\Window.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -199,18 +208,6 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Sandbox\Sandbox.cpp">
-      <Filter>Sandbox</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Core\Math.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Core\Timer.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Core\EventDispatcher.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Sandbox\Main.cpp">
       <Filter>Sandbox</Filter>
     </ClCompile>
     <ClCompile Include="Source\pch.cpp" />
@@ -286,7 +283,7 @@
     <ClCompile Include="Source\Resource\ShaderProgram.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Core\Runtime.cpp">
+    <ClCompile Include="Source\Core\Engine.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="External\imgui\imgui.cpp">
@@ -312,6 +309,25 @@
     </ClCompile>
     <ClCompile Include="External\imgui\ImGuizmo.cpp">
       <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Utilities\EventDispatcher.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utilities\FileUtils.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utilities\StringUtils.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utilities\Timer.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utilities\Math.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Sandbox\ImGuiManager.cpp">
+      <Filter>Sandbox</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

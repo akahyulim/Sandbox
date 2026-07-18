@@ -1,12 +1,12 @@
 ﻿#include "pch.h"
 #include "Sandbox.h"
 #include "Core/Window.h"
-#include "Core/EventDispatcher.h"
-#include "Core/Timer.h"
+#include "Utilities/Timer.h"
 #include "Graphics/Graphics.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
 #include "Scene/Scene.h"
+#include "Scene/GameObject.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/MeshRenderer.h"
@@ -23,44 +23,23 @@ namespace Dive
 {
     namespace
     {
+        //Engine* s_engine = nullptr;
+        //Graphics* s_graphics = nullptr;
+
         constexpr float BOOST_SPEED = 10.0f;
         constexpr float MIN_SPEED = 0.5f;
         constexpr float MAX_SPEED = 99.0f;
-
-        Graphics* s_graphics = nullptr;
-
-        static LRESULT CALLBACK SandboxMessageHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam)
-        {
-            ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam);
-
-            switch (msg)
-            {
-            case WM_SIZE:
-            {
-                DV_FIRE_EVENT(Dive::eEventType::WindowResized);
-                if (s_graphics)
-                    s_graphics->OnResizeViews();
-                return 0;
-            }
-            case WM_CLOSE:
-            {
-                Dive::Window::GetInst().Close();
-                return 0;
-            }
-            case WM_DESTROY:
-                PostQuitMessage(0);
-                return 0;
-            }
-
-            return ::DefWindowProc(hWnd, msg, wParam, lParam);
-        }
     }
 
-    Sandbox::Sandbox()
+    Sandbox::Sandbox(const SandboxInit& init)
     {
-        m_timer = std::make_unique<Timer>();
-        m_graphics = std::make_unique<Graphics>();
-        m_renderer = std::make_unique<Renderer>();
+        m_engine = std::make_unique<Engine>(init.engin_init);
+        //s_engine = m_engine.get();
+
+        m_gui = std::make_unique<ImGuiManager>(m_engine->GetGraphics());
+
+        // logger
+        // SetStyle();
     }
 
     Sandbox::~Sandbox()
@@ -69,7 +48,9 @@ namespace Dive
 
     bool Sandbox::Initialize()
     {
-        // Runtime으로 옮겨야 한다.
+       
+        /*
+        // Engine으로 옮겨야 한다.
         if (!Window::GetInst().Initialize())
             return false;
         Window::GetInst().SetMessageCallback((LONG_PTR)SandboxMessageHandler);
@@ -154,12 +135,223 @@ namespace Dive
         }
 
         m_timer->Start();
-
+        */
         return true;
     }
 
     void Sandbox::Run()
     {
+        // HandleInput() => cameraControl을 변경?
+
+        if(m_gui->IsVisible())
+        {
+            m_engine->Run();
+            m_engine->GetGraphics()->ClearBackbuffer();
+            m_engine->GetGraphics()->SetBackbuffer();
+            
+            m_gui->Begin();
+            {
+                // 단축키 가동 (방어 코드)
+                if (!ImGui::IsAnyItemActive())
+                {
+                    if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
+                    {
+                        m_engine->GetWindow()->Close();
+                    }
+                }
+
+                // 현재 메인 윈도우 창의 위치와 크기 확보
+                const ImGuiViewport* viewport = ImGui::GetMainViewport();
+                ImGui::SetNextWindowPos(viewport->WorkPos);
+                ImGui::SetNextWindowSize(viewport->WorkSize);
+
+                ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration |
+                    ImGuiWindowFlags_NoMove |
+                    ImGuiWindowFlags_NoResize |
+                    ImGuiWindowFlags_NoSavedSettings |
+                    ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+                if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
+                {
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+
+                    if (ImGui::BeginPopupContextWindow("CanvasContextMenu", ImGuiPopupFlags_MouseButtonRight))
+                    {
+                        if (ImGui::MenuItem("New"))
+                        {
+                            //m_scene->Clear();
+                        }
+
+                        if (ImGui::MenuItem("Open"))
+                        {
+                            //m_scene->LoadFromFile();
+                        }
+
+                        ImGui::Separator();
+
+                        ImGui::MenuItem("Hierarchy");
+                        //ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr);
+
+                        ImGui::Separator();
+                        /*
+                        if (ImGui::BeginMenu("3D Object"))
+                        {
+                            if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
+                            {
+                                auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
+                                triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                            }
+                            if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
+                            {
+                                auto quad = m_scene->AddPresetObject(ePresetType::Quad);
+                                quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                            }
+                            if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
+                            {
+                                auto cube = m_scene->AddPresetObject(ePresetType::Cube);
+                                cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                            }
+                            if (ImGui::MenuItem("Sphere", nullptr, nullptr, m_scene != nullptr))
+                            {
+                                auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
+                                sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                            }
+                            if (ImGui::MenuItem("Capsule", nullptr, nullptr, m_scene != nullptr))
+                            {
+                                auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
+                                capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
+                            }
+                            if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
+                            {
+                            }
+                            ImGui::EndMenu();
+                        }
+                        */
+                        ImGui::Separator();
+
+                        if (ImGui::MenuItem("Copy", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
+                        {
+                        }
+                        if (ImGui::MenuItem("Paste", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
+                        {
+                        }
+                        if (ImGui::MenuItem("Delete", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
+                        {
+                        }
+
+                        ImGui::Separator();
+
+                        if (ImGui::MenuItem("Save"))
+                        {
+                        }
+                        if (ImGui::MenuItem("Save As..."))
+                        {
+                        }
+
+                        ImGui::Separator();
+
+                        if (ImGui::MenuItem("Exit", "Ctrl+Q"))
+                        {
+                            m_engine->GetWindow()->Close();
+                        }
+
+                        ImGui::EndPopup();
+                    }
+                }
+                ImGui::End();
+
+                if (m_showEnvDiralog)
+                {
+                    const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+                    ImVec2 windowPos = ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x - 320.0f, mainViewport->WorkPos.y + 20.0f);
+                    ImVec2 windowSize = ImVec2(300.0f, 200.0f);
+
+                    ImGui::SetNextWindowPos(windowPos, ImGuiCond_FirstUseEver);
+                    ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
+
+                    if (ImGui::Begin("Environment", &m_showEnvDiralog, ImGuiWindowFlags_NoSavedSettings))
+                    {
+                        // 🌟 변경 감지를 위해 하나로 묶기
+                        bool isChanged = false;
+
+                        ImGui::Text("Sky");
+                        ImGui::Separator();
+                        m_enviromentData.skyColor = m_mainCamera->GetComponent<Camera>()->GetClearColor();
+                        if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
+
+                        ImGui::Text("Directional Light");
+                        ImGui::Separator();
+
+                        auto dirLight = m_directionalLight->GetComponent<Light>();
+                        DirectX::XMFLOAT3 lightColor = {
+                            m_enviromentData.lightColor.r,
+                            m_enviromentData.lightColor.g,
+                            m_enviromentData.lightColor.b
+                        };
+                        float lightIntensity = m_enviromentData.lightColor.a;
+                        if (ImGui::ColorEdit3("Light Color", &m_enviromentData.lightColor.r)) isChanged = true;
+                        if (ImGui::SliderFloat("Intensity", &m_enviromentData.lightColor.a, 0.0f, 5.0f, "%.2f")) isChanged = true;
+
+                        ImGui::Spacing();
+                        ImGui::Text("Rotation Angles");
+                        if (ImGui::SliderFloat("Pitch", &m_enviromentData.lightPitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
+                        if (ImGui::SliderFloat("Yaw", &m_enviromentData.lightYaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
+
+                        static bool isFirstFrame = true;
+                        if (isChanged || isFirstFrame)
+                        {
+                            auto* mainCamera = m_mainCamera->GetComponent<Camera>();
+                            mainCamera->SetClearColor(m_enviromentData.skyColor);
+
+                            // 1. 컴포넌트 포인터 확보
+                            if (auto lightObj = m_directionalLight)
+                            {
+                                if (auto dirLight = lightObj->GetComponent<Light>())
+                                {
+                                    Color lightColor = Color{
+                                        m_enviromentData.lightColor.r * m_enviromentData.lightColor.a,
+                                        m_enviromentData.lightColor.g * m_enviromentData.lightColor.a,
+                                        m_enviromentData.lightColor.b * m_enviromentData.lightColor.a,
+                                        m_enviromentData.lightColor.a
+                                    };
+                                    dirLight->SetColor(lightColor);
+
+
+                                    // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
+                                    float pitchRad = DirectX::XMConvertToRadians(m_enviromentData.lightPitch);
+                                    float yawRad = DirectX::XMConvertToRadians(m_enviromentData.lightYaw);
+
+                                    DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
+                                    DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+                                    DirectX::XMVECTOR finalDir = DirectX::XMVector3TransformNormal(baseDir, rotMatrix);
+                                    finalDir = DirectX::XMVector3Normalize(finalDir);
+
+                                    DirectX::XMFLOAT3 finalDirF3;
+                                    DirectX::XMStoreFloat3(&finalDirF3, finalDir);
+                                    dirLight->SetDirection(finalDirF3);
+                                }
+                            }
+                            isFirstFrame = false;
+                        }
+                    }
+                    ImGui::End();
+                }
+            }
+            m_gui->End();
+
+            m_engine->Present();
+        }
+        else
+        {
+            m_engine->Run();
+            m_engine->Present();
+        }
+
+        /*
         while (Window::GetInst().Run())
         {
             m_timer->Tick();
@@ -170,8 +362,7 @@ namespace Dive
             this->cameraControll(dt);
 
             m_scene->Update(dt);
-            m_renderer->Update(m_scene.get());
-
+            
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
@@ -208,7 +399,7 @@ namespace Dive
                 {
                     if (ImGui::MenuItem("New"))
                     {
-                        m_scene->ClearAll();
+                        m_scene->Clear();
                     }
 
                     if (ImGui::MenuItem("Open"))
@@ -218,8 +409,8 @@ namespace Dive
 
                     ImGui::Separator();
 
-                    ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr);
-                     
+                    ImGui::MenuItem("Hierarchy");
+                    ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr); 
 
                     ImGui::Separator();
 
@@ -382,14 +573,21 @@ namespace Dive
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
+        */
     }
 
+    void Sandbox::OnWindowEvent(const WindowEventData& data)
+    {
+        // engine->OnWindowEvent()에 전달 -> input의 OnWindowEvent()에 전달
+        m_gui->HandleWindowMessage(data);
+    }
+    
     void Sandbox::cameraControll(float dt)
     {
         if (m_mainCamera == nullptr)
             return;
 
-        auto& input = Input::GetInst();
+        auto input = m_engine->GetInput();
         auto transform = m_mainCamera->GetTransform();
 
         // Camera Pitch, Yaw 때문에 튀는 것을 방지
@@ -404,16 +602,16 @@ namespace Dive
         }
 
         float moveSpeed = 0.001f * dt;
-        if (input.KeyPress(DIK_LSHIFT))
+        if (input->KeyPress(DIK_LSHIFT))
             moveSpeed *= BOOST_SPEED;
 
         float rotSpeed = 0.5f * dt * 0.002f;
 
         bool isRotated = false;
 
-        if (input.MouseButtonPress(1))
+        if (input->MouseButtonPress(1))
         {
-            auto mouseMoveDelta = input.GetMouseMoveDelta();
+            auto mouseMoveDelta = input->GetMouseMoveDelta();
             if (mouseMoveDelta.x != 0.0f || mouseMoveDelta.y != 0.0f)
             {
                 m_cameraYaw += mouseMoveDelta.x * rotSpeed;
@@ -422,22 +620,22 @@ namespace Dive
             }
         }
 
-        if (input.KeyPress(DIK_LEFT))
+        if (input->KeyPress(DIK_LEFT))
         {
             m_cameraYaw -= rotSpeed;
             isRotated = true;
         }
-        if (input.KeyPress(DIK_RIGHT))
+        if (input->KeyPress(DIK_RIGHT))
         {
             m_cameraYaw += rotSpeed;
             isRotated = true;
         }
-        if (input.KeyPress(DIK_UP))
+        if (input->KeyPress(DIK_UP))
         {
             m_cameraPitch -= rotSpeed;
             isRotated = true;
         }
-        if (input.KeyPress(DIK_DOWN))
+        if (input->KeyPress(DIK_DOWN))
         {
             m_cameraPitch += rotSpeed;
             isRotated = true;
@@ -457,17 +655,17 @@ namespace Dive
 
         DirectX::XMVECTOR translation = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
-        if (input.KeyPress(DIK_W))
+        if (input->KeyPress(DIK_W))
             translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(forward, moveSpeed));
-        if (input.KeyPress(DIK_S))
+        if (input->KeyPress(DIK_S))
             translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(forward, moveSpeed));
-        if (input.KeyPress(DIK_D))
+        if (input->KeyPress(DIK_D))
             translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(right, moveSpeed));
-        if (input.KeyPress(DIK_A))
+        if (input->KeyPress(DIK_A))
             translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(right, moveSpeed));
-        if (input.KeyPress(DIK_E))
+        if (input->KeyPress(DIK_E))
             translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(up, moveSpeed));
-        if (input.KeyPress(DIK_Q))
+        if (input->KeyPress(DIK_Q))
             translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(up, moveSpeed));
 
         transform->TranslateVector(translation, eSpace::World);
@@ -475,13 +673,13 @@ namespace Dive
         {
             auto* dirLight = m_directionalLight->GetComponent<Light>();
            
-            if (input.KeyDown(DIK_1))
+            if (input->KeyDown(DIK_1))
                 dirLight->SetDirection(-1.0f, -1.0f, 1.0f);
-            if (input.KeyDown(DIK_2))
+            if (input->KeyDown(DIK_2))
                 dirLight->SetDirection(1.0f, -1.0f, 1.0f);
-            if (input.KeyDown(DIK_3))
+            if (input->KeyDown(DIK_3))
                 dirLight->SetDirection(1.0f, -1.0f, -1.0f);
-            if (input.KeyDown(DIK_4))
+            if (input->KeyDown(DIK_4))
                 dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
         }
     }

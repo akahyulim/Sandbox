@@ -25,7 +25,6 @@ namespace Dive
 
 		bool Initialize(Graphics* graphics);
 
-		void Update(Scene* scene);
 		void Render(Scene* scene);
 
 		void SetPipelineState(const PipelineState& pso, uint32_t stencilRef, float blendFactor[4], uint32_t sampleMask);
@@ -45,10 +44,6 @@ namespace Dive
 
 	private:
 		Graphics* m_graphics = nullptr;
-
-		std::vector<GameObject*> m_cameras;
-		std::vector<GameObject*> m_lights;
-		std::vector<GameObject*> m_drawables;
 
 		PipelineState m_currentPSO;
 		uint32_t m_currentStencilRef = 0;

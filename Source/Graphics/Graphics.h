@@ -21,6 +21,7 @@ namespace DirectX
 
 namespace Dive
 {
+	class Window;
 	class VertexBuffer;
 	class IndexBuffer;
 	class VertexShader;
@@ -63,8 +64,22 @@ namespace Dive
 			}
 		};
 
-		Graphics();
+		explicit Graphics(Window* window);
+		Graphics(Graphics const&) = delete;
+		Graphics(Graphics&&) = default;
+		Graphics& operator=(Graphics const&) = delete;
+		Graphics& operator=(Graphics&&) = default;
 		~Graphics();
+
+		void SetBackbuffer();
+		void ClearBackbuffer();
+		void ResizeBackbuffer(uint32_t width, uint32_t height);
+
+		void SwapBuffers(bool vSync);
+
+		Window* GetWindow() const { return m_window; }
+
+		// ========================================================================================================================
 
 		bool Initialize(HWND hWnd, uint32_t width, uint32_t height, bool windowed);
 
@@ -129,6 +144,8 @@ namespace Dive
 
 	private:
 		bool updateBackbuffer();
+		void createBackbufferResources(uint32_t width, uint32_t height);
+
 		bool createDepthStencilStates();
 		bool createRasterizerStates();
 		bool createBlendStates();
@@ -146,6 +163,10 @@ namespace Dive
 		void bindSamplerState(uint32_t slot, ID3D11SamplerState* ss);
 
 	private:
+		Window* m_window = nullptr;
+		uint32_t m_width;
+		uint32_t m_height;
+
 		Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
 		Microsoft::WRL::ComPtr<ID3D11Device> m_device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_deviceContext;
@@ -154,11 +175,9 @@ namespace Dive
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backbufferTexture;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_backbufferDSV;
 
-		uint32_t m_width;
-		uint32_t m_height;
+		bool m_vSync = false;	// 제거대상 -> Engine에 있다.
 
-		bool m_vSync = false;
-
+		// adria 기준 아래의 멤버변수들도 전부 제거 대상이다.
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Count)];
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerStates[static_cast<size_t>(eRasterizerState::Count)];
 		Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendStates[static_cast<size_t>(eBlendState::Count)];

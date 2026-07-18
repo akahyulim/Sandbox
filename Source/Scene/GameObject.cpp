@@ -1,31 +1,39 @@
 ﻿#include "pch.h"
 #include "GameObject.h"
-#include "Scene.h"
+//#include "Scene.h"
 #include "Components/Transform.h"
 
 namespace Dive
 {
-	GameObject::GameObject(uint64_t id)
-		: Object(id)
+	GameObject::GameObject(const std::string& name)
 	{
+		SetName(name);
 		m_transform = std::make_unique<Transform>(this);
 	}
 
-	GameObject::GameObject(uint64_t id, Scene* scene)
-		: m_scene(scene)
-		, Object(id)
+	GameObject::GameObject(Scene* scene, uint64_t id, const std::string& name)
+		: Object(id),
+		m_scene(scene)
 	{
+		SetName(name);
 		m_transform = std::make_unique<Transform>(this);
 	}
 
-	GameObject::~GameObject() = default;
+	GameObject::~GameObject()
+	{
+		if (m_parent)
+			m_parent->RemoveChild(this);
+	}
 
 	void GameObject::Update(float dt)
 	{
 		m_transform->Update();
 
-		for (auto& [type, com] : m_components)
-			com->Update();
+		for (auto& [type, component] : m_components)
+			component->Update();
+
+		for (auto child : m_children)
+			child->Update(dt);
 	}
 
 	Component* GameObject::GetComponentByType(eComponentType type) const
@@ -37,23 +45,32 @@ namespace Dive
 		return nullptr;
 	}
 
+	bool GameObject::IsActive() const
+	{
+		if (m_parent)
+			return m_isActive && m_parent->IsActive();
+
+		return m_isActive;
+	}
+
 	void GameObject::SetParent(GameObject* parent)
 	{
 		if (parent == m_parent)
 			return;
 
-		std::unique_ptr<GameObject> selfOwnership;
+		// 자손이 부모가 될 수 없다.
+		if (IsDescendantOf(parent))
+			return;
 
 		if (m_parent)
-			selfOwnership = m_parent->RemoveChild(this);
-		else
-			m_scene->RemoveRoot(this);
+			DetachFromParent();
+		
+		m_parent = parent;
 
-		if (parent)
-			parent->AddChild(std::move(selfOwnership));
-		else if(m_scene)
-			m_scene->AddRoot(std::move(selfOwnership));
+		if (m_parent)
+			m_parent->m_children.emplace_back(this);
 
+		notifySceneChanged();
 	}
 	
 	void GameObject::DetachFromParent()
@@ -61,44 +78,85 @@ namespace Dive
 		if (m_parent == nullptr)
 			return;
 
-		std::unique_ptr<GameObject> self = m_parent->RemoveChild(this);
+		auto it = std::find(m_parent->m_children.begin(), m_parent->m_children.end(), this);
+		if (it != m_parent->m_children.end())
+			m_parent->m_children.erase(it);
 
-		if (m_scene && self)
-			m_scene->AddRoot(std::move(self));
+		m_parent = nullptr;
+
+		notifySceneChanged();
 	}
-	
-	void GameObject::AddChild(std::unique_ptr<GameObject> child)
+
+	GameObject* GameObject::GetChildByIndex(uint32_t index) const
 	{
-		if (child == nullptr || child.get() == this)
+		if(m_children.size() <= index)
+			return nullptr;
+
+		return m_children[index];
+	}
+
+	void GameObject::DetachChildren()
+	{
+		if (m_children.empty())
 			return;
 
-		if (child->m_parent != nullptr)
-			child->m_parent->RemoveChild(child.get());
+		for (auto child : m_children)
+			child->m_parent = nullptr;
 
-		child->m_parent = this;
+		m_children.clear();
 
-		m_children.emplace_back(std::move(child));
+		notifySceneChanged();
 	}
 
-	std::unique_ptr<GameObject> GameObject::RemoveChild(GameObject* child)
+	// 사실상 단일 자식을 독립시키고 있다.
+	// 이름과 매칭이 되지 않아 부자연스럽다.
+	// 애초에 detach children과 차이를 모르겠다.
+	// detach child로 살려둬야 하나 싶다.
+	void GameObject::RemoveChild(GameObject* child)
 	{
-		auto it = std::find_if(m_children.begin(), m_children.end(),
-			[child](const auto& ptr) { return ptr.get() == child; });
+		if (child == nullptr || child->GetParent() != this)
+			return;
 
+		auto it = std::find(m_children.begin(), m_children.end(), child);
 		if (it != m_children.end())
-		{
-			std::unique_ptr<GameObject> detached = std::move(*it);
-			detached->m_parent = nullptr;
 			m_children.erase(it);
-			return detached;
+
+		notifySceneChanged();
+	}
+
+	bool GameObject::IsDescendantOf(GameObject* target) const
+	{
+		if(target == nullptr)
+			return false;
+
+		GameObject* currentParent = this->m_parent;
+		while (currentParent)
+		{
+			if (currentParent == target)
+				return true;
+
+			currentParent = currentParent->m_parent;
 		}
 
-		return nullptr;
+		return false;
 	}
 
-	void GameObject::notifySceneChanged() 
+	void GameObject::GetDecendants(std::vector<GameObject*>& outDecendants) const
 	{
-		if (m_scene) 
+		for (auto child : m_children)
+		{
+			outDecendants.emplace_back(child);
+
+			if (child->HasChildren())
+				child->GetDecendants(outDecendants);
+		}
+	}
+
+	void GameObject::notifySceneChanged()
+	{
+		if (m_scene)
+		{
 			m_scene->SetDirty();
+		}
 	}
 }

@@ -26,6 +26,7 @@ namespace Dive
 	};
 
 	DECLARE_EVENT(WindowEvent, Window, const WindowEventData&);
+	DECLARE_EVENT(ResizedEvent, Window, uint32_t, uint32_t);
 
 	class Window
 	{
@@ -64,12 +65,16 @@ namespace Dive
 		void SetTitle(const std::string& title) const;
 
 		WindowEvent& GetWindowEvent() { return m_windowEvent; }
+		ResizedEvent& GetResizedEvent() { return m_resizedEvent; }
 
 	private:
-		void broadcastEvent(const WindowEventData& data);
+		void broadcastEvents(const WindowEventData& data);
 
 	private:
 		HWND m_hWnd{};
 		WindowEvent m_windowEvent;
+		ResizedEvent m_resizedEvent;
+
+		bool m_isResizing = false;
 	};
 }

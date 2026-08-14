@@ -33,7 +33,7 @@ namespace Dive
 			result = ::DefWindowProc(hWnd, msg, wParam, lParam);
 
 		if (window)
-			window->broadcastEvent(data);
+			window->broadcastEvents(data);
 
 		return result;
 	}
@@ -266,12 +266,27 @@ namespace Dive
 
 	void Window::SetTitle(const std::string& title) const
 	{
-		auto newTitle = StringUtils::StringToWString(title);
+		auto newTitle = StringUtils::ToWString(title);
 		::SetWindowText(m_hWnd, newTitle.c_str());
 	}
 
-	void Window::broadcastEvent(const WindowEventData& data)
+	void Window::broadcastEvents(const WindowEventData& data)
 	{
 		m_windowEvent.Broadcast(data);
+
+		switch (data.msg)
+		{
+		case WM_ENTERSIZEMOVE:
+			m_isResizing = true;
+			break;
+		case WM_EXITSIZEMOVE:
+			m_isResizing = false;
+			m_resizedEvent.Broadcast(static_cast<uint32_t>(data.width), static_cast<uint32_t>(data.height));
+			break;
+		case WM_SIZE:
+			if(!m_isResizing)
+				m_resizedEvent.Broadcast(static_cast<uint32_t>(data.width), static_cast<uint32_t>(data.height));
+			break;
+		}
 	}
 }

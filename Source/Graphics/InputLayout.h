@@ -1,19 +1,30 @@
-﻿#pragma once
+#pragma once
 #include <wrl/client.h>
 #include <d3d11.h>
+#include <DXGI1_3.h>
 
 namespace Dive
 {
+	enum class eInputLayout : uint8_t
+	{
+		None = 0,
+		Position,
+		Unlit,
+		Lit,
+		Skinned
+	};
+
+	class Graphics;
+
 	class InputLayout
 	{
 	public:
-		InputLayout() = default;
-		~InputLayout() = default;
+		InputLayout(Graphics* graphics, eInputLayout type, ID3DBlob* code);
+		~InputLayout();
 
-		ID3D11InputLayout* GetLayout() const { return m_inputLayout.Get(); }
-		ID3D11InputLayout** GetAddressOf() { return m_inputLayout.GetAddressOf(); }
+		operator ID3D11InputLayout* () const { return m_il.Get(); }
 
 	private:
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> m_il;
 	};
 }

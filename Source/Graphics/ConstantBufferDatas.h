@@ -1,15 +1,12 @@
-﻿#pragma once
+#pragma once
 #include <DirectXMath.h>
 
+// adria는 ConstantBuffers.h에 선언해 놓았다.
 namespace Dive
 {
-    // 상수 버퍼 내의 배열 크기 지정을 위한 매크로 (HLSL과 동기화)
 #define MAX_LIGHTS 16
-
-    // 아무래도 cbXXX보단 XXXData라는 이름이 더 나을 것 같다.
     
-    // [b0] Global / Camera Buffer 구조체
-    struct cbCamera
+    struct FrameData
     {
         DirectX::XMMATRIX viewMatrix;
         DirectX::XMMATRIX projMatrix;
@@ -18,8 +15,13 @@ namespace Dive
         DirectX::XMFLOAT4 backgroundColor;
     };  
 
-    // [b1] Material Buffer 구조체
-    struct cbMaterial
+    struct ObjectData
+    {
+        DirectX::XMMATRIX model;
+        // transposed_inverse_model???
+    };
+
+    struct MaterialData
     {
         DirectX::XMFLOAT4 diffuseColor;
         DirectX::XMFLOAT2 tiling;
@@ -30,13 +32,7 @@ namespace Dive
         uint32_t padding[2];
     };
 
-    // [b2] Object Buffer 구조체
-    struct cbObject
-    {
-        DirectX::XMMATRIX worldMatrix;
-    };
-
-    struct cbLight
+    struct LightData
     {
         DirectX::XMFLOAT3 color = { 1.0f, 1.0f, 1.0f };
         uint32_t type = 0;
@@ -52,13 +48,13 @@ namespace Dive
         uint32_t paddingRow4[2] = { 0, 0 };
     };
 
-    struct cbForwardLight
+    struct ForwardLightData
     {
         DirectX::XMFLOAT4 ambientColor;
         
         int32_t lightCount;
         DirectX::XMFLOAT3 padding;
         
-        cbLight lights[MAX_LIGHTS];
+        LightData lights[MAX_LIGHTS];
     };
 }

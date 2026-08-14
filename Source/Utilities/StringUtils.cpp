@@ -81,7 +81,7 @@ namespace Dive
 			return result;
 		}
 
-		std::wstring StringToWString(const std::string& input)
+		std::wstring ToWString(const std::string& input)
 		{
 			if (input.empty())
 				return {};
@@ -107,7 +107,7 @@ namespace Dive
 			return result;
 		}
 
-		std::string WStringToString(const std::wstring& input)
+		std::string ToString(const std::wstring& input)
 		{
 			if (input.empty())
 				return {};

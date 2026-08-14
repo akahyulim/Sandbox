@@ -1,9 +1,12 @@
-﻿#pragma once
+#pragma once
 #include <memory>
+#include <string>
+
+#include "Window.h"
+#include "Utilities/Delegate.h"
 
 namespace Dive
 {
-	class Window;
 	class Timer;
 	class Input;
 	class Graphics;
@@ -27,15 +30,21 @@ namespace Dive
 		Engine& operator=(Engine&&) = delete;
 		~Engine() = default;
 
+		//void OnWindowEvent(const WindowEventData& data);
+
 		void Run();
 		void Present();
+
+		Scene* NewScene();
+		Scene* GetScene() const { return m_scene.get(); }
 
 		Window* GetWindow() const { return m_window; }
 		Input* GetInput() const { return m_input.get(); }
 		Graphics* GetGraphics() const { return m_graphics.get(); }
+		Renderer* GetRenderer() const { return m_renderer.get(); }
 
 	private:
-		void update();
+		void update(float dt);
 		void render();
 
 	private:

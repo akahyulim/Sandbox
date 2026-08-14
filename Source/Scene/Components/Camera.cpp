@@ -1,7 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Camera.h"
 #include "Transform.h"
-#include "Resource/RenderTexture.h"
 
 using namespace DirectX;
 

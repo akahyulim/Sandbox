@@ -12,7 +12,7 @@ namespace Dive
 	{
 		ePrimitiveTopology topology = ePrimitiveTopology::None;
 		
-		std::shared_ptr<ShaderProgram> shaderProgram = nullptr;
+		ShaderProgram* shaderProgram = nullptr;
 		
 		eDepthStencilState depthStencilState = eDepthStencilState::Count;
 		eRasterizerState rasterizerState = eRasterizerState::Count;

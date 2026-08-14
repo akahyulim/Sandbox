@@ -1,6 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "MeshRenderer.h"
-#include "Resource/ResourceManager.h"
 
 namespace Dive
 {

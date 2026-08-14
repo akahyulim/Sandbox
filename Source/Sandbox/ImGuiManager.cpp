@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "ImGuiManager.h"
 #include "Core/Window.h"
 #include "Graphics/Graphics.h"
@@ -18,6 +18,10 @@ namespace Dive
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+		ImFontConfig fontConfig{};
+		std::string fontPath = "Assets/Fonts/NanumBarunGothicLight.ttf";
+		io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f, &fontConfig);
 
 		// Setup Dear ImGui style
 		ImGui::StyleColorsDark();

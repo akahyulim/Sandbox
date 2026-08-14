@@ -1,9 +1,9 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Sandbox.h"
 #include "Core/Window.h"
 #include "Utilities/Timer.h"
 #include "Graphics/Graphics.h"
-#include "Renderer/Renderer.h"
+#include "Rendering/Renderer.h"
 #include "Input/Input.h"
 #include "Scene/Scene.h"
 #include "Scene/GameObject.h"
@@ -11,21 +11,14 @@
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/MeshRenderer.h"
 #include "Scene/Components/Light.h"
-#include "Resource/ShaderManager.h"
-#include "Resource/ResourceManager.h"
-#include "Resource/Texture2D.h"
-#include "Resource/RenderTexture.h"
-#include "Resource/Material.h"
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT32 msg, WPARAM wParam, LPARAM lParam);
+#include "Rendering/TextureManager.h"
+#include "Rendering/ShaderManager.h"
+#include "Graphics/RenderTexture.h"
 
 namespace Dive
 {
     namespace
     {
-        //Engine* s_engine = nullptr;
-        //Graphics* s_graphics = nullptr;
-
         constexpr float BOOST_SPEED = 10.0f;
         constexpr float MIN_SPEED = 0.5f;
         constexpr float MAX_SPEED = 99.0f;
@@ -34,109 +27,21 @@ namespace Dive
     Sandbox::Sandbox(const SandboxInit& init)
     {
         m_engine = std::make_unique<Engine>(init.engin_init);
-        //s_engine = m_engine.get();
-
+        
         m_gui = std::make_unique<ImGuiManager>(m_engine->GetGraphics());
 
         // logger
         // SetStyle();
+        TextureManager::GetInst().LoadTexture("Assets/Textures/DokeV.jpeg");
+        TextureManager::GetInst().LoadTexture("Assets/Textures/Dmc.jpg");
+ 
+        newScene();
+        auto& env = m_scene->GetEnviroment();
+        env.skyboxCubemap = TextureManager::GetInst().LoadCubemap(L"Assets/Textures/Skybox/desertcube1024.dds");
     }
 
     Sandbox::~Sandbox()
     {
-    }
-
-    bool Sandbox::Initialize()
-    {
-       
-        /*
-        // Engine으로 옮겨야 한다.
-        if (!Window::GetInst().Initialize())
-            return false;
-        Window::GetInst().SetMessageCallback((LONG_PTR)SandboxMessageHandler);
-
-        if (!Input::GetInst().Initialize(Window::GetInst().GetWindowHandle()))
-            return false;
-
-        if (!m_graphics->Initialize(
-            Window::GetInst().GetWindowHandle(),
-            Window::GetInst().GetWidth(),
-            Window::GetInst().GetHeight(),
-            Window::GetInst().IsWindowed()
-        ))
-            return false;
-        s_graphics = m_graphics.get();
-
-        if (!m_renderer->Initialize(m_graphics.get()))
-            return false;
-
-        // ImGui 초기화
-        {
-            // Setup Dear ImGui context
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO(); (void)io;
-            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-            // Setup Dear ImGui style
-            ImGui::StyleColorsDark();
-            //ImGui::StyleColorsLight();
-            //ImGui::StyleColorsClassic();
-
-            // Setup Platform/Renderer backends
-            ImGui_ImplWin32_Init(Window::GetInst().GetWindowHandle());
-            ImGui_ImplDX11_Init(m_graphics->GetDevice(), m_graphics->GetDeviceContext());
-        }
-
-        {
-            if (!ShaderManager::GetInst().Initialize(m_graphics.get()))
-                return false;
-        }
-
-        {
-            if (!ResourceManager::GetInst().Initialize(m_graphics.get()))
-                return false;
-
-            //ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/DokeV.jpeg");
-            ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/stone01.tga");
-            ResourceManager::GetInst().Load<Texture2D>("Assets/Textures/normal01.tga");
-        }
-
-        // scene 초기화
-        // => New Scene으로 메서드화?
-        {
-            m_scene = std::make_unique<Scene>();
-
-            {
-                m_mainCamera = m_scene->CreateGameObject();
-                auto* transform = m_mainCamera->GetTransform();
-                transform->SetPosition(0.0f, 3.0f, -5.0f);
-                transform->LookAt(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f));
-                auto* cameraCom = m_mainCamera->AddComponent<Camera>();
-                cameraCom->SetViewport(0.0f, 0.0f, (float)m_graphics->GetWidth(), (float)m_graphics->GetHeight());
-                auto targetTexture = m_graphics->CreateRenderTexture(m_graphics->GetWidth(), m_graphics->GetHeight());
-                cameraCom->SetTargetTexture(targetTexture);
-            }
-            {
-                m_directionalLight = m_scene->CreateGameObject();
-                Light* lightCom = m_directionalLight->AddComponent<Light>();
-                lightCom->SetLightType(eLightType::Directional);
-                //lightCom->SetColor(Color::White);
-                //lightCom->SetDirection(-1.0f, -1.0f, 1.0f);
-                lightCom->SetDirection(0.5f, -0.5f, 0.707107f);
-            }
-            {
-                auto plane = m_scene->AddPresetObject(ePresetType::Plane);
-                auto mat = plane->GetComponent<MeshRenderer>()->GetMaterial();
-                mat->SetTexture(eTextureMapType::Diffuse, "Assets/Textures/stone01.tga");
-                mat->SetTexture(eTextureMapType::Normal, "Assets/Textures/normal01.tga");
-                mat->SetTiling(5.0f, 5.0f);
-            }
-        }
-
-        m_timer->Start();
-        */
-        return true;
     }
 
     void Sandbox::Run()
@@ -151,7 +56,6 @@ namespace Dive
             
             m_gui->Begin();
             {
-                // 단축키 가동 (방어 코드)
                 if (!ImGui::IsAnyItemActive())
                 {
                     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
@@ -160,186 +64,11 @@ namespace Dive
                     }
                 }
 
-                // 현재 메인 윈도우 창의 위치와 크기 확보
-                const ImGuiViewport* viewport = ImGui::GetMainViewport();
-                ImGui::SetNextWindowPos(viewport->WorkPos);
-                ImGui::SetNextWindowSize(viewport->WorkSize);
+                scene();
+                menu();
+                enviroment();
+                hierarchy();
 
-                ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration |
-                    ImGuiWindowFlags_NoMove |
-                    ImGuiWindowFlags_NoResize |
-                    ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-                if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
-                {
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor();
-
-                    if (ImGui::BeginPopupContextWindow("CanvasContextMenu", ImGuiPopupFlags_MouseButtonRight))
-                    {
-                        if (ImGui::MenuItem("New"))
-                        {
-                            //m_scene->Clear();
-                        }
-
-                        if (ImGui::MenuItem("Open"))
-                        {
-                            //m_scene->LoadFromFile();
-                        }
-
-                        ImGui::Separator();
-
-                        ImGui::MenuItem("Hierarchy");
-                        //ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr);
-
-                        ImGui::Separator();
-                        /*
-                        if (ImGui::BeginMenu("3D Object"))
-                        {
-                            if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
-                            {
-                                auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
-                                triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                            }
-                            if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
-                            {
-                                auto quad = m_scene->AddPresetObject(ePresetType::Quad);
-                                quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                            }
-                            if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
-                            {
-                                auto cube = m_scene->AddPresetObject(ePresetType::Cube);
-                                cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                            }
-                            if (ImGui::MenuItem("Sphere", nullptr, nullptr, m_scene != nullptr))
-                            {
-                                auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
-                                sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                            }
-                            if (ImGui::MenuItem("Capsule", nullptr, nullptr, m_scene != nullptr))
-                            {
-                                auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
-                                capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
-                            }
-                            if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
-                            {
-                            }
-                            ImGui::EndMenu();
-                        }
-                        */
-                        ImGui::Separator();
-
-                        if (ImGui::MenuItem("Copy", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Paste", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                        {
-                        }
-                        if (ImGui::MenuItem("Delete", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                        {
-                        }
-
-                        ImGui::Separator();
-
-                        if (ImGui::MenuItem("Save"))
-                        {
-                        }
-                        if (ImGui::MenuItem("Save As..."))
-                        {
-                        }
-
-                        ImGui::Separator();
-
-                        if (ImGui::MenuItem("Exit", "Ctrl+Q"))
-                        {
-                            m_engine->GetWindow()->Close();
-                        }
-
-                        ImGui::EndPopup();
-                    }
-                }
-                ImGui::End();
-
-                if (m_showEnvDiralog)
-                {
-                    const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-                    ImVec2 windowPos = ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x - 320.0f, mainViewport->WorkPos.y + 20.0f);
-                    ImVec2 windowSize = ImVec2(300.0f, 200.0f);
-
-                    ImGui::SetNextWindowPos(windowPos, ImGuiCond_FirstUseEver);
-                    ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
-
-                    if (ImGui::Begin("Environment", &m_showEnvDiralog, ImGuiWindowFlags_NoSavedSettings))
-                    {
-                        // 🌟 변경 감지를 위해 하나로 묶기
-                        bool isChanged = false;
-
-                        ImGui::Text("Sky");
-                        ImGui::Separator();
-                        m_enviromentData.skyColor = m_mainCamera->GetComponent<Camera>()->GetClearColor();
-                        if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
-
-                        ImGui::Text("Directional Light");
-                        ImGui::Separator();
-
-                        auto dirLight = m_directionalLight->GetComponent<Light>();
-                        DirectX::XMFLOAT3 lightColor = {
-                            m_enviromentData.lightColor.r,
-                            m_enviromentData.lightColor.g,
-                            m_enviromentData.lightColor.b
-                        };
-                        float lightIntensity = m_enviromentData.lightColor.a;
-                        if (ImGui::ColorEdit3("Light Color", &m_enviromentData.lightColor.r)) isChanged = true;
-                        if (ImGui::SliderFloat("Intensity", &m_enviromentData.lightColor.a, 0.0f, 5.0f, "%.2f")) isChanged = true;
-
-                        ImGui::Spacing();
-                        ImGui::Text("Rotation Angles");
-                        if (ImGui::SliderFloat("Pitch", &m_enviromentData.lightPitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
-                        if (ImGui::SliderFloat("Yaw", &m_enviromentData.lightYaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
-
-                        static bool isFirstFrame = true;
-                        if (isChanged || isFirstFrame)
-                        {
-                            auto* mainCamera = m_mainCamera->GetComponent<Camera>();
-                            mainCamera->SetClearColor(m_enviromentData.skyColor);
-
-                            // 1. 컴포넌트 포인터 확보
-                            if (auto lightObj = m_directionalLight)
-                            {
-                                if (auto dirLight = lightObj->GetComponent<Light>())
-                                {
-                                    Color lightColor = Color{
-                                        m_enviromentData.lightColor.r * m_enviromentData.lightColor.a,
-                                        m_enviromentData.lightColor.g * m_enviromentData.lightColor.a,
-                                        m_enviromentData.lightColor.b * m_enviromentData.lightColor.a,
-                                        m_enviromentData.lightColor.a
-                                    };
-                                    dirLight->SetColor(lightColor);
-
-
-                                    // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
-                                    float pitchRad = DirectX::XMConvertToRadians(m_enviromentData.lightPitch);
-                                    float yawRad = DirectX::XMConvertToRadians(m_enviromentData.lightYaw);
-
-                                    DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
-                                    DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-                                    DirectX::XMVECTOR finalDir = DirectX::XMVector3TransformNormal(baseDir, rotMatrix);
-                                    finalDir = DirectX::XMVector3Normalize(finalDir);
-
-                                    DirectX::XMFLOAT3 finalDirF3;
-                                    DirectX::XMStoreFloat3(&finalDirF3, finalDir);
-                                    dirLight->SetDirection(finalDirF3);
-                                }
-                            }
-                            isFirstFrame = false;
-                        }
-                    }
-                    ImGui::End();
-                }
             }
             m_gui->End();
 
@@ -350,235 +79,11 @@ namespace Dive
             m_engine->Run();
             m_engine->Present();
         }
-
-        /*
-        while (Window::GetInst().Run())
-        {
-            m_timer->Tick();
-            float dt = m_timer->GetDeltaTimeMS();
-
-            Input::GetInst().Update();
-
-            this->cameraControll(dt);
-
-            m_scene->Update(dt);
-            
-            ImGui_ImplDX11_NewFrame();
-            ImGui_ImplWin32_NewFrame();
-            ImGui::NewFrame();
-
-            // 단축키 가동 (방어 코드)
-            if (!ImGui::IsAnyItemActive())
-            {
-                if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
-                {
-                    Window::GetInst().Close();
-                }
-            }
-
-            // 현재 메인 윈도우 창의 위치와 크기 확보
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImGui::SetNextWindowPos(viewport->WorkPos);
-            ImGui::SetNextWindowSize(viewport->WorkSize);
-
-            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration |
-                ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoResize |
-                ImGuiWindowFlags_NoSavedSettings |
-                ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-
-            if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
-            {
-                ImGui::PopStyleVar();
-                ImGui::PopStyleColor();
-
-                if (ImGui::BeginPopupContextWindow("CanvasContextMenu", ImGuiPopupFlags_MouseButtonRight))
-                {
-                    if (ImGui::MenuItem("New"))
-                    {
-                        m_scene->Clear();
-                    }
-
-                    if (ImGui::MenuItem("Open"))
-                    {
-                        //m_scene->LoadFromFile();
-                    }
-
-                    ImGui::Separator();
-
-                    ImGui::MenuItem("Hierarchy");
-                    ImGui::MenuItem("Environment", nullptr, &m_showEnvDiralog, m_scene != nullptr); 
-
-                    ImGui::Separator();
-
-                    if (ImGui::BeginMenu("3D Object"))
-                    {
-                        if (ImGui::MenuItem("Triangle", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
-                            triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Quad", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto quad = m_scene->AddPresetObject(ePresetType::Quad);
-                            quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Cube", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto cube = m_scene->AddPresetObject(ePresetType::Cube);
-                            cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Sphere", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
-                            sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Capsule", nullptr, nullptr, m_scene != nullptr))
-                        {
-                            auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
-                            capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
-                        }
-                        if (ImGui::MenuItem("Model", nullptr, nullptr, m_scene != nullptr))
-                        {
-                        }
-                        ImGui::EndMenu();
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::MenuItem("Copy", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                    {
-                    }
-                    if (ImGui::MenuItem("Paste", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                    {
-                    }
-                    if (ImGui::MenuItem("Delete", nullptr, nullptr))//, m_scene->GetSelectedObject() != nullptr))
-                    {
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::MenuItem("Save"))
-                    {
-                    }
-                    if (ImGui::MenuItem("Save As..."))
-                    {
-                    }
-
-                    ImGui::Separator();
-
-                    if (ImGui::MenuItem("Exit", "Ctrl+Q"))
-                    {
-                        Window::GetInst().Close();
-                    }
-
-                    ImGui::EndPopup();
-                }
-            }
-            ImGui::End();
-
-            if (m_showEnvDiralog)
-            {
-                const ImGuiViewport* mainViewport = ImGui::GetMainViewport();
-                ImVec2 windowPos = ImVec2(mainViewport->WorkPos.x + mainViewport->WorkSize.x - 320.0f, mainViewport->WorkPos.y + 20.0f);
-                ImVec2 windowSize = ImVec2(300.0f, 200.0f);
-
-                ImGui::SetNextWindowPos(windowPos, ImGuiCond_FirstUseEver);
-                ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
-
-                if (ImGui::Begin("Environment", &m_showEnvDiralog, ImGuiWindowFlags_NoSavedSettings))
-                {
-                    // 🌟 변경 감지를 위해 하나로 묶기
-                    bool isChanged = false;
-
-                    ImGui::Text("Sky");
-                    ImGui::Separator();
-                    m_enviromentData.skyColor = m_mainCamera->GetComponent<Camera>()->GetClearColor();
-                    if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
-
-                    ImGui::Text("Directional Light");
-                    ImGui::Separator();
-
-                    auto dirLight = m_directionalLight->GetComponent<Light>();
-                    DirectX::XMFLOAT3 lightColor = {
-                        m_enviromentData.lightColor.r,
-                        m_enviromentData.lightColor.g,
-                        m_enviromentData.lightColor.b
-                    };
-                    float lightIntensity = m_enviromentData.lightColor.a;
-                    if (ImGui::ColorEdit3("Light Color", &m_enviromentData.lightColor.r)) isChanged = true;
-                    if (ImGui::SliderFloat("Intensity", &m_enviromentData.lightColor.a, 0.0f, 5.0f, "%.2f")) isChanged = true;
-
-                    ImGui::Spacing();
-                    ImGui::Text("Rotation Angles");
-                    if (ImGui::SliderFloat("Pitch", &m_enviromentData.lightPitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
-                    if (ImGui::SliderFloat("Yaw", &m_enviromentData.lightYaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
-
-                    static bool isFirstFrame = true;
-                    if (isChanged || isFirstFrame)
-                    {
-                        auto* mainCamera = m_mainCamera->GetComponent<Camera>();
-                        mainCamera->SetClearColor(m_enviromentData.skyColor);
-
-                        // 1. 컴포넌트 포인터 확보
-                        if (auto lightObj = m_directionalLight)
-                        {
-                            if (auto dirLight = lightObj->GetComponent<Light>())
-                            {
-                                Color lightColor = Color{
-                                    m_enviromentData.lightColor.r * m_enviromentData.lightColor.a,
-                                    m_enviromentData.lightColor.g * m_enviromentData.lightColor.a,
-                                    m_enviromentData.lightColor.b * m_enviromentData.lightColor.a,
-                                    m_enviromentData.lightColor.a
-                                };
-                                dirLight->SetColor(lightColor);
-
-
-                                // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
-                                float pitchRad = DirectX::XMConvertToRadians(m_enviromentData.lightPitch);
-                                float yawRad = DirectX::XMConvertToRadians(m_enviromentData.lightYaw);
-
-                                DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
-                                DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-                                DirectX::XMVECTOR finalDir = DirectX::XMVector3TransformNormal(baseDir, rotMatrix);
-                                finalDir = DirectX::XMVector3Normalize(finalDir);
-
-                                DirectX::XMFLOAT3 finalDirF3;
-                                DirectX::XMStoreFloat3(&finalDirF3, finalDir);
-                                dirLight->SetDirection(finalDirF3);
-                            }
-                        }
-                        isFirstFrame = false;
-                    }
-                }
-                ImGui::End();
-            }
-
-            // 3D 공간 렌더링 (Renderer 레이어)
-            m_renderer->Render(m_scene.get());
-
-            m_graphics->BindMainRenderTarget();
-
-            // 4. UI 출력 및 Present
-            ImGui::Render();
-            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-            m_graphics->Present();
-        }
-
-        // 5. 해제 루틴
-        ImGui_ImplDX11_Shutdown();
-        ImGui_ImplWin32_Shutdown();
-        ImGui::DestroyContext();
-        */
     }
 
     void Sandbox::OnWindowEvent(const WindowEventData& data)
     {
-        // engine->OnWindowEvent()에 전달 -> input의 OnWindowEvent()에 전달
+        //m_engine->OnWindowEvent(data);
         m_gui->HandleWindowMessage(data);
     }
     
@@ -682,5 +187,213 @@ namespace Dive
             if (input->KeyDown(DIK_4))
                 dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
         }
+    }
+    
+    void Sandbox::scene()
+    {
+        auto srv = m_engine->GetRenderer()->GetOffScreenTexture()->GetShaderResourceView();
+        ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+        ImGui::GetBackgroundDrawList()->AddImage(
+            (ImTextureID)srv,
+            ImVec2(0, 0),
+            screenSize
+        );
+    }
+
+    void Sandbox::menu()
+    {
+        // 현재 메인 윈도우 창의 위치와 크기 확보
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
+        {
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
+
+            if (ImGui::BeginPopupContextWindow("CanvasContextMenu", ImGuiPopupFlags_MouseButtonRight))
+            {
+                if (ImGui::MenuItem("새로 만들기"))
+                {
+                    newScene();
+                }
+
+                if (ImGui::MenuItem("열기"))
+                {
+                    //m_scene->LoadFromFile();
+                }
+                
+                ImGui::Separator();
+                
+                if (ImGui::BeginMenu("3D 오브젝트"))
+                {
+                    if (ImGui::MenuItem("트라이앵글"))
+                    {
+                        auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
+                        triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                    }
+                    if (ImGui::MenuItem("쿼드"))
+                    {
+                        auto quad = m_scene->AddPresetObject(ePresetType::Quad);
+                        quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                    }
+                    if (ImGui::MenuItem("큐브"))
+                    {
+                        auto cube = m_scene->AddPresetObject(ePresetType::Cube);
+                        cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                    }
+                    if (ImGui::MenuItem("스피어"))
+                    {
+                        auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
+                        sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                    }
+                    if (ImGui::MenuItem("캡슐"))
+                    {
+                        auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
+                        capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::MenuItem("임포트"))
+                {
+
+                }
+                
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("복사", nullptr, nullptr, m_selectedObject != nullptr))
+                {
+                }
+                if (ImGui::MenuItem("붙여넣기", nullptr, nullptr, m_selectedObject != nullptr))
+                {
+                }
+                if (ImGui::MenuItem("삭제", nullptr, nullptr, m_selectedObject != nullptr))
+                {
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("저장"))
+                {
+                }
+                if (ImGui::MenuItem("다른 이름으로 저장"))
+                {
+                }
+
+                ImGui::Separator();
+
+                ImGui::MenuItem("계층구조", nullptr, m_windowFlags[Flag_Hierarchy]);
+                ImGui::MenuItem("환경설정", nullptr, &m_showEnvDiralog);
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("종료", "Ctrl+Q"))
+                {
+                    m_engine->GetWindow()->Close();
+                }
+
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::End();
+    }
+
+    void Sandbox::enviroment()
+    {
+        if (!m_windowFlags[Flag_Enviroment])
+            return;
+
+        /*
+        if (ImGui::Begin("환경설정", &m_windowFlags[Flag_Enviroment]))//, ImGuiWindowFlags_NoSavedSettings))
+        {
+            // 🌟 변경 감지를 위해 하나로 묶기
+            bool isChanged = false;
+
+            ImGui::Text("Sky");
+            ImGui::Separator();
+            m_enviromentData.skyColor = m_mainCamera->GetComponent<Camera>()->GetClearColor();
+            if (ImGui::ColorEdit3("Sky Color", &m_enviromentData.skyColor.r)) isChanged = true;
+
+            ImGui::Text("Directional Light");
+            ImGui::Separator();
+
+            auto dirLight = m_directionalLight->GetComponent<Light>();
+            DirectX::XMFLOAT3 lightColor = {
+                m_enviromentData.lightColor.r,
+                m_enviromentData.lightColor.g,
+                m_enviromentData.lightColor.b
+            };
+            float lightIntensity = m_enviromentData.lightColor.a;
+            if (ImGui::ColorEdit3("Light Color", &m_enviromentData.lightColor.r)) isChanged = true;
+            if (ImGui::SliderFloat("Intensity", &m_enviromentData.lightColor.a, 0.0f, 5.0f, "%.2f")) isChanged = true;
+
+            ImGui::Spacing();
+            ImGui::Text("Rotation Angles");
+            if (ImGui::SliderFloat("Pitch", &m_enviromentData.lightPitch, -90.0f, 90.0f, "%.1f deg")) isChanged = true;
+            if (ImGui::SliderFloat("Yaw", &m_enviromentData.lightYaw, 0.0f, 360.0f, "%.1f deg")) isChanged = true;
+
+            static bool isFirstFrame = true;
+            if (isChanged || isFirstFrame)
+            {
+                auto* mainCamera = m_mainCamera->GetComponent<Camera>();
+                mainCamera->SetClearColor(m_enviromentData.skyColor);
+
+                // 1. 컴포넌트 포인터 확보
+                if (auto lightObj = m_directionalLight)
+                {
+                    if (auto dirLight = lightObj->GetComponent<Light>())
+                    {
+                        Color lightColor = Color{
+                            m_enviromentData.lightColor.r * m_enviromentData.lightColor.a,
+                            m_enviromentData.lightColor.g * m_enviromentData.lightColor.a,
+                            m_enviromentData.lightColor.b * m_enviromentData.lightColor.a,
+                            m_enviromentData.lightColor.a
+                        };
+                        dirLight->SetColor(lightColor);
+
+
+                        // 3. [방향 벡터 적용] 오일러 -> 쿼터니언 변환 후 즉시 셋업
+                        float pitchRad = DirectX::XMConvertToRadians(m_enviromentData.lightPitch);
+                        float yawRad = DirectX::XMConvertToRadians(m_enviromentData.lightYaw);
+
+                        DirectX::XMMATRIX rotMatrix = DirectX::XMMatrixRotationRollPitchYaw(pitchRad, yawRad, 0.0f);
+                        DirectX::XMVECTOR baseDir = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+                        DirectX::XMVECTOR finalDir = DirectX::XMVector3TransformNormal(baseDir, rotMatrix);
+                        finalDir = DirectX::XMVector3Normalize(finalDir);
+
+                        DirectX::XMFLOAT3 finalDirF3;
+                        DirectX::XMStoreFloat3(&finalDirF3, finalDir);
+                        dirLight->SetDirection(finalDirF3);
+                    }
+                }
+                isFirstFrame = false;
+            }
+        }
+        ImGui::End();
+        */
+    }
+
+    void Sandbox::hierarchy()
+    {
+        if (!m_windowFlags[Flag_Hierarchy])
+            return;
+    }
+
+    void Sandbox::newScene()
+    {
+        m_scene = m_engine->NewScene();
+        m_scene->SetName("Sandbox");
+
+        // 카메라
     }
 }

@@ -155,32 +155,25 @@
     <ClInclude Include="Source\Core\Engine.h" />
     <ClInclude Include="Source\Core\Types.h" />
     <ClInclude Include="Source\Core\Window.h" />
+    <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
     <ClInclude Include="Source\Graphics\Graphics.h" />
-    <ClInclude Include="Source\Graphics\IndexBuffer.h" />
-    <ClInclude Include="Source\Graphics\PipelineState.h" />
-    <ClInclude Include="Source\Graphics\RenderPass.h" />
-    <ClInclude Include="Source\Graphics\ShaderType.h" />
+    <ClInclude Include="Source\Graphics\RenderTexture.h" />
     <ClInclude Include="Source\Graphics\Geometry.h" />
+    <ClInclude Include="Source\Graphics\IndexBuffer.h" />
+    <ClInclude Include="Source\Graphics\InputLayout.h" />
+    <ClInclude Include="Source\Graphics\PipelineState.h" />
+    <ClInclude Include="Source\Graphics\Shader.h" />
+    <ClInclude Include="Source\Graphics\ShaderProgram.h" />
+    <ClInclude Include="Source\Graphics\ConstantBufferDatas.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Resource\DvPipelineState.h" />
-    <ClInclude Include="Source\Resource\InputLayout.h" />
-    <ClInclude Include="Source\Resource\Material.h" />
-    <ClInclude Include="Source\Resource\Mesh.h" />
+    <ClInclude Include="Source\Rendering\Mesh.h" />
+    <ClInclude Include="Source\Rendering\Renderer.h" />
+    <ClInclude Include="Source\Rendering\ShaderManager.h" />
+    <ClInclude Include="Source\Rendering\TextureManager.h" />
     <ClInclude Include="Source\Resource\Preset.h" />
-    <ClInclude Include="Source\Resource\RenderTexture.h" />
     <ClInclude Include="Source\Resource\Resource.h" />
-    <ClInclude Include="Source\Resource\ResourceDataLoader.h" />
-    <ClInclude Include="Source\Resource\ResourceDesc.h" />
-    <ClInclude Include="Source\Resource\ResourceManager.h" />
-    <ClInclude Include="Source\Resource\Shader.h" />
-    <ClInclude Include="Source\Resource\ShaderManager.h" />
-    <ClInclude Include="Source\Resource\ShaderProgram.h" />
-    <ClInclude Include="Source\Resource\StaticMesh.h" />
-    <ClInclude Include="Source\Resource\Texture.h" />
-    <ClInclude Include="Source\Resource\Texture2D.h" />
     <ClInclude Include="Source\Sandbox\ImGuiManager.h" />
     <ClInclude Include="Source\Sandbox\Sandbox.h" />
     <ClInclude Include="Source\Scene\Components\MeshRenderer.h" />
@@ -233,7 +226,11 @@
     <ClCompile Include="Source\Core\Engine.cpp" />
     <ClCompile Include="Source\Core\Window.cpp" />
     <ClCompile Include="Source\Graphics\Graphics.cpp" />
+    <ClCompile Include="Source\Graphics\RenderTexture.cpp" />
     <ClCompile Include="Source\Graphics\IndexBuffer.cpp" />
+    <ClCompile Include="Source\Graphics\InputLayout.cpp" />
+    <ClCompile Include="Source\Graphics\Shader.cpp" />
+    <ClCompile Include="Source\Graphics\ShaderProgram.cpp" />
     <ClCompile Include="Source\Graphics\VertexBuffer.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
     <ClCompile Include="Source\main.cpp">
@@ -244,20 +241,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\Renderer.cpp" />
-    <ClCompile Include="Source\Resource\Material.cpp" />
-    <ClCompile Include="Source\Resource\Mesh.cpp" />
+    <ClCompile Include="Source\Rendering\Mesh.cpp" />
+    <ClCompile Include="Source\Rendering\Renderer.cpp" />
+    <ClCompile Include="Source\Rendering\ShaderManager.cpp" />
+    <ClCompile Include="Source\Rendering\TextureManager.cpp" />
     <ClCompile Include="Source\Resource\Preset.cpp" />
-    <ClCompile Include="Source\Resource\RenderTexture.cpp" />
     <ClCompile Include="Source\Resource\Resource.cpp" />
-    <ClCompile Include="Source\Resource\ResourceDataLoader.cpp" />
-    <ClCompile Include="Source\Resource\ResourceManager.cpp" />
-    <ClCompile Include="Source\Resource\Shader.cpp" />
-    <ClCompile Include="Source\Resource\ShaderManager.cpp" />
-    <ClCompile Include="Source\Resource\ShaderProgram.cpp" />
-    <ClCompile Include="Source\Resource\StaticMesh.cpp" />
-    <ClCompile Include="Source\Resource\Texture.cpp" />
-    <ClCompile Include="Source\Resource\Texture2D.cpp" />
     <ClCompile Include="Source\Sandbox\ImGuiManager.cpp" />
     <ClCompile Include="Source\Sandbox\Sandbox.cpp" />
     <ClCompile Include="Source\Scene\Components\MeshRenderer.cpp" />
@@ -272,6 +261,54 @@
     <ClCompile Include="Source\Utilities\Math.cpp" />
     <ClCompile Include="Source\Utilities\StringUtils.cpp" />
     <ClCompile Include="Source\Utilities\Timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\Shaders\Constants.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Source\Shaders\Resources.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Source\Shaders\VSInput.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Source\Shaders\LegacyPS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\LitVS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\PbsPS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\ResolveScenePS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\ResolveSceneVS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Skybox.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\UnlitPS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\UnlitVS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

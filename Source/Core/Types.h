@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <algorithm>
 #include <DirectXMath.h>
 
@@ -34,54 +34,6 @@ namespace Dive
 		R8G8B8A8_UNORM,
 		R8G8B8A8_UNORM_SRGB,
 		D24_UNORM_S8_UINT			// 깊이 스텐실 버퍼용
-	};
-
-	enum class eRasterizerState
-	{
-		FillSolid_CullFront,
-		FillSolid_CullBack,
-		FillSolid_CullNone,
-		Count
-	};
-
-	enum class eBlendState
-	{
-		AlphaEnabled,
-		AlphaDisabled,
-		Additive,
-		Count
-	};
-
-	enum class eSamplerState
-	{
-		WrapLinear,
-		ClampPoint,
-		ClampLinear,
-		Skybox,
-		ShadowCompare,
-		Count
-	};
-
-	enum class eDepthStencilState
-	{
-		DepthReadWrite,
-		DepthReadWrite_StencilReadWrite,
-		GBuffer,
-		DepthDisabled,   // skydome에서 off용으로...
-		ForwardLight,
-		Transparent,
-		Skybox,
-		Count
-	};
-
-	enum class eInputLayout : uint8_t
-	{
-		None = 0,
-		PN,
-		PNT,
-		Unlit,
-		Lit,
-		Skinned
 	};
 
 	struct Bounds

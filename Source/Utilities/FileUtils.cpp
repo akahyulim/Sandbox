@@ -4,11 +4,27 @@
 #include <wrl/client.h>
 #include <shobjidl.h>
 #include <shlwapi.h>
+#include <filesystem>
 
 namespace Dive
 {
     namespace FileUtils
     {
+        bool FileExists(const std::string& filepath)
+        {
+            return false;
+        }
+        
+        std::string GetFilename(const std::string& filepath)
+        {
+            return std::filesystem::path(filepath).stem().string();
+        }
+
+        std::string GetExtension(const std::string& filepath)
+        {
+            return std::filesystem::path(filepath).extension().string();
+        }
+
         std::filesystem::path OpenFile(const char* filter, HWND owner, const std::string& initialDir)
         {
             std::vector<char> file(MAX_PATH, '\0');

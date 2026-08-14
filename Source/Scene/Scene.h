@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <memory>
 #include <vector>
@@ -9,6 +9,7 @@
 #include "Resource/Preset.h"
 #include "Components/Component.h"
 //#include "GameObject.h"
+#include "Rendering/TextureManager.h"
 
 namespace Dive
 {
@@ -18,6 +19,11 @@ namespace Dive
 	class Camera;
 	class Light;
 	class MeshRenderer;
+
+	struct EnviromentData
+	{
+		TextureHandle skyboxCubemap = INVALID_TEXTURE_HANDLE;
+	};
 
 	class Scene
 	{
@@ -51,6 +57,11 @@ namespace Dive
 		void SetDirty() { m_isDirty = true; }
 		void ClearDirty() { m_isDirty = false; }
 
+		std::string GetName() const { return m_name; }
+		void SetName(const std::string& name) { m_name = name; }
+
+		EnviromentData& GetEnviroment() { return m_enviroment; }
+
 	private:
 		std::string m_name = "Playgorund";
 			
@@ -64,5 +75,7 @@ namespace Dive
 		std::vector<GameObject*> m_renderables;
 
 		bool m_isDirty = false;
+
+		EnviromentData m_enviroment;
 	};
 }

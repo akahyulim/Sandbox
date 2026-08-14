@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Component.h"
 
 #include <DirectXMath.h>
@@ -6,7 +6,7 @@
 namespace Dive
 {
 	class GameObject;
-	class RenderTexture;
+	class Texture;
 
 	enum class eProjectionType
 	{
@@ -47,8 +47,8 @@ namespace Dive
 		void SetViewport(float topLeftX, float topLeftY, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f);
 		Viewport GetViewport() const { return m_viewport; }
 
-		std::shared_ptr<RenderTexture> GetTargetTexture() const { return m_targetTexture; }
-		void SetTargetTexture(std::shared_ptr<RenderTexture> rt) { m_targetTexture = rt; }
+		std::shared_ptr<Texture> GetTargetTexture() const { return m_targetTexture; }
+		void SetTargetTexture(std::shared_ptr<Texture> rt) { m_targetTexture = rt; }
 
 		Color GetClearColor() const { return m_clearColor; }
 		void SetClearColor(const Color& color) { m_clearColor = color; }
@@ -65,7 +65,7 @@ namespace Dive
 		float m_farClip = 5000.0f;
 
 		Viewport m_viewport;
-		std::shared_ptr<RenderTexture> m_targetTexture;
+		std::shared_ptr<Texture> m_targetTexture;
 
 		Color m_clearColor = Color::DeepSkyBlue;
 	};

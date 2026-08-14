@@ -4,27 +4,6 @@
     <Filter Include="Core">
       <UniqueIdentifier>{b62d0a24-b6a1-4cb5-b6cf-033c5693e2e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics">
-      <UniqueIdentifier>{f01c0762-677e-41ca-b975-54b47404c631}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Sandbox">
-      <UniqueIdentifier>{a7df5f0b-26b8-4d9a-bd2b-fed5468bf0af}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer">
-      <UniqueIdentifier>{65a1a7be-55c6-4d43-8567-cfb46faba6a2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Scene">
-      <UniqueIdentifier>{88e758ee-0548-47db-9501-785f3527da00}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Scene\Components">
-      <UniqueIdentifier>{55e47961-63be-4e8e-9849-4b9413a6def7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource">
-      <UniqueIdentifier>{83405098-d49c-47df-bf94-b9884c79ce62}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Input">
-      <UniqueIdentifier>{6c62ed73-5797-41f0-aa0e-31d9e8df2f6e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="External">
       <UniqueIdentifier>{06fd73a6-7054-4137-8c42-0a1b29474141}</UniqueIdentifier>
     </Filter>
@@ -34,13 +13,34 @@
     <Filter Include="Utilities">
       <UniqueIdentifier>{22a4e21e-e605-4587-9689-89e8b3288cad}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{f01c0762-677e-41ca-b975-54b47404c631}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{6c62ed73-5797-41f0-aa0e-31d9e8df2f6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{83405098-d49c-47df-bf94-b9884c79ce62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sandbox">
+      <UniqueIdentifier>{a7df5f0b-26b8-4d9a-bd2b-fed5468bf0af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{88e758ee-0548-47db-9501-785f3527da00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene\Components">
+      <UniqueIdentifier>{55e47961-63be-4e8e-9849-4b9413a6def7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering">
+      <UniqueIdentifier>{65a1a7be-55c6-4d43-8567-cfb46faba6a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{ec76cee8-63ea-42fb-a2f5-2c54c27a644e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Window.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\Graphics.h">
-      <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Sandbox\Sandbox.h">
       <Filter>Sandbox</Filter>
@@ -55,24 +55,6 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\Graphics\IndexBuffer.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\Geometry.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\VertexBuffer.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\PipelineState.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\RenderPass.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Renderer\Renderer.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Scene\Scene.h">
       <Filter>Scene</Filter>
     </ClInclude>
@@ -94,59 +76,8 @@
     <ClInclude Include="Source\Scene\Components\Light.h">
       <Filter>Scene\Components</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Resource\Resource.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Mesh.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\StaticMesh.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\ResourceDesc.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\ResourceManager.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Preset.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Texture.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Texture2D.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Material.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Input\Input.h">
       <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\ShaderType.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\RenderTexture.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\ResourceDataLoader.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\DvPipelineState.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\InputLayout.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\Shader.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\ShaderManager.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource\ShaderProgram.h">
-      <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="Source\Core\Engine.h">
       <Filter>Core</Filter>
@@ -199,27 +130,66 @@
     <ClInclude Include="Source\Sandbox\ImGuiManager.h">
       <Filter>Sandbox</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\Graphics.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ConstantBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Geometry.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\IndexBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\InputLayout.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\PipelineState.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\Shader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ConstantBufferDatas.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\VertexBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Preset.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Resource\Resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\ShaderProgram.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Mesh.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Renderer.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\ShaderManager.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\RenderTexture.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\TextureManager.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Window.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\Graphics.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Sandbox\Sandbox.cpp">
       <Filter>Sandbox</Filter>
     </ClCompile>
     <ClCompile Include="Source\pch.cpp" />
-    <ClCompile Include="Source\Graphics\IndexBuffer.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\VertexBuffer.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Renderer\Renderer.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Scene\Scene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -241,47 +211,8 @@
     <ClCompile Include="Source\Scene\Components\Light.cpp">
       <Filter>Scene\Components</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resource\Resource.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Mesh.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\StaticMesh.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\ResourceManager.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Preset.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Texture2D.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Texture.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Material.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Input\Input.cpp">
       <Filter>Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\RenderTexture.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\ResourceDataLoader.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\Shader.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\ShaderManager.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource\ShaderProgram.cpp">
-      <Filter>Resource</Filter>
     </ClCompile>
     <ClCompile Include="Source\Core\Engine.cpp">
       <Filter>Core</Filter>
@@ -329,5 +260,81 @@
     <ClCompile Include="Source\Sandbox\ImGuiManager.cpp">
       <Filter>Sandbox</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Graphics\Graphics.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\IndexBuffer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\Shader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\VertexBuffer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Preset.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Resource\Resource.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\ShaderProgram.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Mesh.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Renderer.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\ShaderManager.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\InputLayout.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\RenderTexture.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\TextureManager.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\Shaders\Constants.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Source\Shaders\Resources.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Source\Shaders\VSInput.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Source\Shaders\LegacyPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\LitVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\PbsPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\ResolveScenePS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\ResolveSceneVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Skybox.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\UnlitPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\UnlitVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

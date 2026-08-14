@@ -1,6 +1,6 @@
-﻿#pragma once
+#pragma once
 #include "Component.h"
-#include "Graphics/ShaderType.h"
+#include "Graphics/ConstantBufferDatas.h"
 #include "Core/Types.h"
 
 #include <DirectXMath.h>
@@ -28,11 +28,11 @@ namespace Dive
 		void SetDirection(const DirectX::XMFLOAT3& dir) { m_data.direction = dir; }
 		void SetDirection(float x, float y, float z) { m_data.direction = { x, y ,z }; }
 
-		const cbLight& GetLightData() const { return m_data; }
+		const LightData& GetLightData() const { return m_data; }
 
 		static constexpr eComponentType GetType() { return eComponentType::Light; }
 
 	private:
-		cbLight m_data{};
+		LightData m_data{};
 	};
 }

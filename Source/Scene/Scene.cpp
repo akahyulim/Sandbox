@@ -1,9 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Scene.h"
 #include "GameObject.h"
-#include "Resource/ResourceManager.h"
-#include "Resource/StaticMesh.h"
-#include "Resource/Material.h"
 #include "Components/MeshRenderer.h"
 #include "Components/Camera.h"
 #include "Components/Transform.h"
@@ -149,8 +146,8 @@ namespace Dive
 	{
 		auto ptr = CreateGameObject(); 
 		auto com = ptr->AddComponent<MeshRenderer>();
-		com->SetMaterial(ResourceManager::GetInst().Get<Material>("Default_Material"));
-		com->SetMesh(ResourceManager::GetInst().GetPresetMesh(type));
+		//com->SetMaterial(ResourceManager::GetInst().Get<Material>("Default_Material"));
+		//com->SetMesh(ResourceManager::GetInst().GetPresetMesh(type));
 
 		return ptr;
 	}

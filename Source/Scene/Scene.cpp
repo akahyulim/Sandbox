@@ -8,8 +8,20 @@
 
 namespace Dive
 {
-	Scene::Scene() = default;
-	Scene::~Scene() = default;
+	Scene::Scene()
+	{
+		// 일단 그냥 생성
+		m_camera = new GameObject(this);
+		m_camera->SetName("MainCamera");
+		m_camera->AddComponent<Camera>();
+		m_camera->GetTransform()->SetPosition(0.0f, .0f, -5.0f);
+		//m_camera->GetTransform()->SetRotationByDegrees({ 0.0f, 180.0f, 0.0f });
+	}
+
+	Scene::~Scene()
+	{
+		delete m_camera;
+	}
 
 	void Scene::Clear()
 	{
@@ -18,10 +30,14 @@ namespace Dive
 		SetDirty();
 	}
 	
-	// 추후엔 Engine의 상태에 따라 구분해야 한다.
-	// 컬링을 여기에서 수행해야 하나...
-	void Scene::Update(float dt)
+	// spartan에서는 기본적으로 추가된 Entity를 pending에 보관하고
+	// dirty를 확인한 후 좀 더 세부적(render, lights, cameras, ragdoll, particles 등)으로 분류한다.
+	void Scene::Update()
 	{
+		// temp
+		if (m_camera)
+			m_camera->Update();
+
 		if (!m_pendingAdditions.empty())
 		{
 			for (auto& gameObject : m_pendingAdditions)
@@ -58,7 +74,7 @@ namespace Dive
 		{
 			if (gameObect->IsActive())
 			{
-				gameObect->Update(dt);
+				gameObect->Update();
 			}
 		}
 
@@ -71,9 +87,9 @@ namespace Dive
 			{
 				if (gameObect->IsActive())
 				{
-					if (m_camera == nullptr && gameObect->GetComponent<Camera>())
+					//if (m_camera == nullptr && gameObect->GetComponent<Camera>())
 					{
-						m_camera = gameObect.get();
+					//	m_camera = gameObect.get();
 					}
 
 					if (auto light = gameObect->GetComponent<Light>())

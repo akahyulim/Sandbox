@@ -1,10 +1,20 @@
-﻿#pragma once
+#pragma once
 #include <DirectXMath.h>
 #include <cstdint>
 #include <vector>
 
 namespace Dive
 {
+	struct SimpleVertex
+	{
+		SimpleVertex() = default;
+		SimpleVertex(const DirectX::XMFLOAT3& pos)
+			: Position(pos)
+		{}
+
+		DirectX::XMFLOAT3 Position{ 0.0f, 0.0f, 0.0f };
+	};
+
 	struct StaticVertex
 	{
 		StaticVertex() = default;

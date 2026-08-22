@@ -7,7 +7,6 @@
 
 namespace Dive
 {
-	class Timer;
 	class Input;
 	class Graphics;
 	class Renderer;
@@ -44,12 +43,11 @@ namespace Dive
 		Renderer* GetRenderer() const { return m_renderer.get(); }
 
 	private:
-		void update(float dt);
+		void update();
 		void render();
 
 	private:
 		Window* m_window = nullptr;
-		std::unique_ptr<Timer> m_timer;
 		std::unique_ptr<Input> m_input;
 		std::unique_ptr<Graphics> m_graphics;
 		std::unique_ptr<Renderer> m_renderer;

@@ -11,7 +11,9 @@ namespace Dive
 {
 	class Graphics;
 	class RenderTexture;
-	class RenderTexture;
+	class VertexBuffer;
+	class IndexBuffer;
+	class Scene;
 
 	class Renderer
 	{
@@ -56,8 +58,8 @@ namespace Dive
 		enum class eConstantBuffer : uint8_t
 		{	
 			Frame,
-			Material,
 			Object,
+			Material,
 			Light,
 			Count
 		};
@@ -66,8 +68,8 @@ namespace Dive
 		explicit Renderer(Graphics* graphics, uint32_t width, uint32_t height);
 		~Renderer();
 
-		void Update(float dt);
-		void Render();
+		void Update(Scene* scene);
+		void Render(Scene* scene);
 
 		void ResolveToOffScreenTexture();
 		void ResolveToBackbuffer();
@@ -81,7 +83,7 @@ namespace Dive
 		void createRasterizerStates();
 		void createBlendStates();
 		void createSamplers();
-		void createCBuffers();
+		void createBuffers();
 		void createResolutionDependantResources(uint32_t width, uint32_t height);
 
 		void createRenderTargets(uint32_t width, uint32_t height);
@@ -92,13 +94,13 @@ namespace Dive
 
 		void bindGlobals();
 
-		void passTest();
+		void passTest(Scene* scene);
 		void passGBuffer();
 		void passPicking();
 		void passAmbient();
 		void passDeferredLighting();
 		void passForward();
-		void passSkybox();
+		void passSkybox(Scene* scene);
 
 	private:
 		Graphics* m_graphics = nullptr;
@@ -115,14 +117,20 @@ namespace Dive
 		// render targets
 		std::unique_ptr<RenderTexture> m_ldrRenderTarget;
 		std::unique_ptr<RenderTexture> m_offScreenRenderTarget;
+		std::unique_ptr<RenderTexture> m_depthTarget;
 
-		FrameData m_frameData;
+		FrameData m_frameData{};
 		std::unique_ptr<ConstantBuffer<FrameData>> m_cbFrame;
-		MaterialData m_materialData;
-		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbMaterial;
-		ObjectData m_objectData;
+		ObjectData m_objectData{};
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
-		LightData m_lightData;
+		MaterialData m_materialData{};
+		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbMaterial;
+		LightData m_lightData{};
 		std::unique_ptr<ConstantBuffer<LightData>> m_cbLight;
+
+
+		// 테스트
+		std::unique_ptr<VertexBuffer> m_cubeVB;
+		std::unique_ptr<IndexBuffer> m_cubeIB;
 	};
 }

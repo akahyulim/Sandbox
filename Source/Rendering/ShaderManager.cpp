@@ -80,14 +80,19 @@ namespace Dive
 			spdlog::error("LitVS 생성 실패");
 			return false;
 		}
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Skybox.hlsl", eInputLayout::Position))
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/SkyboxVS.hlsl", eInputLayout::None))
 		{
-			spdlog::error("SkyboVS 생성 실패");
+			spdlog::error("SkyboxVS 생성 실패");
 			return false;
 		}
 		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/ResolveSceneVS.hlsl", eInputLayout::None))
 		{
 			spdlog::error("ResolveSceneVS 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Test.hlsl", eInputLayout::None))
+		{
+			spdlog::error("Test 생성 실패");
 			return false;
 		}
 		
@@ -108,7 +113,7 @@ namespace Dive
 			spdlog::error("PbsPS 생성 실패");
 			return false;
 		}
-		if (!createPixelShader(graphics, "Source/Shaders/Skybox.hlsl"))
+		if (!createPixelShader(graphics, "Source/Shaders/SkyboxPS.hlsl"))
 		{
 			spdlog::error("SkyboxPS 생성 실패");
 			return false;
@@ -116,6 +121,11 @@ namespace Dive
 		if (!createPixelShader(graphics, "Source/Shaders/ResolveScenePS.hlsl"))
 		{
 			spdlog::error("ResolveScenePS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/Test.hlsl"))
+		{
+			spdlog::error("Test 생성 실패");
 			return false;
 		}
 		
@@ -143,7 +153,7 @@ namespace Dive
 		//}
 		// 하나의 hlsl파일에 vs, ps를 모두 구현하면 이렇게 동일한 이름으로 저장된다.
 		// enum class로 미리 선언해놓는 것도 하나의 방법이다.
-		if (!createShaderProgram("Skybox", "Skybox", eShaderPrograms::Skybox))
+		if (!createShaderProgram("SkyboxVS", "SkyboxPS", eShaderPrograms::Skybox))
 		{
 			spdlog::error("Skybox ShaderProgram 생성 실패");
 			return false;
@@ -151,6 +161,11 @@ namespace Dive
 		if (!createShaderProgram("ResolveSceneVS", "ResolveScenePS", eShaderPrograms::Resolve))
 		{
 			spdlog::error("ResloveScene ShaderProgram 생성 실패");
+			return false;
+		}
+		if (!createShaderProgram("Test", "Test", eShaderPrograms::Test))
+		{
+			spdlog::error("Test 생성 실패");
 			return false;
 		}
 

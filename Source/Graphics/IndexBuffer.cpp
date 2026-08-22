@@ -1,9 +1,10 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "IndexBuffer.h"
+#include "Graphics.h"
 
 namespace Dive
 {
-	IndexBuffer::IndexBuffer(ID3D11Device* device, eFormat format, uint32_t count, const void* data)
+	IndexBuffer::IndexBuffer(Graphics* graphics, eFormat format, uint32_t count, const void* data)
 		: m_format(format),
 		m_count(count)
 	{
@@ -19,7 +20,7 @@ namespace Dive
 		D3D11_SUBRESOURCE_DATA subData{};
 		subData.pSysMem = data;
 
-		auto hr = device->CreateBuffer(&desc, &subData, m_buffer.GetAddressOf());
+		auto hr = graphics->GetDevice()->CreateBuffer(&desc, &subData, m_buffer.GetAddressOf());
 		if (FAILED(hr))
 		{
 			spdlog::error("IndexBuffer 생성 실패: {}", ErrorUtils::ToVerbose(hr));

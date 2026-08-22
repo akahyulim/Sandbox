@@ -1,37 +1,33 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Timer.h"
 
 namespace Dive
 {
-	Timer::Timer()
-		: m_elapsedTimeMS(0)
-		, m_deltaTimeMS(0)
-		, m_fps(0)
+	std::chrono::steady_clock::time_point Time::s_lastTickTime;
+	float Time::s_deltaTime = 0.0f;
+	double Time::s_elapsedTime = 0;
+	uint16_t Time::s_fps = 0;
+
+	Time::Time()
 	{
+		s_lastTickTime = std::chrono::steady_clock::now();
 	}
 
-	Timer::~Timer() = default;
-
-	void Timer::Start()
-	{
-		m_lastTickTime = std::chrono::steady_clock::now();
-	}
-
-	void Timer::Tick()
+	void Time::tick()
 	{
 		auto currentTickTime = std::chrono::steady_clock::now();
-		m_deltaTimeMS = std::chrono::duration<float, std::milli>(currentTickTime - m_lastTickTime).count();
-		m_elapsedTimeMS += m_deltaTimeMS;
-		m_lastTickTime = currentTickTime;
+		s_deltaTime = std::chrono::duration<float, std::milli>(currentTickTime - s_lastTickTime).count();
+		s_elapsedTime += s_deltaTime;
+		s_lastTickTime = currentTickTime;
 
-		static double lastTimeMS = 0;
+		static double lastTime = 0;
 		static uint16_t frameCount = 0;
 		frameCount++;
-		if (m_elapsedTimeMS - lastTimeMS >= 1000.0)
+		if (s_elapsedTime - lastTime >= 1000.0)
 		{
-			m_fps = frameCount;
+			s_fps = frameCount;
 			frameCount = 0;
-			lastTimeMS = m_elapsedTimeMS;
+			lastTime = s_elapsedTime;
 		}
 	}
 }

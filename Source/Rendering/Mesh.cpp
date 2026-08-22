@@ -6,14 +6,14 @@
 
 namespace Dive
 {
-	Mesh::Mesh(ID3D11Device* device, const std::vector<StaticVertex>& vertices, const std::vector<uint32_t>& indices)
+	Mesh::Mesh(Graphics* graphics, const std::vector<StaticVertex>& vertices, const std::vector<uint32_t>& indices)
 	{
 		assert(!vertices.empty());
 
 		uint32_t stride = static_cast<uint32_t>(sizeof(StaticVertex));
 		uint32_t count = static_cast<uint32_t>(vertices.size());
 
-		m_vb = std::make_unique<VertexBuffer>(device, stride, count, vertices.data());
+		m_vb = std::make_unique<VertexBuffer>(graphics, stride, count, vertices.data());
 		
 		if (!indices.empty())
 		{
@@ -37,7 +37,7 @@ namespace Dive
 
 			uint32_t count = static_cast<uint32_t>(indices.size());
 
-			m_ib = std::make_unique<IndexBuffer>(device, format, count, indexData);
+			m_ib = std::make_unique<IndexBuffer>(graphics, format, count, indexData);
 		}
 	}
 

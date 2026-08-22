@@ -79,7 +79,7 @@ namespace Dive
 
 	DirectX::XMMATRIX Camera::GetViewProjMatrix() const
 	{
-		return GetViewMatrix() * GetProjectionMatrix();
+		return DirectX::XMMatrixMultiply(GetViewMatrix(), GetProjectionMatrix());
 	}
 
 	float Camera::GetAspectRatio() const

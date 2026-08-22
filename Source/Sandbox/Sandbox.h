@@ -49,7 +49,7 @@ namespace Dive
 		void OnWindowEvent(const WindowEventData& data);
 
 	private:
-		void cameraControll(float dt);
+		void cameraControll();
 		
 		void scene();
 		void menu();

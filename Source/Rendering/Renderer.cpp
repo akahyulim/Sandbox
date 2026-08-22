@@ -6,6 +6,14 @@
 #include "Graphics/ConstantBufferDatas.h"
 #include "Graphics/ShaderProgram.h"
 #include "Graphics/RenderTexture.h"
+#include "Graphics/VertexBuffer.h"
+#include "Graphics/IndexBuffer.h"
+#include "Graphics/Geometry.h"
+
+#include "Scene/Scene.h"
+#include "Scene/GameObject.h"
+#include "Scene/Components/Transform.h"
+#include "Scene/Components/Camera.h"
 
 namespace Dive
 {
@@ -18,7 +26,7 @@ namespace Dive
         createRasterizerStates();
         createBlendStates();
 		createSamplers();
-		createCBuffers();
+        createBuffers();
         loadTextures();
 
 		// create other resources
@@ -27,33 +35,49 @@ namespace Dive
 
 	Renderer::~Renderer() = default;
 	
-    // Scene으로부터 그려질 데이터들을 가져오는 부분부터 구현하자.
-	void Renderer::Update(float dt)
+	void Renderer::Update(Scene* scene)
 	{
+        if (!scene)
+            return;
+
         bindGlobals();
 
-        // FrameData(frame) Update
+        auto camera = scene->GetCamera()->GetComponent<Camera>();
+        m_frameData.backgroundColor = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+        m_frameData.position = DirectX::XMFLOAT4(
+            camera->GetTransform()->GetPosition().x,
+            camera->GetTransform()->GetPosition().y,
+            camera->GetTransform()->GetPosition().z,
+            1.0f);
+        m_frameData.viewMatrix = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
+        m_frameData.projMatrix = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
+        m_frameData.viewProjMatrix = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
+        m_cbFrame->Update(m_graphics, m_frameData);
 	}
 	
     // Render에는 RenderSettings가 전달
     // Editor의 멤버 변수이며 Editor::Run -> Engine::Run -> Render -> Renderer::Render 순으로 전달
     // 각종 렌더링 옵션들로 구성되어 있으며 Editor에서 취사 선택이 가능한 형태
     // 게임에서 그래픽스 옵션이라고 볼 수 있다.
-	void Renderer::Render()
+	void Renderer::Render(Scene* scene)
     {	
+        if (!scene)
+            return;
+
         // pass들 내부에는 Graphics::BeginRenderPass()에 각각의 RenderPassDesc를 사용
         // Render Target, Depth와 clear값이 들어있다.
-        passTest();
+        passTest(scene);
         passGBuffer();
         passPicking();
         passAmbient();
         passDeferredLighting();
         passForward();
-        passSkybox();
+        passSkybox(scene);
 	}
 
     void Renderer::ResolveToOffScreenTexture()
     {
+        // 이 부분은 매개변수화해서 BeginRenderPass로 넘겨야 한다.
         {
             auto rtv = m_offScreenRenderTarget->GetRenderTargetView();
             float clearColor[] = { 0.0f ,0.0f, 0.0f, 0.0f };
@@ -64,7 +88,6 @@ namespace Dive
         m_graphics->BeginRenderPass();
 
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        //auto srv = TextureManager::GetInst().GetTextureView(0);
         m_graphics->SetShaderResourceView(eShaderStage::PS, 30, &srv);  // 원래 srv slot enum class가 없었나...
         ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
@@ -104,10 +127,10 @@ namespace Dive
 
         // 1. Default (기본 뎁스 읽기/쓰기)
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = TRUE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = FALSE;
+        desc.StencilEnable = false;
         desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
         desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
         stencilOp = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS };
@@ -119,10 +142,10 @@ namespace Dive
 
         // 2. StencilMark (스텐실 기록용)
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = TRUE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = TRUE;
+        desc.StencilEnable = true;
         desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
         desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
         stencilOp = { D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_COMPARISON_ALWAYS };
@@ -134,10 +157,10 @@ namespace Dive
 
         // 3. GBuffer
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = TRUE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = TRUE;
+        desc.StencilEnable = true;
         desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
         desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
         stencilOp = { D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_STENCIL_OP_REPLACE, D3D11_COMPARISON_ALWAYS };
@@ -149,10 +172,10 @@ namespace Dive
 
         // 4. DepthDisabled
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = FALSE;
+        desc.DepthEnable = false;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = TRUE;
+        desc.StencilEnable = true;
         desc.StencilReadMask = 0xFF;
         desc.StencilWriteMask = 0xFF;
         desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -169,10 +192,10 @@ namespace Dive
 
         // 5. ForwardLight
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = TRUE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        desc.StencilEnable = FALSE;
+        desc.StencilEnable = false;
         desc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
         desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
         const D3D11_DEPTH_STENCILOP_DESC noSkyStencilOp = { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_EQUAL };
@@ -184,20 +207,20 @@ namespace Dive
 
         // 6. Transparent
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = TRUE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
         desc.DepthFunc = D3D11_COMPARISON_LESS;
-        desc.StencilEnable = FALSE;
+        desc.StencilEnable = false;
 
         m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Transparent)] =
             m_graphics->CreateDepthStencilState(desc);
 
         // 7. Skybox
         ZeroMemory(&desc, sizeof(desc));
-        desc.DepthEnable = FALSE;
+        desc.DepthEnable = true;
         desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-        desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-        desc.StencilEnable = FALSE;
+        desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;// D3D11_COMPARISON_ALWAYS;
+        desc.StencilEnable = false;
 
         m_depthStencilStates[static_cast<size_t>(eDepthStencilState::Skybox)] =
             m_graphics->CreateDepthStencilState(desc);
@@ -211,15 +234,15 @@ namespace Dive
         desc.DepthBias = 0;
         desc.DepthBiasClamp = 0.0f;
         desc.SlopeScaledDepthBias = 0.0f;
-        desc.DepthClipEnable = TRUE;
-        desc.ScissorEnable = FALSE;
-        desc.MultisampleEnable = FALSE;
-        desc.AntialiasedLineEnable = FALSE;
+        desc.DepthClipEnable = true;
+        desc.ScissorEnable = false;
+        desc.MultisampleEnable = false;
+        desc.AntialiasedLineEnable = false;
 
         // 1. FillSolid_CullFront
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_FRONT;
-        desc.FrontCounterClockwise = TRUE;
+        desc.FrontCounterClockwise = true;
 
         m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullFront)] =
             m_graphics->CreateRasterizerState(desc);
@@ -227,7 +250,7 @@ namespace Dive
         // 2. FillSolid_CullBack
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_BACK;
-        desc.FrontCounterClockwise = FALSE;
+        desc.FrontCounterClockwise = false;
 
         m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullBack)] =
             m_graphics->CreateRasterizerState(desc);
@@ -235,7 +258,7 @@ namespace Dive
         // 3. FillSolid_CullNone
         desc.FillMode = D3D11_FILL_SOLID;
         desc.CullMode = D3D11_CULL_NONE;
-        desc.FrontCounterClockwise = FALSE; // 필요에 따라 설정
+        desc.FrontCounterClockwise = false; // 필요에 따라 설정
 
         m_rasterizerStates[static_cast<size_t>(eRasterizerState::FillSolid_CullNone)] =
             m_graphics->CreateRasterizerState(desc);
@@ -244,14 +267,14 @@ namespace Dive
     void Renderer::createBlendStates()
     {
         D3D11_BLEND_DESC desc{};
-        desc.AlphaToCoverageEnable = FALSE;
-        desc.IndependentBlendEnable = FALSE;
+        desc.AlphaToCoverageEnable = false;
+        desc.IndependentBlendEnable = false;
 
         // AlphaEnabled
         {
             const D3D11_RENDER_TARGET_BLEND_DESC alphaBlendDesc =
             {
-                TRUE,
+                true,
                 D3D11_BLEND_SRC_ALPHA,
                 D3D11_BLEND_INV_SRC_ALPHA,
                 D3D11_BLEND_OP_ADD,
@@ -272,7 +295,7 @@ namespace Dive
         {
             const D3D11_RENDER_TARGET_BLEND_DESC alphaDisabledDesc =
             {
-                FALSE,
+                false,
                 D3D11_BLEND_SRC_ALPHA,
                 D3D11_BLEND_INV_SRC_ALPHA,
                 D3D11_BLEND_OP_ADD,
@@ -293,7 +316,7 @@ namespace Dive
         {
             const D3D11_RENDER_TARGET_BLEND_DESC additiveBlendDesc =
             {
-                TRUE,
+                true,
                 D3D11_BLEND_ONE,
                 D3D11_BLEND_ONE,
                 D3D11_BLEND_OP_ADD,
@@ -404,14 +427,45 @@ namespace Dive
                 m_graphics->CreateSamplerState(desc);
         }
     }
-	
-	void Renderer::createCBuffers()
-	{
-        m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics);
-        m_cbMaterial = std::make_unique<ConstantBuffer<MaterialData>>(m_graphics);
+
+    void Renderer::createBuffers()
+    {
+        m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics); 
         m_cbObject = std::make_unique<ConstantBuffer<ObjectData>>(m_graphics);
+        m_cbMaterial = std::make_unique<ConstantBuffer<MaterialData>>(m_graphics);
         m_cbLight = std::make_unique<ConstantBuffer<LightData>>(m_graphics);
-	}
+
+        const SimpleVertex vertices[] = 
+		{
+			DirectX::XMFLOAT3{ -1.5f, -1.5f,  1.5f },
+			DirectX::XMFLOAT3{  1.5f, -1.5f,  1.5f },
+			DirectX::XMFLOAT3{  1.5f,  1.5f,  1.5f },
+			DirectX::XMFLOAT3{ -1.5f,  1.5f,  1.5f },
+			DirectX::XMFLOAT3{ -1.5f, -1.5f, -1.5f },
+			DirectX::XMFLOAT3{  1.5f, -1.5f, -1.5f },
+			DirectX::XMFLOAT3{  1.5f,  1.5f, -1.5f },
+			DirectX::XMFLOAT3{ -1.5f,  1.5f, -1.5f }
+		};
+
+		const uint16_t indices[] = 
+		{
+			0, 1, 2,
+			2, 3, 0,
+			1, 5, 6,
+			6, 2, 1,
+			7, 6, 5,
+			5, 4, 7,
+			4, 0, 3,
+			3, 7, 4,
+			4, 5, 1,
+			1, 0, 4,
+			3, 2, 6,
+			6, 7, 3
+		};
+
+        m_cubeVB = std::make_unique<VertexBuffer>(m_graphics, sizeof(SimpleVertex), 8, vertices);
+        m_cubeIB = std::make_unique<IndexBuffer>(m_graphics, eFormat::R16_UINT, 36, indices);
+    }
 
     void Renderer::createResolutionDependantResources(uint32_t width, uint32_t height)
     {
@@ -436,6 +490,11 @@ namespace Dive
 
         m_ldrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
         m_offScreenRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R16_TYPELESS;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
+
+        m_depthTarget = std::make_unique<RenderTexture>(m_graphics, desc);
     }
 
     void Renderer::createGBuffer(uint32_t width, uint32_t height)
@@ -454,6 +513,9 @@ namespace Dive
     {
     }
 
+    // 다시 adria를 살표본 결과 이 부분은 문제가 없다.
+    // 그리고 재미나이도 이 방법을 추천하고 있다.
+    // 즉, 상수버퍼의 바인딩은 한 번으로 족하다.
     void Renderer::bindGlobals()
     {
         static bool called = false;
@@ -463,12 +525,13 @@ namespace Dive
             auto deviceContext = m_graphics->GetDeviceContext();
 
             // vs
+            m_cbFrame->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Object));
             
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
-            m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
-            m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
+            //m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
+            //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
 
             ID3D11SamplerState* samplers[static_cast<size_t>(eSamplerState::Count)] =
             {
@@ -480,20 +543,43 @@ namespace Dive
             };
             deviceContext->PSSetSamplers(0, static_cast<UINT>(eSamplerState::Count), samplers);
 
-
             called = true;
         }
     }
 
-    void Renderer::passTest()
+    void Renderer::passTest(Scene* scene)
     {
         // 원래는 RenderPassDesc에 rtv, dsv, clearValue를 구성하고
         // 아래의 BeginRenderPass에 전달하면
         // 내부에서 rtv, dsv를 설정 및 클리어한다.
         {
             auto rtv = m_ldrRenderTarget->GetRenderTargetView();
-            float clearColor[] = { 1.0f, 0.3f, 0.3f, 1.0f };
+            auto dsv = m_depthTarget->GetDetphStencilView();
+            float clearColor[] = { 0.4f, 0.4f, 1.0f, 1.0f };
             m_graphics->GetDeviceContext()->ClearRenderTargetView(rtv, clearColor);
+            m_graphics->GetDeviceContext()->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+            m_graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+
+            m_graphics->SetViewport(scene->GetCamera()->GetComponent<Camera>()->GetViewport());
+            //m_graphics->BeginRenderPass();
+
+            m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
+            m_cbObject->Update(m_graphics, m_objectData);
+
+            m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
+            m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
+
+            m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+
+            ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Test)->Bind(m_graphics);
+
+            //m_graphics->SetVertexBuffer(m_cubeVB.get());
+            //m_graphics->SetIndexBuffer(m_cubeIB.get());
+            //m_graphics->DrawIndexed(m_cubeIB->GetCount());
+            m_graphics->SetVertexBuffer(nullptr);
+            m_graphics->Draw(3);
+
+            //m_graphics->EndRenderPass();
         }
     }
 
@@ -518,23 +604,28 @@ namespace Dive
     }
 
     // RenderPassDesc가 없다. 간혹 이런것들이 존재한다.
-    void Renderer::passSkybox()
+    void Renderer::passSkybox(Scene* scene)
     {
-        // ObjectData에 camera position을 넣고 update
+        // 임시: SetViewport용
+        //m_graphics->SetViewport(scene->GetCamera()->GetComponent<Camera>()->GetViewport());
+        //m_graphics->BeginRenderPass();
 
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
-        // dpeth stencil state - leq_depth??
+        m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Skybox].Get(), 0);
 
         ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
-        // cube map srv bind: scene의 env로부터 가져온 후 바인딩
-
-        m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
-        // SetVertexBuffer = cube
-        // SetIndexBufffer = cube
-        // DrawIndexed
         
-        // 앞서 설정한 것들을 초기화
+        auto& envData = scene->GetEnviroment();
+        auto srv = TextureManager::GetInst().GetTextureView(envData.skyboxCubemap);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 21, &srv);
+
+        m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+        m_graphics->SetVertexBuffer(nullptr);
+        m_graphics->Draw(36);
+        
         m_graphics->SetRasterizerState(nullptr);
         m_graphics->SetDepthStencilState(nullptr, 0);
+
+        //m_graphics->EndRenderPass();
     }
 }

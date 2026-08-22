@@ -19,6 +19,7 @@ namespace Dive
 		Deferred,
 		Skybox,
 		Resolve,
+		Test,
 		Count
 	};
 

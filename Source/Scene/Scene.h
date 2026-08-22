@@ -33,7 +33,7 @@ namespace Dive
 
 		void Clear();
 
-		void Update(float dt);
+		void Update();
 		
 		GameObject* CreateGameObject();
 		GameObject* CreateGameObjectFromID(uint64_t id);

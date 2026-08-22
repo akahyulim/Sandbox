@@ -208,12 +208,27 @@ namespace Dive
 		return state;
 	}
 
-	// UpdateDynamicBuffer가 더 어울리려나..
-	// 그러려면 Dynamic여부를 확인할 수 있어야 한다.
-	void Graphics::UpdateBuffer(ID3D11Buffer* cbuffer, void* data, uint32_t size)
+	void Graphics::UpdateBuffer(ID3D11Buffer* cbuffer, const void* data, uint32_t size)
 	{
-		// map
-		// unmap
+		D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+
+		auto hr = m_deviceContext->Map(
+			static_cast<ID3D11Resource*>(cbuffer),
+			0,
+			D3D11_MAP_WRITE_DISCARD,
+			0,
+			&mappedResource
+		);
+
+		if (FAILED(hr))
+		{
+			spdlog::error("상수버퍼 맵 실패: {}", ErrorUtils::ToVerbose(hr));
+			return;
+		}
+
+		memcpy(mappedResource.pData, data, size);
+
+		m_deviceContext->Unmap(static_cast<ID3D11Resource*>(cbuffer), 0);
 	}
 
 	void Graphics::SetVertexBuffer(VertexBuffer* vb, uint32_t slot)
@@ -222,7 +237,7 @@ namespace Dive
 		UINT stride = vb ? static_cast<UINT>(vb->GetStride()) : 0;
 		UINT offset = 0;
 
-		m_deviceContext->IASetVertexBuffers(slot, 1, &rawBuffer, &stride, &offset);
+		m_deviceContext->IASetVertexBuffers(slot, rawBuffer == nullptr ? 0 : 1, &rawBuffer, &stride, &offset);
 	}
 
 	void Graphics::SetVertexBuffers(uint32_t startSlot, std::span<VertexBuffer*> vbs)
@@ -383,6 +398,19 @@ namespace Dive
 		vp.MaxDepth = 1.0f;
 
 		m_deviceContext->RSSetViewports(1, &vp);
+	}
+
+	void Graphics::SetViewport(const Viewport& vp)
+	{
+		D3D11_VIEWPORT d3d11_vp{};
+		d3d11_vp.TopLeftX = vp.topLeftX;
+		d3d11_vp.TopLeftY = vp.topLeftY;
+		d3d11_vp.Width = vp.width;
+		d3d11_vp.Height = vp.height;
+		d3d11_vp.MinDepth = vp.minDepth;
+		d3d11_vp.MaxDepth = vp.maxDepth;
+
+		m_deviceContext->RSSetViewports(1, &d3d11_vp);
 	}
 
 	// desc를 전달받는다.

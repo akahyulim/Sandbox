@@ -15,7 +15,7 @@ namespace Dive
 	{
 	public:
 		Mesh() = delete;
-		Mesh(ID3D11Device* device, const std::vector<StaticVertex>& vertices, const std::vector<uint32_t>& indices);
+		Mesh(Graphics* graphics, const std::vector<StaticVertex>& vertices, const std::vector<uint32_t>& indices);
 		Mesh(const Mesh&) = delete;
 		Mesh(Mesh&&) noexcept = default;
 		~Mesh();

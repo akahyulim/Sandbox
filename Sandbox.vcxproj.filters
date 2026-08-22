@@ -327,13 +327,22 @@
     <FxCompile Include="Source\Shaders\ResolveSceneVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Shaders\Skybox.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Source\Shaders\UnlitPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\UnlitVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\SkyboxVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\SkyboxPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Skybox.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Test.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

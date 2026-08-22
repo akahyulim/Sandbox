@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <commdlg.h>
 
+#include <fstream>
 #include <memory>
 #include <cstdint>
 #include <vector>
@@ -44,3 +45,4 @@
 #include "Core/Common.h"
 #include "Core/Types.h"
 #include "Utilities/StringUtils.h"
+#include "Utilities/Timer.h"

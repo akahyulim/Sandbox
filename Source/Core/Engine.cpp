@@ -24,23 +24,18 @@ namespace Dive
 
 		m_window->GetResizedEvent().AddMember(&Graphics::ResizeBackbuffer, *m_graphics);
 		m_window->GetResizedEvent().AddMember(&Renderer::OnResize, *m_renderer);
-
-		m_timer = std::make_unique<Timer>();
-		m_timer->Start();
 	}
 
 	// settings를 받는다.
 	void Engine::Run()
 	{
-		m_timer->Tick();
-		float dt = m_timer->GetDeltaTimeMS();
+		Time::tick();
 
-		if (m_input)
-			m_input->Update();
+		m_input->Update();
 
 		if(m_window->IsActive())
 		{
-			update(dt);
+			update();
 			render();
 		}
 	}
@@ -58,17 +53,17 @@ namespace Dive
 	}
 
 	// Renderer가 Tick, Update 그리고 Renderer로 나누어 호출된다.
-	void Engine::update(float dt)
+	void Engine::update()
 	{
 		if (m_scene)
-			m_scene->Update(dt);
+			m_scene->Update();
 		
-		m_renderer->Update(dt);
+		m_renderer->Update(m_scene.get());
 	}
 	
 	void Engine::render()
 	{
-		m_renderer->Render();
+		m_renderer->Render(m_scene.get());
 
 		// 일단 외부 출력 기본설정
 		m_renderer->ResolveToOffScreenTexture();

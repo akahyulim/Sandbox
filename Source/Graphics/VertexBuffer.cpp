@@ -5,7 +5,7 @@
 
 namespace Dive
 {
-    VertexBuffer::VertexBuffer(ID3D11Device* device, uint32_t stride, uint32_t count, const void* data)
+    VertexBuffer::VertexBuffer(Graphics* graphics, uint32_t stride, uint32_t count, const void* data)
         : m_stride(stride),
         m_count(count)
     {
@@ -21,7 +21,7 @@ namespace Dive
         D3D11_SUBRESOURCE_DATA subData{};
         subData.pSysMem = data;
 
-        auto hr = device->CreateBuffer(&desc, &subData, m_buffer.GetAddressOf());
+        auto hr = graphics->GetDevice()->CreateBuffer(&desc, &subData, m_buffer.GetAddressOf());
         if (FAILED(hr))
         {
             spdlog::error("VertexBuffer 생성 실패: {}", ErrorUtils::ToVerbose(hr));

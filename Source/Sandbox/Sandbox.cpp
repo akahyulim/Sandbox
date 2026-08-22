@@ -37,7 +37,15 @@ namespace Dive
  
         newScene();
         auto& env = m_scene->GetEnviroment();
-        env.skyboxCubemap = TextureManager::GetInst().LoadCubemap(L"Assets/Textures/Skybox/desertcube1024.dds");
+        env.skyboxCubemap = TextureManager::GetInst().LoadCubemap(L"Assets/Textures/Skybox/sunsetcube1024.dds");//desertcube1024.dds");
+
+        m_mainCamera = m_scene->GetCamera();
+        m_mainCamera->GetComponent<Camera>()->SetViewport(
+            0.0f,
+            0.0f,
+            static_cast<float>(m_engine->GetGraphics()->GetWidth()),
+            static_cast<float>(m_engine->GetGraphics()->GetHeight())
+        );
     }
 
     Sandbox::~Sandbox()
@@ -46,7 +54,8 @@ namespace Dive
 
     void Sandbox::Run()
     {
-        // HandleInput() => cameraControl을 변경?
+        // 위치가 여기가 맞나...?
+        cameraControll();
 
         if(m_gui->IsVisible())
         {
@@ -87,10 +96,12 @@ namespace Dive
         m_gui->HandleWindowMessage(data);
     }
     
-    void Sandbox::cameraControll(float dt)
+    void Sandbox::cameraControll()
     {
         if (m_mainCamera == nullptr)
             return;
+
+        auto dt = Time::GetDeltaTime();
 
         auto input = m_engine->GetInput();
         auto transform = m_mainCamera->GetTransform();
@@ -174,19 +185,6 @@ namespace Dive
             translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(up, moveSpeed));
 
         transform->TranslateVector(translation, eSpace::World);
-
-        {
-            auto* dirLight = m_directionalLight->GetComponent<Light>();
-           
-            if (input->KeyDown(DIK_1))
-                dirLight->SetDirection(-1.0f, -1.0f, 1.0f);
-            if (input->KeyDown(DIK_2))
-                dirLight->SetDirection(1.0f, -1.0f, 1.0f);
-            if (input->KeyDown(DIK_3))
-                dirLight->SetDirection(1.0f, -1.0f, -1.0f);
-            if (input->KeyDown(DIK_4))
-                dirLight->SetDirection(-1.0f, -1.0f, -1.0f);
-        }
     }
     
     void Sandbox::scene()

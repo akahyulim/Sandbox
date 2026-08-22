@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "GameObject.h"
 //#include "Scene.h"
 #include "Components/Transform.h"
@@ -25,7 +25,7 @@ namespace Dive
 			m_parent->RemoveChild(this);
 	}
 
-	void GameObject::Update(float dt)
+	void GameObject::Update()
 	{
 		m_transform->Update();
 
@@ -33,7 +33,7 @@ namespace Dive
 			component->Update();
 
 		for (auto child : m_children)
-			child->Update(dt);
+			child->Update();
 	}
 
 	Component* GameObject::GetComponentByType(eComponentType type) const

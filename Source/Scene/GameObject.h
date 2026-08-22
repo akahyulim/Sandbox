@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <memory>
 #include <unordered_map>
 
@@ -21,7 +21,7 @@ namespace Dive
 
 		GameObject& operator=(const GameObject&) = delete;
 
-		void Update(float dt);
+		void Update();
 
 		template<typename T>T* AddComponent();
 

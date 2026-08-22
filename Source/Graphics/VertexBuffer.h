@@ -1,15 +1,17 @@
-﻿#pragma once
+#pragma once
 #include <cstdint>
 #include <wrl/client.h>
 #include <d3d11.h>
 
 namespace Dive
 {
+	class Graphics;
+
 	class VertexBuffer
 	{
 	public:
 		VertexBuffer() = delete;
-		VertexBuffer(ID3D11Device* device, uint32_t stride, uint32_t count, const void* data);
+		VertexBuffer(Graphics* graphics, uint32_t stride, uint32_t count, const void* data);
 		VertexBuffer(uint32_t stride, uint32_t count);
 		VertexBuffer(const VertexBuffer&) = delete;
 		VertexBuffer(VertexBuffer&&) = default;

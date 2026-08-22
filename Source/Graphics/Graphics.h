@@ -55,7 +55,7 @@ namespace Dive
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> CreateSamplerState(const D3D11_SAMPLER_DESC& desc);
 
 		// context
-		void UpdateBuffer(ID3D11Buffer* cbuffer, void* data, uint32_t size);
+		void UpdateBuffer(ID3D11Buffer* cbuffer, const void* data, uint32_t size);
 
 		void SetVertexBuffer(VertexBuffer* vb, uint32_t slot = 0);
 		void SetVertexBuffers(uint32_t startSlot, std::span<VertexBuffer*> vbs);
@@ -74,11 +74,11 @@ namespace Dive
 
 		void SetTopology(ePrimitiveTopology topology);
 		void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+		void SetViewport(const Viewport& vp);
 
 		void BeginRenderPass();
 		void EndRenderPass();
 
-		// aria는 instance 버전을 통합해 놓았다.
 		void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0);
 		void DrawIndexed(uint32_t indexCount, uint32_t startIndexLocation = 0, int32_t baseVertexLocation = 0);
 
@@ -97,9 +97,9 @@ namespace Dive
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_backbufferRTV;
 
+		// ShaderProgram에서 직접 Bind를 호출하여 아래의 변수는 사용하지 못하고 있다.
 		VertexShader* m_currentVS = nullptr;
 		PixelShader* m_currentPS = nullptr;
-
 		InputLayout* m_currentIL = nullptr;
 
 		ID3D11DepthStencilState* m_currentDSS = nullptr;

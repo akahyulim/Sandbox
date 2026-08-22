@@ -12,4 +12,4 @@ float4 MainPS(PSInput input) : SV_Target
     uv.y = 1.0 - uv.y; // Y축 반전
     
     return SceneColor.Sample(ClampLinearSampler, uv);
-}
+ }

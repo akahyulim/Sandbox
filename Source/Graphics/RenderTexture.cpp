@@ -4,6 +4,8 @@
 
 namespace Dive
 {
+	// DESC 전달보다는 FORMAT, MIPS 정도로 줄이는 게 나을 것 같다.
+	// DATA도 현재로선 필요없다.
 	RenderTexture::RenderTexture(Graphics* graphics, const D3D11_TEXTURE2D_DESC& desc, D3D11_SUBRESOURCE_DATA* data)
 		: m_graphics(graphics)
 		, m_desc(desc)
@@ -52,7 +54,7 @@ namespace Dive
 		auto device = m_graphics->GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = m_desc.Format;
+		srvDesc.Format = m_desc.Format == DXGI_FORMAT_R16_TYPELESS ? DXGI_FORMAT_R16_UNORM : m_desc.Format;
 
 		if (m_desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
 		{
@@ -144,7 +146,7 @@ namespace Dive
 		auto device = m_graphics->GetDevice();
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = m_desc.Format;
+		dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
 
 		if (m_desc.ArraySize > 1)
 		{

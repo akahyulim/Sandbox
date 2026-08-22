@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <cstdint>
 #include <wrl/client.h>
 #include <d3d11.h>
@@ -7,11 +7,13 @@
 
 namespace Dive
 {
+	class Graphics;
+
 	class IndexBuffer
 	{
 	public:
 		IndexBuffer() = delete;
-		IndexBuffer(ID3D11Device* device, eFormat format, uint32_t count, const void* data);
+		IndexBuffer(Graphics* graphics, eFormat format, uint32_t count, const void* data);
 		IndexBuffer(eFormat format, uint32_t count);
 		IndexBuffer(const IndexBuffer&) = delete;
 		IndexBuffer(IndexBuffer&&) = default;

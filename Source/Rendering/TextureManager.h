@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 #include <DirectXTex/DirectXTex.h>
 
+#include <vector>
 
 namespace Dive
 {
@@ -53,5 +54,9 @@ namespace Dive
 		TextureHandle m_handle = INVALID_TEXTURE_HANDLE;
 		std::unordered_map<TextureHandle, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
 		std::unordered_map<std::wstring, TextureHandle> m_loaded;
+
+
+		void SetFaceData(uint32_t index, const void* pixels, size_t size);
+		std::array<std::vector<uint8_t>, 6> m_faceData;
 	};
 }

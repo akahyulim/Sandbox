@@ -13,10 +13,8 @@ namespace Dive
 {
 	enum class eShaderPrograms : uint8_t
 	{
-		Unlit,
-		LegacyLit,
-		PbsLit,
-		Deferred,
+		GBuffer,
+		DeferredLighting,
 		Skybox,
 		Resolve,
 		Test,
@@ -28,7 +26,7 @@ namespace Dive
 	class ShaderManager
 	{
 	public:
-		static ShaderManager& GetInst()
+		static ShaderManager& Get()
 		{
 			static ShaderManager instance;
 			return instance;
@@ -41,6 +39,7 @@ namespace Dive
 		ShaderManager& operator=(ShaderManager&&) = default;
 
 		bool Initialize(Graphics* graphics);
+		void Shutdown();
 
 		ShaderProgram* GetShaderProgram(eShaderPrograms sp);
 

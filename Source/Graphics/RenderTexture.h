@@ -19,6 +19,9 @@ namespace Dive
 		ID3D11DepthStencilView* GetDetphStencilView(uint32_t index = 0) const;
 		//ID3D11UnorderedAccessView* GetUnorderedAccessView() const { return m_unorderedAccessView.Get(); }
 
+		uint32_t GetWidth() const { return m_desc.Width; }
+		uint32_t GetHeight() const { return m_desc.Height; }
+
 	private:
 		void createShaderResourceView();
 		void createRenderTargetViews();

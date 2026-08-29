@@ -1,3 +1,5 @@
+#include "Resources.hlsli"
+
 static const float2 arrBasePos[4] =
 {
     float2(-1.0, 1.0),
@@ -6,18 +8,26 @@ static const float2 arrBasePos[4] =
 	float2(1.0, -1.0),
 };
 
-struct VSOutput
+struct VSToPS
 {
     float4 position : SV_POSITION;
     float2 cpPos : TEXCOORD0;
 };
 
-VSOutput MainVS(uint VertexID : SV_VERTEXID)
+VSToPS MainVS(uint VertexID : SV_VERTEXID)
 {
-    VSOutput output;
+    VSToPS output;
 
     output.position = float4(arrBasePos[VertexID].xy, 0.0, 1.0);
     output.cpPos = output.position.xy;
 
     return output;
+}
+
+float4 MainPS(VSToPS input) : SV_Target
+{
+    float2 uv = input.cpPos * 0.5 + 0.5;
+    uv.y = 1.0 - uv.y; // Y축 반전
+    
+    return OffScreen.Sample(ClampLinearSampler, uv);
 }

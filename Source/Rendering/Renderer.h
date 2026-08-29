@@ -6,6 +6,7 @@
 
 #include "Graphics/ConstantBuffer.h"
 #include "Graphics/ConstantBufferDatas.h"
+#include "Graphics/RenderPass.h"
 
 namespace Dive
 {
@@ -55,6 +56,14 @@ namespace Dive
 			Count
 		};
 
+		enum class eGBufferType : uint8_t
+		{
+			AlbedoRoughness = 0, // Albedo (RGB) + Roughness (A)
+			NormalMetallic,      // View Space Normal (RGB) + Metallic (A)
+			Emissive,            // Emissive (RGB)
+			Count
+		};
+
 		enum class eConstantBuffer : uint8_t
 		{	
 			Frame,
@@ -95,12 +104,11 @@ namespace Dive
 		void bindGlobals();
 
 		void passTest(Scene* scene);
-		void passGBuffer();
-		void passPicking();
-		void passAmbient();
+		void passGBuffer(Scene* scene);
 		void passDeferredLighting();
-		void passForward();
 		void passSkybox(Scene* scene);
+		void passForward();
+		void passPostProcessing();
 
 	private:
 		Graphics* m_graphics = nullptr;
@@ -112,9 +120,10 @@ namespace Dive
 		std::array<Microsoft::WRL::ComPtr<ID3D11BlendState>, static_cast<size_t>(eBlendState::Count)> m_blendStates;
 		std::array<Microsoft::WRL::ComPtr<ID3D11SamplerState>, static_cast<size_t>(eSamplerState::Count)> m_samplerStates;
 		
-		// Graphics에 GfxConstantBuffer, Renderer에 ConstantBuffer로 나누어 관리했다.
-
 		// render targets
+		std::array<std::unique_ptr<RenderTexture>, static_cast<size_t>(eGBufferType::Count)> m_gbuffer;
+
+		std::unique_ptr<RenderTexture> m_hdrRenderTarget;
 		std::unique_ptr<RenderTexture> m_ldrRenderTarget;
 		std::unique_ptr<RenderTexture> m_offScreenRenderTarget;
 		std::unique_ptr<RenderTexture> m_depthTarget;
@@ -128,6 +137,11 @@ namespace Dive
 		LightData m_lightData{};
 		std::unique_ptr<ConstantBuffer<LightData>> m_cbLight;
 
+		RenderPassDesc m_testPass;
+		RenderPassDesc m_gbufferPass;
+		RenderPassDesc m_deferredLightingPass;
+		RenderPassDesc m_offScreenResolvePass;
+		RenderPassDesc m_skyboxPass;	// 원래는 forward를 사용
 
 		// 테스트
 		std::unique_ptr<VertexBuffer> m_cubeVB;

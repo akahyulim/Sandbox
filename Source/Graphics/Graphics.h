@@ -6,6 +6,7 @@
 
 #include "Core/Types.h"
 #include "Shader.h"
+#include "RenderPass.h"
 
 namespace Dive
 {
@@ -75,8 +76,9 @@ namespace Dive
 		void SetTopology(ePrimitiveTopology topology);
 		void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 		void SetViewport(const Viewport& vp);
+		void SetViewport(uint32_t width, uint32_t height);
 
-		void BeginRenderPass();
+		void BeginRenderPass(const RenderPassDesc& desc);
 		void EndRenderPass();
 
 		void Draw(uint32_t vertexCount, uint32_t startVertexLocation = 0);

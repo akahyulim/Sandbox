@@ -157,9 +157,6 @@
     <ClInclude Include="Source\Graphics\VertexBuffer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Resource\Preset.h">
-      <Filter>Resource</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Resource\Resource.h">
       <Filter>Resource</Filter>
     </ClInclude>
@@ -180,6 +177,21 @@
     </ClInclude>
     <ClInclude Include="Source\Rendering\TextureManager.h">
       <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Material.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\MeshManager.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\Preset.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Rendering\MaterialManager.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\RenderPass.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -272,9 +284,6 @@
     <ClCompile Include="Source\Graphics\VertexBuffer.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Resource\Preset.cpp">
-      <Filter>Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Resource\Resource.cpp">
       <Filter>Resource</Filter>
     </ClCompile>
@@ -299,6 +308,18 @@
     <ClCompile Include="Source\Rendering\TextureManager.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Rendering\Material.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\MeshManager.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\Preset.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Rendering\MaterialManager.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Shaders\Constants.hlsli">
@@ -307,42 +328,21 @@
     <None Include="Source\Shaders\Resources.hlsli">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Source\Shaders\VSInput.hlsli">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Source\Shaders\LegacyPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\LitVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\PbsPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\ResolveScenePS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\ResolveSceneVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\UnlitPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\UnlitVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\SkyboxVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Source\Shaders\SkyboxPS.hlsl">
+    <FxCompile Include="Source\Shaders\ResolveScene.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\Skybox.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\Test.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\GBuffer.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\DeferredLighting.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

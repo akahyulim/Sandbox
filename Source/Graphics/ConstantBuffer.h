@@ -48,58 +48,12 @@ namespace Dive
 	template<class T>
 	void ConstantBuffer<T>::Update(Graphics* graphics, const T& bufferData)
 	{
-		//graphics->UpdateBuffer(m_buffer.Get(), &bufferData, static_cast<uint32_t>(sizeof(T)));
-
-		auto deviceContext = graphics->GetDeviceContext();
-
-		D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-
-		auto hr = deviceContext->Map(
-			static_cast<ID3D11Resource*>(m_buffer.Get()),
-			0,
-			D3D11_MAP_WRITE_DISCARD,
-			0,
-			&mappedResource
-		);
-
-		if (FAILED(hr))
-		{
-			spdlog::error("상수버퍼 맵 실패: {}", ErrorUtils::ToVerbose(hr));
-			return;
-		}
-
-		memcpy(mappedResource.pData, (const void*)&bufferData, sizeof(T));
-
-		deviceContext->Unmap(static_cast<ID3D11Resource*>(m_buffer.Get()), 0);
+		graphics->UpdateBuffer(m_buffer.Get(), &bufferData, static_cast<uint32_t>(sizeof(T)));
 	}
 
 	template<class T>
 	void ConstantBuffer<T>::Bind(Graphics* graphics, eShaderStage stage, uint32_t slot)
 	{
-		//graphics->SetConstantBuffer(stage, slot, m_buffer.GetAddressOf());
-
-		auto deviceContext = graphics->GetDeviceContext();
-
-		switch (stage)
-		{
-		case eShaderStage::VS:
-			deviceContext->VSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		case eShaderStage::PS:
-			deviceContext->PSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		case eShaderStage::HS:
-			deviceContext->HSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		case eShaderStage::DS:
-			deviceContext->DSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		case eShaderStage::GS:
-			deviceContext->GSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		case eShaderStage::CS:
-			deviceContext->CSSetConstantBuffers(slot, 1, m_buffer.GetAddressOf());
-			break;
-		}
+		graphics->SetConstantBuffer(stage, slot, m_buffer.GetAddressOf());
 	}
 }

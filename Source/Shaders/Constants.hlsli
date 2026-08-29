@@ -16,7 +16,7 @@ struct ObjectData
 
 struct MaterialData
 {
-    float4 diffuseColor;
+    float4 baseColor;
     float2 tiling;
     float2 offset;
     
@@ -61,7 +61,7 @@ cbuffer cbLightData : register(b3)
     LightData lightData;
 }
 
-bool HasDiffuseMap()
+bool HasAlbedoMap()
 {
     return materialData.flags & (1 << 0);
 }

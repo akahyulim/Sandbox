@@ -44,6 +44,8 @@ namespace Dive
 		Sandbox(const SandboxInit& init);
 		~Sandbox();
 
+		void Shutdown();
+
 		void Run();
 
 		void OnWindowEvent(const WindowEventData& data);
@@ -72,8 +74,6 @@ namespace Dive
 		
 		// ================================================================
 		
-		//GameObject* m_selected = nullptr;
-
 		float m_cameraPitch = 0.0f;
 		float m_cameraYaw = 0.0f;
 

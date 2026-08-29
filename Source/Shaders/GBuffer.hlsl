@@ -3,7 +3,7 @@
 
 struct VSInput
 {
-    float4 PosL : POSITION;
+    float4 Position : POSITION;
     float2 UV : TEXCOORD0;
     float3 Normal : NORMAL;
     float3 Tangent : TANGENT;
@@ -24,7 +24,7 @@ VSToPS MainVS(VSInput input)
 {
     VSToPS output;
     
-    float4 position = input.PosL;
+    float4 position = input.Position;
     position.w = 1.0f;
     
     output.Position = mul(position, objectData.model);
@@ -32,7 +32,7 @@ VSToPS MainVS(VSInput input)
     output.Position = mul(output.Position, frameData.viewProjMatrix);
 
     output.UV = input.UV;
-    
+
     output.Normal = mul(input.Normal, (float3x3) objectData.model);
     output.Normal = normalize(output.Normal);
     output.Tangent = mul(input.Tangent, (float3x3) objectData.model);
@@ -42,31 +42,36 @@ VSToPS MainVS(VSInput input)
     return output;
 }
 
-float4 MainPS(VSToPS input) : SV_Target
+struct PSOutput
 {
-    float2 uv = (input.UV * materialData.tiling) + materialData.offset;
-
-    return HasAlbedoMap() ?
-       AlbedoMap.Sample(WrapLinearSampler, uv) : materialData.baseColor;
-}
-/*
-struct VSToPS
-{
-    float4 Pos : SV_POSITION;
-    float2 UV : TEXCOORD0;
+    float4 AlbedoRoughness : SV_TARGET0;
+    float4 NormalMetallic : SV_TARGET1;
+    float4 Emissive : SV_TARGET2;
 };
 
-VSToPS MainVS(VSInput input)
+PSOutput MainPS(VSToPS input)
 {
-    VSToPS output = (VSToPS) 0;
-    output.Pos = mul(mul(input.PosL, objectData.model), frameData.viewProjMatrix);
-    output.UV = input.UV;
+    PSOutput output;
+    
+    float2 uv = (input.UV * materialData.tiling) + materialData.offset;
+    
+    float4 albedo;
+    if (!HasAlbedoMap())
+        albedo = materialData.baseColor; //float4(1.0f, 1.0f, 1.0f, 1.0f);
+    else
+        albedo = AlbedoMap.Sample(WrapLinearSampler, uv);
+    //albedo *= albedo;
+    output.AlbedoRoughness = albedo;
+    
+    float3 normal = input.Normal;
+    if (HasNormalMap())
+    {
+        float4 bumpMap = NormalMap.Sample(WrapLinearSampler, uv);
+        bumpMap = (bumpMap * 2.0f) - 1.0f;
+
+        normal = normalize((bumpMap.x * input.Tangent) + (bumpMap.y * input.BiNormal) + (bumpMap.z * input.Normal));
+    }
+    output.NormalMetallic.xyz = float3(normal * 0.5f + 0.5f);
+    
     return output;
 }
-
-float4 MainPS(VSToPS input) : SV_Target
-{
-    return HasAlbedoMap() ?
-       AlbedoMap.Sample(WrapLinearSampler, input.UV) * materialData.baseColor : materialData.baseColor;
-}
-*/

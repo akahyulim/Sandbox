@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "TextureManager.h"
+#include "Material.h"
 #include "ShaderManager.h"
 #include "Graphics/Graphics.h"
 #include "Graphics/ConstantBufferDatas.h"
@@ -14,6 +15,7 @@
 #include "Scene/GameObject.h"
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/Camera.h"
+#include "Scene/Components/MeshRenderer.h"
 
 namespace Dive
 {
@@ -29,12 +31,17 @@ namespace Dive
         createBuffers();
         loadTextures();
 
-		// create other resources
-        createResolutionDependantResources(width, height);
+		createResolutionDependantResources(width, height);
 	}
 
 	Renderer::~Renderer() = default;
 	
+    // adria의 Tick과 같다.
+    // 다른점은 Camera가 아니라 Scene을 받아온다는 점
+    // 실제로 Scene은 Camera를 가져오는 역할만 한다.
+    // adria는 dt를 전달받는 Update가 별도로 존재하고
+    // 그 곳에선 데이터들을 갱신한다.
+    // 그런데 나의 경우엔 Scene - GameObject - Component의 업데이트가 존재한다.
 	void Renderer::Update(Scene* scene)
 	{
         if (!scene)
@@ -43,6 +50,9 @@ namespace Dive
         bindGlobals();
 
         auto camera = scene->GetCamera()->GetComponent<Camera>();
+
+        camera->SetAspectRatio((float)m_width, (float)m_height);
+
         m_frameData.backgroundColor = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
         m_frameData.position = DirectX::XMFLOAT4(
             camera->GetTransform()->GetPosition().x,
@@ -66,30 +76,24 @@ namespace Dive
 
         // pass들 내부에는 Graphics::BeginRenderPass()에 각각의 RenderPassDesc를 사용
         // Render Target, Depth와 clear값이 들어있다.
-        passTest(scene);
-        passGBuffer();
-        passPicking();
-        passAmbient();
+
+        // 일단은 renderable을 opaque와 transparent로 구분해 매개변수로 전달하자.
+        //passTest(scene);
+        passGBuffer(scene);
         passDeferredLighting();
-        passForward();
         passSkybox(scene);
+        passForward();
+        passPostProcessing();
 	}
 
     void Renderer::ResolveToOffScreenTexture()
     {
-        // 이 부분은 매개변수화해서 BeginRenderPass로 넘겨야 한다.
-        {
-            auto rtv = m_offScreenRenderTarget->GetRenderTargetView();
-            float clearColor[] = { 0.0f ,0.0f, 0.0f, 0.0f };
-            m_graphics->GetDeviceContext()->ClearRenderTargetView(rtv, clearColor);
-            m_graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, nullptr);
-        }
+        m_graphics->BeginRenderPass(m_offScreenResolvePass);
 
-        m_graphics->BeginRenderPass();
-
+        m_graphics->SetViewport(m_offScreenRenderTarget->GetWidth(), m_offScreenRenderTarget->GetHeight());
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 30, &srv);  // 원래 srv slot enum class가 없었나...
-        ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 15, &srv);  // 원래 srv slot enum class가 없었나...
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
         m_graphics->Draw(4);
@@ -102,8 +106,8 @@ namespace Dive
         m_graphics->SetBackbuffer();
 
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 30, &srv);  // 원래 srv slot enum class가 없었나...
-        ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 15, &srv);  // 원래 srv slot enum class가 없었나...
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
         m_graphics->Draw(4);
@@ -437,14 +441,14 @@ namespace Dive
 
         const SimpleVertex vertices[] = 
 		{
-			DirectX::XMFLOAT3{ -1.5f, -1.5f,  1.5f },
-			DirectX::XMFLOAT3{  1.5f, -1.5f,  1.5f },
-			DirectX::XMFLOAT3{  1.5f,  1.5f,  1.5f },
-			DirectX::XMFLOAT3{ -1.5f,  1.5f,  1.5f },
-			DirectX::XMFLOAT3{ -1.5f, -1.5f, -1.5f },
-			DirectX::XMFLOAT3{  1.5f, -1.5f, -1.5f },
-			DirectX::XMFLOAT3{  1.5f,  1.5f, -1.5f },
-			DirectX::XMFLOAT3{ -1.5f,  1.5f, -1.5f }
+			DirectX::XMFLOAT3{ -0.5f, -0.5f,  0.5f },
+			DirectX::XMFLOAT3{  0.5f, -0.5f,  0.5f },
+			DirectX::XMFLOAT3{  0.5f,  0.5f,  0.5f },
+			DirectX::XMFLOAT3{ -0.5f,  0.5f,  0.5f },
+			DirectX::XMFLOAT3{ -0.5f, -0.5f, -0.5f },
+			DirectX::XMFLOAT3{  0.5f, -0.5f, -0.5f },
+			DirectX::XMFLOAT3{  0.5f,  0.5f, -0.5f },
+			DirectX::XMFLOAT3{ -0.5f,  0.5f, -0.5f }
 		};
 
 		const uint16_t indices[] = 
@@ -463,30 +467,37 @@ namespace Dive
 			6, 7, 3
 		};
 
-        m_cubeVB = std::make_unique<VertexBuffer>(m_graphics, sizeof(SimpleVertex), 8, vertices);
+        m_cubeVB = std::make_unique<VertexBuffer>(m_graphics, (uint32_t)sizeof(SimpleVertex), 8, vertices);
         m_cubeIB = std::make_unique<IndexBuffer>(m_graphics, eFormat::R16_UINT, 36, indices);
     }
 
     void Renderer::createResolutionDependantResources(uint32_t width, uint32_t height)
     {
+        // 여기에서 Camera의 AspectRatio를 설정하는 게 제격인데
+        // Scene을 끌고 오기가 싫다.
+        // adria는 Camera를 멤버 변수로 두고 Tick에서 받아와 저장한다.
+
         createRenderTargets(width, height);
         createGBuffer(width, height);
         createRenderPasses(width, height);
     }
 
-    // 일단 LDR로 통일
     void Renderer::createRenderTargets(uint32_t width, uint32_t height)
     {
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = width;
         desc.Height = height;
-        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET; 
         desc.MipLevels = 1;
         desc.ArraySize = 1;
         desc.SampleDesc.Count = 1;
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.MiscFlags = 0;
+
+        m_hdrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
         m_ldrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
         m_offScreenRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
@@ -499,14 +510,143 @@ namespace Dive
 
     void Renderer::createGBuffer(uint32_t width, uint32_t height)
     {
+        D3D11_TEXTURE2D_DESC desc{};
+        desc.Width = width;
+        desc.Height = height;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.MiscFlags = 0;
+
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)] = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)] = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        m_gbuffer[static_cast<size_t>(eGBufferType::Emissive)] = std::make_unique<RenderTexture>(m_graphics, desc);
     }
 
     void Renderer::createRenderPasses(uint32_t width, uint32_t height)
     {
-        // createRenderTargets에서 생성된 rtv들과 dsv들
-        // 그리고 clearValue 등을 묶어 dsec를 구성한다.
-        // width, height는 desc에서 vieewport용으로 저장한다.
-        // 그리고 이 desc는 pass에 매칭되는 멤버변수로 관리한다.
+        // test
+        {
+            RenderTargetDesc rtDesc;
+            rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
+            rtDesc.ClearColor[0] = 0.0f;
+            rtDesc.ClearColor[1] = 0.0f;
+            rtDesc.ClearColor[2] = 0.0f;
+            rtDesc.ClearColor[3] = 0.0f;
+            rtDesc.AccessType = eLoadAccessOp::Clear;
+
+            DepthStencilDesc dsDesc;
+            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
+            dsDesc.AccessType = eLoadAccessOp::Clear;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(rtDesc);
+            desc.depthStencilDesc = dsDesc;
+            m_testPass = desc;
+        }
+
+        // gbuffer 
+        {
+            RenderTargetDesc albedoDesc;
+            albedoDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)]->GetRenderTargetView();
+            albedoDesc.ClearColor[0] = 0.0f;
+            albedoDesc.ClearColor[1] = 0.0f;
+            albedoDesc.ClearColor[2] = 0.0f;
+            albedoDesc.ClearColor[3] = 0.0f;
+            albedoDesc.AccessType = eLoadAccessOp::Clear;
+
+            RenderTargetDesc normalDesc;
+            normalDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetRenderTargetView();
+            normalDesc.ClearColor[0] = 0.0f;
+            normalDesc.ClearColor[1] = 0.0f;
+            normalDesc.ClearColor[2] = 0.0f;
+            normalDesc.ClearColor[3] = 0.0f;
+            normalDesc.AccessType = eLoadAccessOp::Clear;
+
+            RenderTargetDesc emissiveDesc;
+            emissiveDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::Emissive)]->GetRenderTargetView();
+            emissiveDesc.ClearColor[0] = 0.0f;
+            emissiveDesc.ClearColor[1] = 0.0f;
+            emissiveDesc.ClearColor[2] = 0.0f;
+            emissiveDesc.ClearColor[3] = 0.0f;
+            emissiveDesc.AccessType = eLoadAccessOp::Clear;
+
+            DepthStencilDesc dsDesc;
+            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
+            dsDesc.AccessType = eLoadAccessOp::Clear;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(albedoDesc);
+            desc.renderTargetDescs.push_back(normalDesc);
+            desc.renderTargetDescs.push_back(emissiveDesc);
+            desc.depthStencilDesc = dsDesc;
+            m_gbufferPass = desc;
+        }
+
+        // Deferred Lighting
+        {
+            RenderTargetDesc rtDesc;
+            rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
+            rtDesc.ClearColor[0] = 0.0f;
+            rtDesc.ClearColor[1] = 0.0f;
+            rtDesc.ClearColor[2] = 0.0f;
+            rtDesc.ClearColor[3] = 0.0f;
+            rtDesc.AccessType = eLoadAccessOp::Clear;
+
+            DepthStencilDesc dsDesc;
+            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
+            dsDesc.AccessType = eLoadAccessOp::Clear;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(rtDesc);
+            //desc.depthStencilDesc = dsDesc;
+            m_deferredLightingPass = desc;
+        }
+
+        // Skybox
+        {
+            RenderTargetDesc rtDesc;
+            rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
+            rtDesc.ClearColor[0] = 0.0f;
+            rtDesc.ClearColor[1] = 0.0f;
+            rtDesc.ClearColor[2] = 0.0f;
+            rtDesc.ClearColor[3] = 0.0f;
+            rtDesc.AccessType = eLoadAccessOp::Load;
+
+            DepthStencilDesc dsDesc;
+            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.AccessType = eLoadAccessOp::Load;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(rtDesc);
+            desc.depthStencilDesc = dsDesc;
+            m_skyboxPass = desc;
+        }
+
+        // offScreen Resolve
+        {
+            RenderTargetDesc rtDesc;
+            rtDesc.AccessType = eLoadAccessOp::Clear;
+            rtDesc.RenderTargetView = m_offScreenRenderTarget->GetRenderTargetView();
+            rtDesc.ClearColor[0] = 0.0f;
+            rtDesc.ClearColor[1] = 0.0f;
+            rtDesc.ClearColor[2] = 0.0f;
+            rtDesc.ClearColor[3] = 0.0f;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(rtDesc);
+            m_offScreenResolvePass = desc;
+        }
     }
 
     void Renderer::loadTextures()
@@ -530,7 +670,7 @@ namespace Dive
             
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
-            //m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
+            m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
             //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
 
             ID3D11SamplerState* samplers[static_cast<size_t>(eSamplerState::Count)] =
@@ -553,79 +693,171 @@ namespace Dive
         // 아래의 BeginRenderPass에 전달하면
         // 내부에서 rtv, dsv를 설정 및 클리어한다.
         {
-            auto rtv = m_ldrRenderTarget->GetRenderTargetView();
-            auto dsv = m_depthTarget->GetDetphStencilView();
-            float clearColor[] = { 0.4f, 0.4f, 1.0f, 1.0f };
-            m_graphics->GetDeviceContext()->ClearRenderTargetView(rtv, clearColor);
-            m_graphics->GetDeviceContext()->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
-            m_graphics->GetDeviceContext()->OMSetRenderTargets(1, &rtv, dsv);
+            m_graphics->BeginRenderPass(m_testPass);
 
-            m_graphics->SetViewport(scene->GetCamera()->GetComponent<Camera>()->GetViewport());
-            //m_graphics->BeginRenderPass();
-
-            m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
-            m_cbObject->Update(m_graphics, m_objectData);
+            m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
 
             m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
             m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
-
             m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
 
-            ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Test)->Bind(m_graphics);
+            ShaderManager::Get().GetShaderProgram(eShaderPrograms::Test)->Bind(m_graphics);
 
-            //m_graphics->SetVertexBuffer(m_cubeVB.get());
-            //m_graphics->SetIndexBuffer(m_cubeIB.get());
-            //m_graphics->DrawIndexed(m_cubeIB->GetCount());
-            m_graphics->SetVertexBuffer(nullptr);
-            m_graphics->Draw(3);
+            for (auto renderable : scene->GetRenderables())
+            {
+                auto transform = renderable->GetTransform();
+                auto staticMesh = renderable->GetComponent<MeshRenderer>();
+                auto material = staticMesh->GetMaterial();
 
-            //m_graphics->EndRenderPass();
+                m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+                m_cbObject->Update(m_graphics, m_objectData);
+
+                m_materialData.baseColor = material->GetBaseColor();
+                m_materialData.offset = material->GetOffset();
+                m_materialData.tiling = material->GetTiling();
+                m_materialData.flags = material->GetFlags();
+                m_cbMaterial->Update(m_graphics, m_materialData);
+
+                staticMesh->Draw(m_graphics);
+            }
+
+            m_graphics->EndRenderPass();
         }
     }
 
-    void Renderer::passGBuffer()
+    void Renderer::passGBuffer(Scene* scene)
     {
-    }
-    
-    void Renderer::passPicking()
-    {
-    }
-    
-    void Renderer::passAmbient()
-    {
-    }
+        m_graphics->BeginRenderPass(m_gbufferPass);
 
+        m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
+
+        m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
+        m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
+        m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::GBuffer)->Bind(m_graphics);
+
+        for (auto renderable : scene->GetRenderables())
+        {
+            auto transform = renderable->GetTransform();
+            auto staticMesh = renderable->GetComponent<MeshRenderer>();
+            auto material = staticMesh->GetMaterial();
+
+            m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+            m_cbObject->Update(m_graphics, m_objectData);
+
+            m_materialData.baseColor = material->GetBaseColor();
+            m_materialData.offset = material->GetOffset();
+            m_materialData.tiling = material->GetTiling();
+            m_materialData.flags = material->GetFlags();
+            m_cbMaterial->Update(m_graphics, m_materialData);
+
+            staticMesh->Draw(m_graphics);
+        }
+
+        m_graphics->EndRenderPass();
+    }
+    
     void Renderer::passDeferredLighting()
     {
-    }
-    
-    void Renderer::passForward()
-    {
+        m_graphics->BeginRenderPass(m_deferredLightingPass);
+
+        m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
+
+        m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
+        m_graphics->SetDepthStencilState(nullptr, 0);
+        m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
+
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::DeferredLighting)->Bind(m_graphics);
+
+        auto srv = m_gbuffer[0]->GetShaderResourceView();
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 10, &srv);
+
+        m_graphics->SetVertexBuffer(nullptr);
+        m_graphics->Draw(4);
+
+        m_graphics->EndRenderPass();
     }
 
-    // RenderPassDesc가 없다. 간혹 이런것들이 존재한다.
     void Renderer::passSkybox(Scene* scene)
     {
-        // 임시: SetViewport용
-        //m_graphics->SetViewport(scene->GetCamera()->GetComponent<Camera>()->GetViewport());
-        //m_graphics->BeginRenderPass();
+        // adria에선 passForward안에서 다수의 pass가 호출되며 이때 m_forwardPass를 사용한다.
+        m_graphics->BeginRenderPass(m_skyboxPass);
+
+        m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
 
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Skybox].Get(), 0);
 
-        ShaderManager::GetInst().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
         
         auto& envData = scene->GetEnviroment();
-        auto srv = TextureManager::GetInst().GetTextureView(envData.skyboxCubemap);
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 21, &srv);
+        auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 14, &srv);
+
+        auto camera = scene->GetCamera();
+        m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
+        m_cbObject->Update(m_graphics, m_objectData);
 
         m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
-        m_graphics->SetVertexBuffer(nullptr);
-        m_graphics->Draw(36);
+        
+        m_graphics->SetVertexBuffer(m_cubeVB.get());
+        m_graphics->SetIndexBuffer(m_cubeIB.get());
+        m_graphics->DrawIndexed(m_cubeIB->GetCount());
         
         m_graphics->SetRasterizerState(nullptr);
         m_graphics->SetDepthStencilState(nullptr, 0);
 
-        //m_graphics->EndRenderPass();
+        m_graphics->EndRenderPass();
     }
+
+    void Renderer::passForward()
+    {
+        // 반투명
+    }
+
+    void Renderer::passPostProcessing()
+    {
+        // ldr
+    }
+
+    /*
+    // DX12의 기초적인 Pass 구조
+    {
+        // 1. 렌더 패스 시작 (RTV, DSV 및 Load/Store 정책 선언)
+        commandList->BeginRenderPass(1, &rtDesc, &dsDesc, ...);
+
+        // 2. 뷰포트 및 시저 렉트 설정 (화면 어디에 그릴 것인가)
+        commandList->RSSetViewports(1, &viewport);
+        commandList->RSSetScissorRects(1, &scissorRect);
+
+        // 3. 파이프라인 상태(PSO) 및 루트 시그니처 바인딩 (이 패스의 '전역 스타일' 결정)
+        // PSO에서 Shader까지 바인딩한다고...
+        commandList->SetPipelineState(pipelineState.Get());
+        commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+        // 4. 프리미티브 토폴로지 설정 (삼각형 리스트 등)
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        // ==========================================
+        // 5. 개별 객체(Renderable) 단위의 바인딩 및 드로우
+        // ==========================================
+        for (auto& object : renderables)
+        {
+            // 5-1. 버퍼 바인딩 (VertexBuffer, IndexBuffer)
+            commandList->IASetVertexBuffers(0, 1, &object->GetVBView());
+            commandList->IASetIndexBuffer(&object->GetIBView());
+
+            // 5-2. 상수 버퍼(CBV)나 텍스처(SRV) 바인딩 (Root Signature를 통해 전달)
+            commandList->SetGraphicsRootConstantBufferView(0, object->GetConstantBufferGPUAddress());
+            // 혹은 Descriptor Table 바인딩...
+
+            // 5-3. 실제 드로우 콜 수행!
+            commandList->DrawIndexedInstanced(object->GetIndexCount(), 1, 0, 0, 0);
+        }
+
+        // 6. 렌더 패스 종료
+        commandList->EndRenderPass();
+    }
+   */
 }

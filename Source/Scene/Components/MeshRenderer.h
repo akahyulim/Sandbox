@@ -5,9 +5,10 @@
 
 namespace Dive
 {
-	//class Material;
-	//class StaticMesh;
 	class GameObject;
+	class Material;
+	class Mesh;
+	class Graphics;
 
 	class MeshRenderer : public Component
 	{
@@ -15,16 +16,18 @@ namespace Dive
 		MeshRenderer(GameObject* owner);
 		virtual ~MeshRenderer() override = default;
 
-		//std::shared_ptr<Material> GetMaterial() const { return m_material; }
-		//void SetMaterial(std::shared_ptr<Material> mat) { m_material = mat; }
+		Mesh* GetMesh() const { return m_mesh; }
+		void SetMesh(Mesh* mesh);
 
-		//std::shared_ptr<StaticMesh> GetMesh() const { return m_mesh; }
-		//void SetMesh(std::shared_ptr<StaticMesh> mesh) { m_mesh = mesh; }
+		Material* GetMaterial() const { return m_material; }
+		void SetMaterial(Material* material) { m_material = material; }
+
+		void Draw(Graphics* graphics);
 
 		static constexpr eComponentType GetType() { return eComponentType::MeshRenderer; }
 
 	private:
-		//std::shared_ptr<Material> m_material;
-		//std::shared_ptr<StaticMesh> m_mesh;
+		Mesh* m_mesh = nullptr;
+		Material* m_material = nullptr;
 	};
 }

@@ -51,7 +51,7 @@ namespace Dive
 		{
 			return XMMatrixPerspectiveFovLH(
 				XMConvertToRadians(m_fov),
-				GetAspectRatio(),
+				m_aspectRatio,
 				m_nearClip,
 				m_farClip
 			);
@@ -61,7 +61,7 @@ namespace Dive
 			// 코파일럿이 작성한  코드다.
 			// width, height가 맞는지 모르겠다.
 			return XMMatrixOrthographicLH(
-				GetAspectRatio() * m_farClip,
+				m_aspectRatio * m_farClip,
 				m_farClip,
 				m_nearClip,
 				m_farClip
@@ -82,9 +82,9 @@ namespace Dive
 		return DirectX::XMMatrixMultiply(GetViewMatrix(), GetProjectionMatrix());
 	}
 
-	float Camera::GetAspectRatio() const
+	void Camera::SetAspectRatio(float width, float height)
 	{
-		return (m_viewport.width / m_viewport.height);
+		m_aspectRatio = width / height;
 	}
 
 	void Camera::SetFieldOfView(float fov)
@@ -115,15 +115,5 @@ namespace Dive
 			return;
 		}
 		m_farClip = farPlane;
-	}
-
-	void Camera::SetViewport(float topLeftX, float topLeftY, float width, float height, float minDepth, float maxDepth)
-	{
-		m_viewport.topLeftX = topLeftX;
-		m_viewport.topLeftY = topLeftY;
-		m_viewport.width = width;
-		m_viewport.height = height;
-		m_viewport.minDepth = minDepth;
-		m_viewport.maxDepth = maxDepth;
 	}
 }

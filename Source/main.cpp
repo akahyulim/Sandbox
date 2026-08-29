@@ -1,4 +1,4 @@
-﻿#include "Core/Window.h"
+#include "Core/Window.h"
 #include "Core/Engine.h"
 #include "Sandbox/Sandbox.h"
 
@@ -27,6 +27,7 @@ int main()
 	{
 		sandbox.Run();
 	}
+	sandbox.Shutdown();
 
 	return 0;
 }

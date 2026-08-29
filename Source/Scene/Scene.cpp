@@ -32,6 +32,8 @@ namespace Dive
 	
 	// spartan에서는 기본적으로 추가된 Entity를 pending에 보관하고
 	// dirty를 확인한 후 좀 더 세부적(render, lights, cameras, ragdoll, particles 등)으로 분류한다.
+	// 일단 renderable을 opaque와 tansparent로 구분해보자.
+	// 그러려면 GameObject - MeshRenderer 그리고 Mesh, Material 등을 다시 조정해야 한다.
 	void Scene::Update()
 	{
 		// temp
@@ -158,16 +160,6 @@ namespace Dive
 			RemoveGameObject(it->second.get());
 	}
 
-	GameObject* Scene::AddPresetObject(ePresetType type)
-	{
-		auto ptr = CreateGameObject(); 
-		auto com = ptr->AddComponent<MeshRenderer>();
-		//com->SetMaterial(ResourceManager::GetInst().Get<Material>("Default_Material"));
-		//com->SetMesh(ResourceManager::GetInst().GetPresetMesh(type));
-
-		return ptr;
-	}
-	
 	void Scene::GetRootGameObjects(std::vector<GameObject*>& outRoots)
 	{
 		outRoots.clear();

@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "Graphics.h"
-#include "Core/Window.h"
 #include "ConstantBuffer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "InputLayout.h"
+#include "Core/Window.h"
 
 namespace Dive
 {
@@ -109,7 +109,7 @@ namespace Dive
 
 	void Graphics::SetBackbuffer()
 	{
-		SetViewport(0, 0, m_width, m_height);
+		SetViewport(m_width, m_height);
 		m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), nullptr);
 	}
 
@@ -413,17 +413,56 @@ namespace Dive
 		m_deviceContext->RSSetViewports(1, &d3d11_vp);
 	}
 
-	// desc를 전달받는다.
-	// RenderTarget, DepthStencil과 각각의 clearValue
-	// 그리고 viewport용 width, height로 구성된다.
-	void Graphics::BeginRenderPass()
+	void Graphics::SetViewport(uint32_t width, uint32_t height)
 	{
-		// ClearRenderTarget
-		// ClearDepths
-		// SetRenderTargets
-		// SetViewport
+		D3D11_VIEWPORT vp{};
+		vp.TopLeftX = static_cast<FLOAT>(0.0f);
+		vp.TopLeftY = static_cast<FLOAT>(0.0f);
+		vp.Width = static_cast<FLOAT>(width);
+		vp.Height = static_cast<FLOAT>(height);
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
 
-		SetViewport(0, 0, m_width, m_height);
+		m_deviceContext->RSSetViewports(1, &vp);
+	}
+
+	void Graphics::BeginRenderPass(const RenderPassDesc& desc)
+	{
+		std::vector<ID3D11RenderTargetView*> rtvs;
+		for (const auto& rtDesc : desc.renderTargetDescs)
+		{
+			rtvs.push_back(rtDesc.RenderTargetView);
+
+			if (rtDesc.AccessType == eLoadAccessOp::Clear)
+			{
+				m_deviceContext->ClearRenderTargetView(
+					rtDesc.RenderTargetView,
+					rtDesc.ClearColor
+				);
+			}
+		}
+
+		ID3D11DepthStencilView* dsv = nullptr;
+		if (desc.depthStencilDesc.has_value())
+		{
+			dsv = desc.depthStencilDesc->DepthStencilView;
+
+			if (desc.depthStencilDesc->AccessType == eLoadAccessOp::Clear)
+			{
+				m_deviceContext->ClearDepthStencilView(
+					dsv,
+					desc.depthStencilDesc->ClearFlags,
+					desc.depthStencilDesc->Depth,
+					desc.depthStencilDesc->Stencil
+				);
+			}
+		}
+
+		m_deviceContext->OMSetRenderTargets(
+			static_cast<UINT>(rtvs.size()),
+			rtvs.data(),
+			dsv
+		);
 	}
 
 	void Graphics::EndRenderPass()

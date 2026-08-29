@@ -19,14 +19,14 @@ namespace Dive
 	class TextureManager
 	{
 	public:
-		static TextureManager& GetInst()
+		static TextureManager& Get()
 		{
 			static TextureManager inst;
 			return inst;
 		}
 
 		void Initialize(Graphics* graphics);
-		void Destory();
+		void Shutdown();
 
 		TextureHandle LoadTexture(const std::wstring& filepath, bool mips = true);
 		TextureHandle LoadTexture(const std::string& filepath, bool mips = true);

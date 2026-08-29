@@ -6,7 +6,6 @@
 #include <filesystem>
 
 #include "Core/Types.h"
-#include "Resource/Preset.h"
 #include "Components/Component.h"
 //#include "GameObject.h"
 #include "Rendering/TextureManager.h"
@@ -40,9 +39,6 @@ namespace Dive
 		void RemoveGameObject(GameObject* gameObject);
 		void RemoveGameObjectByID(uint64_t id);
 
-		GameObject* AddPresetObject(ePresetType type);
-		GameObject* AddModelObject(const std::filesystem::path& modelPath);
-
 		void GetRootGameObjects(std::vector<GameObject*>& outRoots);
 
 		GameObject* GetCamera() const { return m_camera; }
@@ -73,6 +69,7 @@ namespace Dive
 		GameObject* m_directionalLight = nullptr;
 		std::vector<GameObject*> m_lights;
 		std::vector<GameObject*> m_renderables;
+		// particles
 
 		bool m_isDirty = false;
 

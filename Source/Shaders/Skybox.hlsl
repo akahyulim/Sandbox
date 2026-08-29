@@ -22,5 +22,5 @@ VSToPS MainVS(VSInput input)
 
 float4 MainPS(VSToPS input) : SV_Target
 {
-    return Skymap.Sample(WrapLinearSampler, input.PosL);
+    return Skymap.Sample(SkyboxSampler, input.PosL);
 }

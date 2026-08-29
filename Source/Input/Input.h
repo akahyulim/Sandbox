@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <cstdint>
 #include <Windows.h>
 #include <dinput.h>
@@ -12,7 +12,7 @@ namespace Dive
 	class Input
 	{
 	public:
-		static Input& GetInst()
+		static Input& Get()
 		{
 			static Input instance;
 			return instance;

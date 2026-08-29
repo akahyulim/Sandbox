@@ -13,6 +13,7 @@
 #include "Scene/Components/Light.h"
 #include "Rendering/TextureManager.h"
 #include "Rendering/ShaderManager.h"
+#include "Rendering/MeshManager.h"
 #include "Graphics/RenderTexture.h"
 
 namespace Dive
@@ -32,24 +33,19 @@ namespace Dive
 
         // logger
         // SetStyle();
-        TextureManager::GetInst().LoadTexture("Assets/Textures/DokeV.jpeg");
-        TextureManager::GetInst().LoadTexture("Assets/Textures/Dmc.jpg");
+        TextureManager::Get().LoadTexture("Assets/Textures/DokeV.jpeg");
+        TextureManager::Get().LoadTexture("Assets/Textures/Dmc.jpg");
  
         newScene();
-        auto& env = m_scene->GetEnviroment();
-        env.skyboxCubemap = TextureManager::GetInst().LoadCubemap(L"Assets/Textures/Skybox/sunsetcube1024.dds");//desertcube1024.dds");
-
-        m_mainCamera = m_scene->GetCamera();
-        m_mainCamera->GetComponent<Camera>()->SetViewport(
-            0.0f,
-            0.0f,
-            static_cast<float>(m_engine->GetGraphics()->GetWidth()),
-            static_cast<float>(m_engine->GetGraphics()->GetHeight())
-        );
     }
 
     Sandbox::~Sandbox()
     {
+    }
+
+    void Sandbox::Shutdown()
+    {
+        m_engine->Shutdown();
     }
 
     void Sandbox::Run()
@@ -118,10 +114,13 @@ namespace Dive
         }
 
         float moveSpeed = 0.001f * dt;
-        if (input->KeyPress(DIK_LSHIFT))
-            moveSpeed *= BOOST_SPEED;
+        float rotSpeed = 0.00015f * dt;//0.5f * dt * 0.002f;
 
-        float rotSpeed = 0.5f * dt * 0.002f;
+        if (input->KeyPress(DIK_LSHIFT))
+        {
+            moveSpeed *= BOOST_SPEED;
+            rotSpeed *= BOOST_SPEED;
+        }
 
         bool isRotated = false;
 
@@ -237,46 +236,39 @@ namespace Dive
                 {
                     if (ImGui::MenuItem("트라이앵글"))
                     {
-                        auto triangle = m_scene->AddPresetObject(ePresetType::Triangle);
-                        triangle->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                        auto gameObject = m_scene->CreateGameObject();
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
                     }
                     if (ImGui::MenuItem("쿼드"))
                     {
-                        auto quad = m_scene->AddPresetObject(ePresetType::Quad);
-                        quad->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                        auto gameObject = m_scene->CreateGameObject();
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
                     }
                     if (ImGui::MenuItem("큐브"))
                     {
-                        auto cube = m_scene->AddPresetObject(ePresetType::Cube);
-                        cube->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                        auto gameObject = m_scene->CreateGameObject();
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                     }
                     if (ImGui::MenuItem("스피어"))
                     {
-                        auto sphere = m_scene->AddPresetObject(ePresetType::Sphere);
-                        sphere->GetTransform()->SetPosition(0.0f, 0.5f, 0.0f);
+                        auto gameObject = m_scene->CreateGameObject();
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
                     }
                     if (ImGui::MenuItem("캡슐"))
                     {
-                        auto capsule = m_scene->AddPresetObject(ePresetType::Capsule);
-                        capsule->GetTransform()->SetPosition(0.0f, 1.0f, 0.0f);
+                        auto gameObject = m_scene->CreateGameObject();
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
                     }
                     ImGui::EndMenu();
                 }
                 if (ImGui::MenuItem("임포트"))
                 {
 
-                }
-                
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("복사", nullptr, nullptr, m_selectedObject != nullptr))
-                {
-                }
-                if (ImGui::MenuItem("붙여넣기", nullptr, nullptr, m_selectedObject != nullptr))
-                {
-                }
-                if (ImGui::MenuItem("삭제", nullptr, nullptr, m_selectedObject != nullptr))
-                {
                 }
 
                 ImGui::Separator();
@@ -392,6 +384,12 @@ namespace Dive
         m_scene = m_engine->NewScene();
         m_scene->SetName("Sandbox");
 
-        // 카메라
+        auto& env = m_scene->GetEnviroment();
+        env.skyboxCubemap = TextureManager::Get().LoadCubemap(
+            //L"Assets/Textures/Skybox/cloudy_skybox.dds");
+            //L"Assets/Textures/Skybox/sunsetcube1024.dds");
+            L"Assets/Textures/Skybox/desertcube1024.dds");
+
+        m_mainCamera = m_scene->GetCamera();
     }
 }

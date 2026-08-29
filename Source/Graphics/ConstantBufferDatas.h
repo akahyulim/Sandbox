@@ -23,13 +23,13 @@ namespace Dive
 
     struct MaterialData
     {
-        DirectX::XMFLOAT4 diffuseColor;
+        DirectX::XMFLOAT4 baseColor;
         DirectX::XMFLOAT2 tiling;
         DirectX::XMFLOAT2 offset;
 
         uint32_t flags;
-        uint32_t renderingMode;
-        uint32_t padding[2];
+        uint32_t renderingMode = 0;
+        uint32_t padding[2] = {0, 0};
     };
 
     struct LightData

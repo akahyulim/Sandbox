@@ -69,109 +69,101 @@ namespace Dive
 	{
 		assert(graphics);
 
-		// vertex shader and input layout
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/UnlitVS.hlsl", eInputLayout::Unlit))
-		{
-			spdlog::error("UnlitVS 생성 실패");
-			return false;
-		}
-		if(!createVertexShaderAndInputLayout(graphics, "Source/Shaders/LitVS.hlsl", eInputLayout::Lit))
-		{
-			spdlog::error("LitVS 생성 실패");
-			return false;
-		}
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/SkyboxVS.hlsl", eInputLayout::None))
-		{
-			spdlog::error("SkyboxVS 생성 실패");
-			return false;
-		}
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/ResolveSceneVS.hlsl", eInputLayout::None))
-		{
-			spdlog::error("ResolveSceneVS 생성 실패");
-			return false;
-		}
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Test.hlsl", eInputLayout::None))
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Test.hlsl", eInputLayout::Lit))
 		{
 			spdlog::error("Test 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/GBuffer.hlsl", eInputLayout::Lit))
+		{
+			spdlog::error("GBuffer VS 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/DeferredLighting.hlsl", eInputLayout::None))
+		{
+			spdlog::error("DeferredLighting VS 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Skybox.hlsl", eInputLayout::Position))
+		{
+			spdlog::error("Skybox VS 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/ResolveScene.hlsl", eInputLayout::None))
+		{
+			spdlog::error("ResolveScene VS 생성 실패");
 			return false;
 		}
 		
 
 		// pixel shader
-		if(!createPixelShader(graphics, "Source/Shaders/UnlitPS.hlsl"))
-		{
-			spdlog::error("UnlitPS 생성 실패");
-			return false;
-		}
-		if(!createPixelShader(graphics, "Source/Shaders/LegacyPS.hlsl"))
-		{
-			spdlog::error("LegacyPS 생성 실패");
-			return false;
-		}
-		if (!createPixelShader(graphics, "Source/Shaders/PbsPS.hlsl"))
-		{
-			spdlog::error("PbsPS 생성 실패");
-			return false;
-		}
-		if (!createPixelShader(graphics, "Source/Shaders/SkyboxPS.hlsl"))
-		{
-			spdlog::error("SkyboxPS 생성 실패");
-			return false;
-		}
-		if (!createPixelShader(graphics, "Source/Shaders/ResolveScenePS.hlsl"))
-		{
-			spdlog::error("ResolveScenePS 생성 실패");
-			return false;
-		}
 		if (!createPixelShader(graphics, "Source/Shaders/Test.hlsl"))
 		{
 			spdlog::error("Test 생성 실패");
 			return false;
 		}
+		if(!createPixelShader(graphics, "Source/Shaders/GBuffer.hlsl"))
+		{
+			spdlog::error("GBuffer PS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/DeferredLighting.hlsl"))
+		{
+			spdlog::error("DeferredLighting PS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/Skybox.hlsl"))
+		{
+			spdlog::error("Skybox PS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/ResolveScene.hlsl"))
+		{
+			spdlog::error("ResolveScene PS 생성 실패");
+			return false;
+		}
 		
 
 		// shader program
-		if(!createShaderProgram("UnlitVS", "UnlitPS", eShaderPrograms::Unlit))
+		if (!createShaderProgram("Test", "Test", eShaderPrograms::Test))
 		{
-			spdlog::error("Unlit ShaderProgram 생성 실패");
+			spdlog::error("Test 생성 실패");
 			return false;
 		}
-		if(!createShaderProgram("LitVS", "LegacyPS", eShaderPrograms::LegacyLit))
+		if(!createShaderProgram("GBuffer", "GBuffer", eShaderPrograms::GBuffer))
 		{
-			spdlog::error("Legacy ShaderProgram 생성 실패");
+			spdlog::error("GBuffer ShaderProgram 생성 실패");
 			return false;
 		}
-		if (!createShaderProgram("LitVS", "PbsPS", eShaderPrograms::PbsLit))
+		if (!createShaderProgram("DeferredLighting", "DeferredLighting", eShaderPrograms::DeferredLighting))
 		{
-			spdlog::error("DefaultLit ShaderProgram 생성 실패");
+			spdlog::error("DeferredLighting ShaderProgram 생성 실패");
 			return false;
 		}
-		//if (!createShaderProgram("LitVS", "UnlitPS", "DefaultUnlit"))
-		//{
-		//	spdlog::error("Legacy ShaderProgram 생성 실패");
-		//	return false;
-		//}
 		// 하나의 hlsl파일에 vs, ps를 모두 구현하면 이렇게 동일한 이름으로 저장된다.
 		// enum class로 미리 선언해놓는 것도 하나의 방법이다.
-		if (!createShaderProgram("SkyboxVS", "SkyboxPS", eShaderPrograms::Skybox))
+		if (!createShaderProgram("Skybox", "Skybox", eShaderPrograms::Skybox))
 		{
 			spdlog::error("Skybox ShaderProgram 생성 실패");
 			return false;
 		}
-		if (!createShaderProgram("ResolveSceneVS", "ResolveScenePS", eShaderPrograms::Resolve))
+		if (!createShaderProgram("ResolveScene", "ResolveScene", eShaderPrograms::Resolve))
 		{
 			spdlog::error("ResloveScene ShaderProgram 생성 실패");
-			return false;
-		}
-		if (!createShaderProgram("Test", "Test", eShaderPrograms::Test))
-		{
-			spdlog::error("Test 생성 실패");
 			return false;
 		}
 
 		spdlog::info("ShaderManager 초기화 완료");
 
 		return true;
+	}
+
+	void ShaderManager::Shutdown()
+	{
+		m_shaderPrograms.clear();
+		m_ils.clear();
+		m_pss.clear();
+		m_vss.clear();
 	}
 
 	ShaderProgram* ShaderManager::GetShaderProgram(eShaderPrograms sp)

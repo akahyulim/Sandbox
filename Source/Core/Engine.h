@@ -29,6 +29,8 @@ namespace Dive
 		Engine& operator=(Engine&&) = delete;
 		~Engine() = default;
 
+		void Shutdown();
+
 		//void OnWindowEvent(const WindowEventData& data);
 
 		void Run();

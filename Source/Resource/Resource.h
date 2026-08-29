@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <filesystem>
 #include <fstream>
@@ -13,7 +13,7 @@ namespace Dive
 		Texture2D,
 		RenderTexture,
 		Cubemap,
-		StaticMesh,
+		MeshRenderer,
 		SkinnedMesh,
 		Material,
 		ShaderProgram,

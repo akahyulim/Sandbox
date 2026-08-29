@@ -2,8 +2,10 @@
 #include "Engine.h"
 #include "Utilities/Timer.h"
 #include "Graphics/Graphics.h"
-#include "Rendering/TextureManager.h"	// ShaderManager랑 위치 맞추기
+#include "Rendering/TextureManager.h"
 #include "Rendering/ShaderManager.h"
+#include "Rendering/MeshManager.h"
+#include "Rendering/MaterialManager.h"
 #include "Rendering/Renderer.h"
 #include "Input/Input.h"
 #include "Scene/Scene.h"
@@ -17,13 +19,24 @@ namespace Dive
 		m_input = std::make_unique<Input>(m_window->GetWindowHandle());
 
 		m_graphics = std::make_unique<Graphics>(m_window);
-		TextureManager::GetInst().Initialize(m_graphics.get());
-		ShaderManager::GetInst().Initialize(m_graphics.get());
 		m_renderer = std::make_unique<Renderer>(m_graphics.get(), m_window->GetWidth(), m_window->GetHeight());
 		// create model importer
 
+		TextureManager::Get().Initialize(m_graphics.get());
+		ShaderManager::Get().Initialize(m_graphics.get());
+		MeshManager::Get().Initialize(m_graphics.get());
+		MaterialManager::Get().Initialize();
+
 		m_window->GetResizedEvent().AddMember(&Graphics::ResizeBackbuffer, *m_graphics);
 		m_window->GetResizedEvent().AddMember(&Renderer::OnResize, *m_renderer);
+	}
+
+	void Engine::Shutdown()
+	{
+		MaterialManager::Get().Shutdown();
+		TextureManager::Get().Shutdown();
+		ShaderManager::Get().Shutdown();
+		MeshManager::Get().Shutdown();
 	}
 
 	// settings를 받는다.

@@ -352,6 +352,15 @@ namespace Dive
 		}
 	}
 
+	void Graphics::SetComputeShader(ComputeShader* cs)
+	{
+		if (cs != m_currentCS)
+		{
+			m_currentCS = cs;
+			m_deviceContext->CSSetShader(cs ? *cs: nullptr, nullptr, 0);
+		}
+	}
+
 	void Graphics::SetInputLayout(InputLayout* il)
 	{
 		if (il != m_currentIL)
@@ -365,15 +374,21 @@ namespace Dive
 	// 1. 단일로 제한
 	// 2. ppSrv로 전달
 	// 3. switch - case로 구현
+	// Views로 할 때 배열로 전달하고 std::span으로 받으면 배열의 사이즈와 데이터를 분리할 수 있다.
 	void Graphics::SetShaderResourceView(eShaderStage stage, uint32_t slot, ID3D11ShaderResourceView * const* ppSrv)
 	{
+		ID3D11ShaderResourceView* nullSrv = nullptr;
+
 		switch (stage)
 		{
 		case eShaderStage::VS:
-			m_deviceContext->VSSetShaderResources(slot, 1, ppSrv);
+			m_deviceContext->VSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);
 			break;
 		case eShaderStage::PS:
-			m_deviceContext->PSSetShaderResources(slot, 1, ppSrv);
+			m_deviceContext->PSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);
+			break;
+		case eShaderStage::CS:
+			m_deviceContext->CSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);
 			break;
 		}
 	}

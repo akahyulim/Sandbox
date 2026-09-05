@@ -13,6 +13,14 @@ namespace Dive
 	{
 	}
 
+	ShaderProgram::ShaderProgram(ComputeShader* cs)
+		: m_vs(nullptr)
+		, m_ps(nullptr)
+		, m_cs(cs)
+		, m_il(nullptr)
+	{
+	}
+
 	ShaderProgram& ShaderProgram::SetVertexShader(VertexShader* vs)
 	{
 		m_vs = vs;
@@ -25,6 +33,12 @@ namespace Dive
 		return *this;
 	}
 
+	ShaderProgram& ShaderProgram::SetComputeShader(ComputeShader* cs)
+	{
+		m_cs = cs;
+		return *this;
+	}
+
 	ShaderProgram& ShaderProgram::SetInputLayout(InputLayout* il)
 	{
 		m_il = il;
@@ -33,15 +47,25 @@ namespace Dive
 
 	void ShaderProgram::Bind(Graphics* graphics)
 	{
-		if (m_il) graphics->SetInputLayout(m_il);
-		if (m_vs) graphics->SetVertexShader(m_vs);
-		if (m_ps) graphics->SetPixelShader(m_ps);
+		if (m_il) 
+			graphics->SetInputLayout(m_il);
+		if (m_vs) 
+			graphics->SetVertexShader(m_vs);
+		if (m_ps) 
+			graphics->SetPixelShader(m_ps);
+		if (m_cs) 
+			graphics->SetComputeShader(m_cs);
 	}
 
 	void ShaderProgram::Unbind(Graphics* graphics)
 	{
-		if (m_il) graphics->SetInputLayout(nullptr);
-		if (m_vs) graphics->SetVertexShader(nullptr);
-		if (m_ps) graphics->SetPixelShader(nullptr);
+		if (m_il) 
+			graphics->SetInputLayout(nullptr);
+		if (m_vs) 
+			graphics->SetVertexShader(nullptr);
+		if (m_ps) 
+			graphics->SetPixelShader(nullptr);
+		if (m_cs) 
+			graphics->SetComputeShader(nullptr);
 	}
 }

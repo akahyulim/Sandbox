@@ -6,6 +6,7 @@
 
 #include "Graphics/ConstantBuffer.h"
 #include "Graphics/ConstantBufferDatas.h"
+#include "Graphics/StructuredBuffer.h"
 #include "Graphics/RenderPass.h"
 
 namespace Dive
@@ -61,6 +62,8 @@ namespace Dive
 			AlbedoRoughness = 0, // Albedo (RGB) + Roughness (A)
 			NormalMetallic,      // View Space Normal (RGB) + Metallic (A)
 			Emissive,            // Emissive (RGB)
+			ObjectID,
+			Depth,
 			Count
 		};
 
@@ -87,6 +90,10 @@ namespace Dive
 
 		const RenderTexture* GetOffScreenTexture() const { return m_offScreenRenderTarget.get(); }
 
+		void SetMousePosition(const DirectX::XMUINT2& cursorPos);
+
+		PickingData GetPickingData() const { return m_pickingData; }
+
 	private:
 		void createDepthStencilStates();
 		void createRasterizerStates();
@@ -103,8 +110,8 @@ namespace Dive
 
 		void bindGlobals();
 
-		void passTest(Scene* scene);
 		void passGBuffer(Scene* scene);
+		void passPicking();
 		void passDeferredLighting();
 		void passSkybox(Scene* scene);
 		void passForward();
@@ -137,14 +144,17 @@ namespace Dive
 		LightData m_lightData{};
 		std::unique_ptr<ConstantBuffer<LightData>> m_cbLight;
 
-		RenderPassDesc m_testPass;
+		PickingData m_pickingData{};
+		std::unique_ptr<StructuredBuffer<PickingData>> m_pickingBuffer;
+
 		RenderPassDesc m_gbufferPass;
 		RenderPassDesc m_deferredLightingPass;
 		RenderPassDesc m_offScreenResolvePass;
 		RenderPassDesc m_skyboxPass;	// 원래는 forward를 사용
 
-		// 테스트
 		std::unique_ptr<VertexBuffer> m_cubeVB;
 		std::unique_ptr<IndexBuffer> m_cubeIB;
+
+		DirectX::XMFLOAT2 m_mousePosition;
 	};
 }

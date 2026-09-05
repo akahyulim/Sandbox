@@ -17,6 +17,7 @@ namespace Dive
 		DeferredLighting,
 		Skybox,
 		Resolve,
+		Picking,
 		Test,
 		Count
 	};
@@ -49,11 +50,13 @@ namespace Dive
 
 		bool createVertexShaderAndInputLayout(Graphics* graphics, const std::filesystem::path& path, eInputLayout type);
 		bool createPixelShader(Graphics* graphics, const std::filesystem::path& path);
+		bool createComputeShader(Graphics* graphics, const std::filesystem::path& path);
 		bool createShaderProgram(const std::string& vsName, const std::string& psName, eShaderPrograms sp);
 
 	private:
 		std::unordered_map<std::string, std::unique_ptr<VertexShader>> m_vss;
 		std::unordered_map<std::string, std::unique_ptr<PixelShader>> m_pss;
+		std::unordered_map<std::string, std::unique_ptr<ComputeShader>> m_css;
 		std::unordered_map<std::string, std::unique_ptr<InputLayout>> m_ils;
 		std::unordered_map<eShaderPrograms, std::unique_ptr<ShaderProgram>> m_shaderPrograms;
 	};

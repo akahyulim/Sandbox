@@ -172,6 +172,22 @@ namespace Dive
 		}
 	}
 
+	// 추후 캐싱 컨테이너를 만들자.
+	GameObject* Scene::GetGameObjectByObjectID(uint32_t objectID)
+	{
+		if (objectID != 0)
+		{
+			for (auto renderable : m_renderables)
+			{
+				auto meshRenderer = renderable->GetComponent<MeshRenderer>();
+				if (meshRenderer->GetObjectID() == objectID)
+					return renderable;
+			}
+		}
+
+		return nullptr;
+	}
+
 	bool Scene::SaveToFile(const std::filesystem::path& filepath)
 	{
 		return false;

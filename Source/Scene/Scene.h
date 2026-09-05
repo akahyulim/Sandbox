@@ -41,6 +41,8 @@ namespace Dive
 
 		void GetRootGameObjects(std::vector<GameObject*>& outRoots);
 
+		GameObject* GetGameObjectByObjectID(uint32_t objectID);
+
 		GameObject* GetCamera() const { return m_camera; }
 		GameObject* GetDirectionalLight() const { return m_directionalLight; }
 		const std::vector<GameObject*>& GetLightQueue() const { return m_lights; }

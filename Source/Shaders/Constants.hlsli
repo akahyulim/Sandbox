@@ -2,16 +2,21 @@
 
 struct FrameData
 {
-    matrix viewMatrix;
-    matrix projMatrix;
-    matrix viewProjMatrix;
-    float4 position;
-    float4 backgroundColor;
+    matrix view;
+    matrix projection;
+    matrix viewProjection;
+    matrix inverseViewProjection;
+    float4 cameraPosition;
+    float4 cameraForward;
+    float2 screenResolution;
+    float2 mousePosition;
 };
 
 struct ObjectData
 {
     matrix model;
+    uint id;
+    uint3 pad;
 };
 
 struct MaterialData

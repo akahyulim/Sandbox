@@ -50,4 +50,16 @@ namespace Dive
 	private:
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> m_ps;
 	};
+
+	class ComputeShader : public Shader
+	{
+	public:
+		ComputeShader(Graphics* graphics, ID3DBlob* code);
+		~ComputeShader() override;
+
+		operator ID3D11ComputeShader* () const { return m_cs.Get(); }
+
+	private:
+		Microsoft::WRL::ComPtr<ID3D11ComputeShader> m_cs;
+	};
 }

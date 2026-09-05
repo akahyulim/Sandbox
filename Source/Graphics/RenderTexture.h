@@ -17,7 +17,7 @@ namespace Dive
 		ID3D11ShaderResourceView* GetShaderResourceView() const { return m_shaderResourceView.Get(); }
 		ID3D11RenderTargetView* GetRenderTargetView(uint32_t index = 0) const;
 		ID3D11DepthStencilView* GetDetphStencilView(uint32_t index = 0) const;
-		//ID3D11UnorderedAccessView* GetUnorderedAccessView() const { return m_unorderedAccessView.Get(); }
+		ID3D11UnorderedAccessView* GetUnorderedAccessView() const { return m_unorderedAccessView.Get(); }
 
 		uint32_t GetWidth() const { return m_desc.Width; }
 		uint32_t GetHeight() const { return m_desc.Height; }
@@ -26,6 +26,7 @@ namespace Dive
 		void createShaderResourceView();
 		void createRenderTargetViews();
 		void createDepthStencilViews();
+		void createUnorderedAccessView();
 
 	private:
 		Graphics* m_graphics = nullptr;
@@ -35,6 +36,6 @@ namespace Dive
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shaderResourceView;
 		std::vector<Microsoft::WRL::ComPtr<ID3D11RenderTargetView>> m_renderTargetViews;
 		std::vector<Microsoft::WRL::ComPtr<ID3D11DepthStencilView>> m_depthStencilViews;
-		//Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_unorderedAccessView;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_unorderedAccessView;
 	};
 }

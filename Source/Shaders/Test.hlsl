@@ -29,7 +29,7 @@ VSToPS MainVS(VSInput input)
     
     output.Position = mul(position, objectData.model);
     output.WorldPos = output.Position.xyz;
-    output.Position = mul(output.Position, frameData.viewProjMatrix);
+    output.Position = mul(output.Position, frameData.viewProjection);
 
     output.UV = input.UV;
     
@@ -59,7 +59,7 @@ struct VSToPS
 VSToPS MainVS(VSInput input)
 {
     VSToPS output = (VSToPS) 0;
-    output.Pos = mul(mul(input.PosL, objectData.model), frameData.viewProjMatrix);
+    output.Pos = mul(mul(input.PosL, objectData.model), frameData.viewProjection);
     output.UV = input.UV;
     return output;
 }

@@ -73,7 +73,6 @@ namespace Dive
                 menu();
                 enviroment();
                 hierarchy();
-
             }
             m_gui->End();
 
@@ -123,6 +122,13 @@ namespace Dive
         }
 
         bool isRotated = false;
+
+        if (input->MouseButtonDown(0))
+        {
+            auto data = m_engine->GetRenderer()->GetPickingData();
+            m_selectedObject = m_scene->GetGameObjectByObjectID(data.id);
+            //spdlog::info("mouse left button down");
+        }
 
         if (input->MouseButtonPress(1))
         {
@@ -213,86 +219,99 @@ namespace Dive
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-        if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
+       if (ImGui::Begin("MainEditorCanvas", nullptr, windowFlags))
         {
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
 
             if (ImGui::BeginPopupContextWindow("CanvasContextMenu", ImGuiPopupFlags_MouseButtonRight))
             {
-                if (ImGui::MenuItem("새로 만들기"))
+                if (!m_selectedObject)
                 {
-                    newScene();
-                }
-
-                if (ImGui::MenuItem("열기"))
-                {
-                    //m_scene->LoadFromFile();
-                }
-                
-                ImGui::Separator();
-                
-                if (ImGui::BeginMenu("3D 오브젝트"))
-                {
-                    if (ImGui::MenuItem("트라이앵글"))
+                    if (ImGui::MenuItem("새로 만들기"))
                     {
-                        auto gameObject = m_scene->CreateGameObject();
-                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
+                        newScene();
                     }
-                    if (ImGui::MenuItem("쿼드"))
+
+                    if (ImGui::MenuItem("열기"))
                     {
-                        auto gameObject = m_scene->CreateGameObject();
-                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+                        //m_scene->LoadFromFile();
                     }
-                    if (ImGui::MenuItem("큐브"))
+
+                    ImGui::Separator();
+
+                    if (ImGui::BeginMenu("3D 오브젝트"))
                     {
-                        auto gameObject = m_scene->CreateGameObject();
-                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                        if (ImGui::MenuItem("트라이앵글"))
+                        {
+                            auto gameObject = m_scene->CreateGameObject();
+                            auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
+                        }
+                        if (ImGui::MenuItem("쿼드"))
+                        {
+                            auto gameObject = m_scene->CreateGameObject();
+                            auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+                        }
+                        if (ImGui::MenuItem("큐브"))
+                        {
+                            auto gameObject = m_scene->CreateGameObject();
+                            auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                        }
+                        if (ImGui::MenuItem("스피어"))
+                        {
+                            auto gameObject = m_scene->CreateGameObject();
+                            auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                        }
+                        if (ImGui::MenuItem("캡슐"))
+                        {
+                            auto gameObject = m_scene->CreateGameObject();
+                            auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
+                        }
+                        ImGui::EndMenu();
                     }
-                    if (ImGui::MenuItem("스피어"))
+                    if (ImGui::MenuItem("임포트"))
                     {
-                        auto gameObject = m_scene->CreateGameObject();
-                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+
                     }
-                    if (ImGui::MenuItem("캡슐"))
+
+                    ImGui::Separator();
+
+                    if (ImGui::MenuItem("저장"))
                     {
-                        auto gameObject = m_scene->CreateGameObject();
-                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
                     }
-                    ImGui::EndMenu();
+                    if (ImGui::MenuItem("다른 이름으로 저장"))
+                    {
+                    }
+
+                    ImGui::Separator();
+
+                    ImGui::MenuItem("계층구조", nullptr, m_windowFlags[Flag_Hierarchy]);
+                    ImGui::MenuItem("환경설정", nullptr, &m_showEnvDiralog);
+
+                    ImGui::Separator();
+
+                    if (ImGui::MenuItem("종료", "Ctrl+Q"))
+                    {
+                        m_engine->GetWindow()->Close();
+                    }
+
+                    ImGui::EndPopup();
                 }
-                if (ImGui::MenuItem("임포트"))
+                else
                 {
-
+                    // 여기서부터
+                    if(ImGui::MenuItem("복사"))
+                    {
+                    }
+                    if (ImGui::MenuItem("붙어넣기"))
+                    {
+                    }
                 }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("저장"))
-                {
-                }
-                if (ImGui::MenuItem("다른 이름으로 저장"))
-                {
-                }
-
-                ImGui::Separator();
-
-                ImGui::MenuItem("계층구조", nullptr, m_windowFlags[Flag_Hierarchy]);
-                ImGui::MenuItem("환경설정", nullptr, &m_showEnvDiralog);
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("종료", "Ctrl+Q"))
-                {
-                    m_engine->GetWindow()->Close();
-                }
-
-                ImGui::EndPopup();
             }
         }
         ImGui::End();

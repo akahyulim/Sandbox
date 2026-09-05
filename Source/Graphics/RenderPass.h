@@ -24,7 +24,7 @@ namespace Dive
 	{
 		eLoadAccessOp AccessType = eLoadAccessOp::Clear;
 		ID3D11DepthStencilView* DepthStencilView = nullptr;
-		uint32_t ClearFlags = D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL; 
+		uint32_t ClearFlags = 0;
 		float Depth = 1.0f;
 		uint8_t Stencil = 0;
 	};

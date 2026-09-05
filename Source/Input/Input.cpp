@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Input.h"
 
 using Microsoft::WRL::ComPtr;
@@ -279,7 +279,13 @@ namespace Dive
 		GetCursorPos(&point);
 		ScreenToClient(hWnd, &point);
 
-		return DirectX::XMUINT2(static_cast<uint32_t>(point.x), static_cast<uint32_t>(point.y));
+		RECT clientRect;
+		GetClientRect(hWnd, &clientRect);
+
+		int32_t x = std::clamp(point.x, 0L, clientRect.right);
+		int32_t y = std::clamp(point.y, 0L, clientRect.bottom);
+
+		return DirectX::XMUINT2(static_cast<uint32_t>(x), static_cast<uint32_t>(y));
 	}
 
 	DirectX::XMFLOAT2 Input::GetMouseMoveDelta()

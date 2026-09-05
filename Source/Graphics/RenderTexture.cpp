@@ -4,8 +4,75 @@
 
 namespace Dive
 {
-	// DESC 전달보다는 FORMAT, MIPS 정도로 줄이는 게 나을 것 같다.
-	// DATA도 현재로선 필요없다.
+	namespace
+	{
+		DXGI_FORMAT GetDepthStencilFormat(DXGI_FORMAT format)
+		{
+			switch (format)
+			{
+			case DXGI_FORMAT_R32G8X24_TYPELESS:
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+			case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+			case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+				return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+			case DXGI_FORMAT_R32_TYPELESS:
+			case DXGI_FORMAT_D32_FLOAT:
+			case DXGI_FORMAT_R32_FLOAT:
+				return DXGI_FORMAT_D32_FLOAT;
+
+			case DXGI_FORMAT_R24G8_TYPELESS:
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+			case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+			case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+				return DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+			case DXGI_FORMAT_R16_TYPELESS:
+			case DXGI_FORMAT_D16_UNORM:
+			case DXGI_FORMAT_R16_FLOAT:
+				return DXGI_FORMAT_D16_UNORM;
+
+			default:
+				return format;
+			}
+		}
+
+		DXGI_FORMAT GetShaderResourceFormat(DXGI_FORMAT format)
+		{
+			switch (format)
+			{
+			case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+				return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case DXGI_FORMAT_R32G32B32_TYPELESS:
+				return DXGI_FORMAT_R32G32B32_FLOAT;
+			case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+				return DXGI_FORMAT_R16G16B16A16_FLOAT;
+			case DXGI_FORMAT_R32G32_TYPELESS:
+				return DXGI_FORMAT_R32G32_FLOAT;
+			case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+				return DXGI_FORMAT_R10G10B10A2_UNORM;
+			case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+				return DXGI_FORMAT_R8G8B8A8_UNORM;
+			case DXGI_FORMAT_R16G16_TYPELESS:
+				return DXGI_FORMAT_R16G16_FLOAT;
+			case DXGI_FORMAT_R32_TYPELESS:
+				return DXGI_FORMAT_R32_FLOAT;
+			case DXGI_FORMAT_R24G8_TYPELESS:
+			case DXGI_FORMAT_D24_UNORM_S8_UINT:
+				return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+			case DXGI_FORMAT_R32G8X24_TYPELESS:
+			case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+				return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+			case DXGI_FORMAT_R16_TYPELESS:
+				return DXGI_FORMAT_R16_FLOAT;
+			case DXGI_FORMAT_R8_TYPELESS:
+				return DXGI_FORMAT_R8_UNORM;
+			default:
+				return format;
+			}
+		}
+	}
+
 	RenderTexture::RenderTexture(Graphics* graphics, const D3D11_TEXTURE2D_DESC& desc, D3D11_SUBRESOURCE_DATA* data)
 		: m_graphics(graphics)
 		, m_desc(desc)
@@ -54,7 +121,7 @@ namespace Dive
 		auto device = m_graphics->GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = m_desc.Format == DXGI_FORMAT_R16_TYPELESS ? DXGI_FORMAT_R16_UNORM : m_desc.Format;
+		srvDesc.Format = GetShaderResourceFormat(m_desc.Format);
 
 		if (m_desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
 		{
@@ -146,7 +213,7 @@ namespace Dive
 		auto device = m_graphics->GetDevice();
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = DXGI_FORMAT_D16_UNORM;
+		dsvDesc.Format = GetDepthStencilFormat(m_desc.Format);
 
 		if (m_desc.ArraySize > 1)
 		{
@@ -186,6 +253,49 @@ namespace Dive
 			{
 				spdlog::error("DepthStencilView 생성 실패: {}", ErrorUtils::ToVerbose(hr));
 				assert(false && "ID3D11DepthStencilView 생성 실패!");
+			}
+		}
+	}
+
+	void RenderTexture::createUnorderedAccessView()
+	{
+		auto device = m_graphics->GetDevice();
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = m_desc.Format;
+
+		if (m_desc.ArraySize > 1)
+		{
+			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+			uavDesc.Texture2DArray.MipSlice = 0;
+			uavDesc.Texture2DArray.FirstArraySlice = 0;
+			uavDesc.Texture2DArray.ArraySize = m_desc.ArraySize;
+
+			auto hr = device->CreateUnorderedAccessView(
+				m_texture2D.Get(),
+				&uavDesc,
+				m_unorderedAccessView.GetAddressOf());
+
+			if (FAILED(hr))
+			{
+				spdlog::error("UnorderedAccessView (Array) 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				assert(false && "ID3D11UnorderedAccessView 생성 실패!");
+			}
+		}
+		else
+		{
+			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+			uavDesc.Texture2D.MipSlice = 0;
+
+			auto hr = device->CreateUnorderedAccessView(
+				m_texture2D.Get(),
+				&uavDesc,
+				m_unorderedAccessView.GetAddressOf());
+
+			if (FAILED(hr))
+			{
+				spdlog::error("UnorderedAccessView 생성 실패: {}", ErrorUtils::ToVerbose(hr));
+				assert(false && "ID3D11UnorderedAccessView 생성 실패!");
 			}
 		}
 	}

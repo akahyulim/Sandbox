@@ -193,6 +193,9 @@
     <ClInclude Include="Source\Graphics\RenderPass.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\StructuredBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Window.cpp">
@@ -343,6 +346,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\DeferredLighting.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Picker.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

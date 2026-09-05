@@ -71,6 +71,7 @@ namespace Dive
 		if (m_scene)
 			m_scene->Update();
 		
+		m_renderer->SetMousePosition(m_input->GetMousePosition());
 		m_renderer->Update(m_scene.get());
 	}
 	

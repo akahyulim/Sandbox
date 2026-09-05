@@ -9,6 +9,7 @@ namespace Dive
 {
 	MeshRenderer::MeshRenderer(GameObject* owner)
 		: Component(owner)
+		, m_ObjectID(s_nextID++)
 	{
 		m_material = MaterialManager::Get().GetMaterial("Default");
 	}
@@ -28,6 +29,8 @@ namespace Dive
 	{
 		if (m_mesh)
 		{
+			graphics->SetTopology(m_topology);
+
 			if (m_material)
 				m_material->Bind(graphics);
 

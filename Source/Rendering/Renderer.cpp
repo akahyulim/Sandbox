@@ -20,9 +20,11 @@
 namespace Dive
 {
 	Renderer::Renderer(Graphics* graphics, uint32_t width, uint32_t height)
-		: m_graphics(graphics),
-		m_width(width),
-		m_height(height)
+		: m_graphics(graphics)
+		, m_width(width)
+		, m_height(height)
+        , m_mousePosition{0.0f, 0.0f}
+
 	{
 		createDepthStencilStates();
         createRasterizerStates();
@@ -51,17 +53,25 @@ namespace Dive
 
         auto camera = scene->GetCamera()->GetComponent<Camera>();
 
-        camera->SetAspectRatio((float)m_width, (float)m_height);
+        camera->SetAspectRatio(static_cast<float>(m_width), static_cast<float>(m_height));
 
-        m_frameData.backgroundColor = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-        m_frameData.position = DirectX::XMFLOAT4(
+        m_frameData.cameraPosition = DirectX::XMFLOAT4(
             camera->GetTransform()->GetPosition().x,
             camera->GetTransform()->GetPosition().y,
             camera->GetTransform()->GetPosition().z,
             1.0f);
-        m_frameData.viewMatrix = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
-        m_frameData.projMatrix = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
-        m_frameData.viewProjMatrix = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
+        m_frameData.cameraForward = DirectX::XMFLOAT4(
+            camera->GetTransform()->GetForward().x,
+            camera->GetTransform()->GetForward().y,
+            camera->GetTransform()->GetForward().z,
+            1.0f);
+        m_frameData.view = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
+        m_frameData.projection = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
+        m_frameData.viewProjection = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
+        m_frameData.inverseViewProjection = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, camera->GetViewProjMatrix()));
+        m_frameData.screenResolution.x = static_cast<float>(m_width);
+        m_frameData.screenResolution.y = static_cast<float>(m_height);
+        m_frameData.mousePosition = m_mousePosition;
         m_cbFrame->Update(m_graphics, m_frameData);
 	}
 	
@@ -74,16 +84,12 @@ namespace Dive
         if (!scene)
             return;
 
-        // pass들 내부에는 Graphics::BeginRenderPass()에 각각의 RenderPassDesc를 사용
-        // Render Target, Depth와 clear값이 들어있다.
-
-        // 일단은 renderable을 opaque와 transparent로 구분해 매개변수로 전달하자.
-        //passTest(scene);
         passGBuffer(scene);
+        passPicking();
         passDeferredLighting();
         passSkybox(scene);
-        passForward();
-        passPostProcessing();
+        //passForward();
+        //passPostProcessing();
 	}
 
     void Renderer::ResolveToOffScreenTexture()
@@ -92,7 +98,7 @@ namespace Dive
 
         m_graphics->SetViewport(m_offScreenRenderTarget->GetWidth(), m_offScreenRenderTarget->GetHeight());
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 15, &srv);  // 원래 srv slot enum class가 없었나...
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);  // 원래 srv slot enum class가 없었나...
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
@@ -106,7 +112,7 @@ namespace Dive
         m_graphics->SetBackbuffer();
 
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 15, &srv);  // 원래 srv slot enum class가 없었나...
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);  // 원래 srv slot enum class가 없었나...
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
@@ -122,6 +128,12 @@ namespace Dive
         {
             createResolutionDependantResources(width, height);
         }
+    }
+
+    void Renderer::SetMousePosition(const DirectX::XMUINT2& cursorPos)
+    {
+        m_mousePosition.x = static_cast<float>(cursorPos.x);
+        m_mousePosition.y = static_cast<float>(cursorPos.y);
     }
 
     void Renderer::createDepthStencilStates()
@@ -369,8 +381,7 @@ namespace Dive
             desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
             desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
             desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-            desc.MaxAnisotropy = 1;
-            desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+            desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
             desc.MinLOD = 0;
             desc.MaxLOD = D3D11_FLOAT32_MAX;
 
@@ -439,6 +450,8 @@ namespace Dive
         m_cbMaterial = std::make_unique<ConstantBuffer<MaterialData>>(m_graphics);
         m_cbLight = std::make_unique<ConstantBuffer<LightData>>(m_graphics);
 
+        m_pickingBuffer = std::make_unique<StructuredBuffer<PickingData>>(m_graphics, eStructuredBufferType::Read);
+
         const SimpleVertex vertices[] = 
 		{
 			DirectX::XMFLOAT3{ -0.5f, -0.5f,  0.5f },
@@ -487,7 +500,6 @@ namespace Dive
         D3D11_TEXTURE2D_DESC desc{};
         desc.Width = width;
         desc.Height = height;
-        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET; 
         desc.MipLevels = 1;
         desc.ArraySize = 1;
@@ -495,16 +507,18 @@ namespace Dive
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.MiscFlags = 0;
 
+        //desc.Format = DXGI_FORMAT_R32_UINT;
+        //m_objectIDRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         m_hdrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
 
         desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
         m_ldrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
         m_offScreenRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
 
         desc.Format = DXGI_FORMAT_R16_TYPELESS;
         desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
-
         m_depthTarget = std::make_unique<RenderTexture>(m_graphics, desc);
     }
 
@@ -528,31 +542,17 @@ namespace Dive
 
         desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         m_gbuffer[static_cast<size_t>(eGBufferType::Emissive)] = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R32_UINT;
+        m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)] = std::make_unique<RenderTexture>(m_graphics, desc);
+
+        desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
+        m_gbuffer[static_cast<size_t>(eGBufferType::Depth)] = std::make_unique<RenderTexture>(m_graphics, desc);
     }
 
     void Renderer::createRenderPasses(uint32_t width, uint32_t height)
     {
-        // test
-        {
-            RenderTargetDesc rtDesc;
-            rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
-            rtDesc.ClearColor[0] = 0.0f;
-            rtDesc.ClearColor[1] = 0.0f;
-            rtDesc.ClearColor[2] = 0.0f;
-            rtDesc.ClearColor[3] = 0.0f;
-            rtDesc.AccessType = eLoadAccessOp::Clear;
-
-            DepthStencilDesc dsDesc;
-            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
-            dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
-            dsDesc.AccessType = eLoadAccessOp::Clear;
-
-            RenderPassDesc desc{};
-            desc.renderTargetDescs.push_back(rtDesc);
-            desc.depthStencilDesc = dsDesc;
-            m_testPass = desc;
-        }
-
         // gbuffer 
         {
             RenderTargetDesc albedoDesc;
@@ -579,8 +579,16 @@ namespace Dive
             emissiveDesc.ClearColor[3] = 0.0f;
             emissiveDesc.AccessType = eLoadAccessOp::Clear;
 
+            RenderTargetDesc objectIDDesc;
+            objectIDDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetRenderTargetView();
+            objectIDDesc.ClearColor[0] = 0.0f;
+            objectIDDesc.ClearColor[1] = 0.0f;
+            objectIDDesc.ClearColor[2] = 0.0f;
+            objectIDDesc.ClearColor[3] = 0.0f;
+            objectIDDesc.AccessType = eLoadAccessOp::Clear;
+
             DepthStencilDesc dsDesc;
-            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.DepthStencilView = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetDetphStencilView();
             dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
             dsDesc.AccessType = eLoadAccessOp::Clear;
 
@@ -588,6 +596,7 @@ namespace Dive
             desc.renderTargetDescs.push_back(albedoDesc);
             desc.renderTargetDescs.push_back(normalDesc);
             desc.renderTargetDescs.push_back(emissiveDesc);
+            desc.renderTargetDescs.push_back(objectIDDesc);
             desc.depthStencilDesc = dsDesc;
             m_gbufferPass = desc;
         }
@@ -602,14 +611,8 @@ namespace Dive
             rtDesc.ClearColor[3] = 0.0f;
             rtDesc.AccessType = eLoadAccessOp::Clear;
 
-            DepthStencilDesc dsDesc;
-            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
-            dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
-            dsDesc.AccessType = eLoadAccessOp::Clear;
-
             RenderPassDesc desc{};
             desc.renderTargetDescs.push_back(rtDesc);
-            //desc.depthStencilDesc = dsDesc;
             m_deferredLightingPass = desc;
         }
 
@@ -624,7 +627,7 @@ namespace Dive
             rtDesc.AccessType = eLoadAccessOp::Load;
 
             DepthStencilDesc dsDesc;
-            dsDesc.DepthStencilView = m_depthTarget->GetDetphStencilView();
+            dsDesc.DepthStencilView = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetDetphStencilView();
             dsDesc.AccessType = eLoadAccessOp::Load;
 
             RenderPassDesc desc{};
@@ -653,9 +656,6 @@ namespace Dive
     {
     }
 
-    // 다시 adria를 살표본 결과 이 부분은 문제가 없다.
-    // 그리고 재미나이도 이 방법을 추천하고 있다.
-    // 즉, 상수버퍼의 바인딩은 한 번으로 족하다.
     void Renderer::bindGlobals()
     {
         static bool called = false;
@@ -670,8 +670,12 @@ namespace Dive
             
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
+            m_cbObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Object));
             m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
             //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
+
+            // cs
+            m_cbFrame->Bind(m_graphics, eShaderStage::CS, static_cast<uint32_t>(eConstantBuffer::Frame));
 
             ID3D11SamplerState* samplers[static_cast<size_t>(eSamplerState::Count)] =
             {
@@ -687,44 +691,6 @@ namespace Dive
         }
     }
 
-    void Renderer::passTest(Scene* scene)
-    {
-        // 원래는 RenderPassDesc에 rtv, dsv, clearValue를 구성하고
-        // 아래의 BeginRenderPass에 전달하면
-        // 내부에서 rtv, dsv를 설정 및 클리어한다.
-        {
-            m_graphics->BeginRenderPass(m_testPass);
-
-            m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
-
-            m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
-            m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
-            m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
-
-            ShaderManager::Get().GetShaderProgram(eShaderPrograms::Test)->Bind(m_graphics);
-
-            for (auto renderable : scene->GetRenderables())
-            {
-                auto transform = renderable->GetTransform();
-                auto staticMesh = renderable->GetComponent<MeshRenderer>();
-                auto material = staticMesh->GetMaterial();
-
-                m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
-                m_cbObject->Update(m_graphics, m_objectData);
-
-                m_materialData.baseColor = material->GetBaseColor();
-                m_materialData.offset = material->GetOffset();
-                m_materialData.tiling = material->GetTiling();
-                m_materialData.flags = material->GetFlags();
-                m_cbMaterial->Update(m_graphics, m_materialData);
-
-                staticMesh->Draw(m_graphics);
-            }
-
-            m_graphics->EndRenderPass();
-        }
-    }
-
     void Renderer::passGBuffer(Scene* scene)
     {
         m_graphics->BeginRenderPass(m_gbufferPass);
@@ -733,7 +699,6 @@ namespace Dive
 
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
-        m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
 
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::GBuffer)->Bind(m_graphics);
 
@@ -744,6 +709,7 @@ namespace Dive
             auto material = staticMesh->GetMaterial();
 
             m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+            m_objectData.id = staticMesh->GetObjectID();
             m_cbObject->Update(m_graphics, m_objectData);
 
             m_materialData.baseColor = material->GetBaseColor();
@@ -756,6 +722,44 @@ namespace Dive
         }
 
         m_graphics->EndRenderPass();
+    }
+
+    void Renderer::passPicking()
+    {
+        // gbuffer 중 normal, depth의 srv 사용
+        auto normalSrv = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetShaderResourceView();
+        auto idSrv = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetShaderResourceView();
+        auto depthSrv = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetShaderResourceView();
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, &normalSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, &idSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, &depthSrv);
+
+        // uav도 사용
+        auto uav = m_pickingBuffer->GetUAV();
+        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
+
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Bind(m_graphics);
+        m_graphics->GetDeviceContext()->Dispatch(1, 1, 1);      // 추후 랩핑 필요
+
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, nullptr);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, nullptr);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, nullptr);
+        ID3D11UnorderedAccessView* nullUAV = nullptr;
+        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+        // 다른 cs를 바인딩하지 않으므로 데이터 갱신을 위해 명시적으로 해제
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Unbind(m_graphics);
+        
+        // uav를 map/unmap 해서 계산 결과를 복사
+        D3D11_MAPPED_SUBRESOURCE mapped_buffer{};
+        auto hr = m_graphics->GetDeviceContext()->Map((ID3D11Resource*)m_pickingBuffer->GetBuffer(), 0u, D3D11_MAP_READ, 0u, &mapped_buffer);
+        if (FAILED(hr))
+        {
+            spdlog::error("StructuredBuffer Map 실패: {}", ErrorUtils::ToVerbose(hr));
+            return;
+        }
+        const PickingData* data = (const PickingData*)mapped_buffer.pData;
+        m_pickingData = *data;
+        m_graphics->GetDeviceContext()->Unmap(m_pickingBuffer->GetBuffer(), 0);
     }
     
     void Renderer::passDeferredLighting()
@@ -770,8 +774,9 @@ namespace Dive
 
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::DeferredLighting)->Bind(m_graphics);
 
+        // SetGBufferSRV 같은 걸 만드는 게 나을 듯하다.
         auto srv = m_gbuffer[0]->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 10, &srv);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 6, &srv);
 
         m_graphics->SetVertexBuffer(nullptr);
         m_graphics->Draw(4);
@@ -793,7 +798,7 @@ namespace Dive
         
         auto& envData = scene->GetEnviroment();
         auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 14, &srv);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
 
         auto camera = scene->GetCamera();
         m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
@@ -814,6 +819,9 @@ namespace Dive
     void Renderer::passForward()
     {
         // 반투명
+        // 지버퍼에서 objectID만 가져와 그려야 한다.
+        // 이때 clear가 아니라 Load로 설정해야 한다.
+        // 좀 더 명확하게 하자면 Load도 아니고 Add를 추가해야 한다.
     }
 
     void Renderer::passPostProcessing()

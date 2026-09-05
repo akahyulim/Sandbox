@@ -29,7 +29,7 @@ VSToPS MainVS(VSInput input)
     
     output.Position = mul(position, objectData.model);
     output.WorldPos = output.Position.xyz;
-    output.Position = mul(output.Position, frameData.viewProjMatrix);
+    output.Position = mul(output.Position, frameData.viewProjection);
 
     output.UV = input.UV;
 
@@ -47,6 +47,7 @@ struct PSOutput
     float4 AlbedoRoughness : SV_TARGET0;
     float4 NormalMetallic : SV_TARGET1;
     float4 Emissive : SV_TARGET2;
+    uint ObjectID : SV_TARGET3;
 };
 
 PSOutput MainPS(VSToPS input)
@@ -55,13 +56,13 @@ PSOutput MainPS(VSToPS input)
     
     float2 uv = (input.UV * materialData.tiling) + materialData.offset;
     
-    float4 albedo;
-    if (!HasAlbedoMap())
-        albedo = materialData.baseColor; //float4(1.0f, 1.0f, 1.0f, 1.0f);
-    else
-        albedo = AlbedoMap.Sample(WrapLinearSampler, uv);
-    //albedo *= albedo;
-    output.AlbedoRoughness = albedo;
+    float3 albedo = materialData.baseColor;
+    if (HasAlbedoMap())
+    {
+        albedo = AlbedoMap.Sample(WrapLinearSampler, uv).xyz;
+        //albedo *= albedo;
+    }
+    output.AlbedoRoughness = float4(albedo, 0.0f);
     
     float3 normal = input.Normal;
     if (HasNormalMap())
@@ -71,7 +72,11 @@ PSOutput MainPS(VSToPS input)
 
         normal = normalize((bumpMap.x * input.Tangent) + (bumpMap.y * input.BiNormal) + (bumpMap.z * input.Normal));
     }
-    output.NormalMetallic.xyz = float3(normal * 0.5f + 0.5f);
+    output.NormalMetallic = float4(normal * 0.5f + 0.5f, 0.0f);
+    
+    output.Emissive = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    
+    output.ObjectID = objectData.id;
     
     return output;
 }

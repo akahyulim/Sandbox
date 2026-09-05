@@ -19,18 +19,27 @@ namespace Dive
 #endif
 
 			std::string entryPoint, target;
-			if (stage == eShaderStage::VS)
+			switch (stage)
+			{
+			case eShaderStage::VS:
 			{
 				entryPoint = "MainVS";
 				target = "vs_5_0";
+				break;
 			}
-			else if (stage == eShaderStage::PS)
+			case eShaderStage::PS:
 			{
 				entryPoint = "MainPS";
 				target = "ps_5_0";
+				break;
 			}
-			else
+			case eShaderStage::CS:
 			{
+				entryPoint = "MainCS";
+				target = "cs_5_0";
+				break;
+			}
+			default:
 				spdlog::error("지원하지 않는 셰이더 스테이지입니다.");
 				return nullptr;
 			}
@@ -122,7 +131,13 @@ namespace Dive
 			spdlog::error("ResolveScene PS 생성 실패");
 			return false;
 		}
-		
+
+		// computeShader
+		if (!createComputeShader(graphics, "Source/Shaders/Picker.hlsl"))
+		{
+			spdlog::error("Picking CS 생성 실패");
+			return false;
+		}
 
 		// shader program
 		if (!createShaderProgram("Test", "Test", eShaderPrograms::Test))
@@ -152,6 +167,8 @@ namespace Dive
 			spdlog::error("ResloveScene ShaderProgram 생성 실패");
 			return false;
 		}
+		
+		m_shaderPrograms[eShaderPrograms::Picking] = std::make_unique<ShaderProgram>(m_css.find("Picker")->second.get());
 
 		spdlog::info("ShaderManager 초기화 완료");
 
@@ -210,6 +227,24 @@ namespace Dive
 			return false;
 
 		m_pss[shaderName] = std::make_unique<PixelShader>(graphics, blob.Get());
+
+		return true;
+	}
+
+	bool ShaderManager::createComputeShader(Graphics* graphics, const std::filesystem::path& path)
+	{
+		std::string shaderName = path.stem().string();
+		if (m_css.find(shaderName) != m_css.end())
+		{
+			spdlog::warn("이미 생성 및 저장된 셰이더");
+			return false;
+		}
+
+		auto blob = CompileShader(path, eShaderStage::CS);
+		if (!blob)
+			return false;
+
+		m_css[shaderName] = std::make_unique<ComputeShader>(graphics, blob.Get());
 
 		return true;
 	}

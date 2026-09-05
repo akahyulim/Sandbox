@@ -13,8 +13,6 @@ namespace Dive
 	class Window;
 	class VertexBuffer;
 	class IndexBuffer;
-	class VertexShader;
-	class PixelShader;
 	class InputLayout;
 	class DepthStencilState;
 	class RasterizerState;
@@ -69,6 +67,7 @@ namespace Dive
 
 		void SetVertexShader(VertexShader* vs);
 		void SetPixelShader(PixelShader* ps);
+		void SetComputeShader(ComputeShader* cs);
 		void SetInputLayout(InputLayout* il);
 
 		void SetShaderResourceView(eShaderStage stage, uint32_t slot, ID3D11ShaderResourceView* const* ppSrv);
@@ -99,9 +98,9 @@ namespace Dive
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_backbufferRTV;
 
-		// ShaderProgram에서 직접 Bind를 호출하여 아래의 변수는 사용하지 못하고 있다.
 		VertexShader* m_currentVS = nullptr;
 		PixelShader* m_currentPS = nullptr;
+		ComputeShader* m_currentCS = nullptr;
 		InputLayout* m_currentIL = nullptr;
 
 		ID3D11DepthStencilState* m_currentDSS = nullptr;

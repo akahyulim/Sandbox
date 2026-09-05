@@ -15,12 +15,12 @@ struct VSToPS
 VSToPS MainVS(VSInput input)
 {
     VSToPS output = (VSToPS) 0;
-    output.Pos = mul(mul(float4(input.PosL, 1.0f), objectData.model), frameData.viewProjMatrix).xyww;
+    output.Pos = mul(mul(float4(input.PosL, 1.0f), objectData.model), frameData.viewProjection).xyww;
     output.PosL = input.PosL;
     return output;
 }
 
 float4 MainPS(VSToPS input) : SV_Target
 {
-    return Skymap.Sample(SkyboxSampler, input.PosL);
+    return SkyMap.Sample(SkyboxSampler, input.PosL);
 }

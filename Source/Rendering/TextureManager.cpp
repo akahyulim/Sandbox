@@ -191,20 +191,43 @@ namespace Dive
 		++m_handle;
 		TextureHandle handle = m_handle;
 		m_loaded.insert({ filepath, handle });
-		m_textures.insert({ handle, std::move(srv) });
+
+		TextureInfo info{};
+		info.filepath = filepath;
+		info.name = std::filesystem::path(filepath).stem().string();
+		info.srv = std::move(srv);
+		m_textures.emplace(handle, std::move(info));
 
 		return handle;
+	}
+	
+	std::wstring TextureManager::GetTextureFilepath(TextureHandle handle) const
+	{
+		auto it = m_textures.find(handle);
+		if (it != m_textures.end())
+			return it->second.filepath;
+
+		return std::wstring();
+	}
+	
+	std::string TextureManager::GetTextureName(TextureHandle handle) const
+	{
+		auto it = m_textures.find(handle);
+		if (it != m_textures.end())
+			return it->second.name;
+
+		return std::string();
 	}
 
 	ID3D11ShaderResourceView* TextureManager::GetTextureView(TextureHandle handle) const
 	{
 		auto it = m_textures.find(handle);
 		if (it != m_textures.end())
-			return it->second.Get();
+			return it->second.srv.Get();
 
 		return nullptr;
 	}
-	
+
 	TextureHandle TextureManager::loadDDSTexture(const std::wstring& filepath, bool mips)
 	{
 		DirectX::TexMetadata metaData{};
@@ -315,9 +338,16 @@ namespace Dive
 		}
 
 		++m_handle;
-		m_loaded.insert({ filepath, m_handle });
-		m_textures.insert({ m_handle, std::move(srv) });
-		return m_handle;
+		TextureHandle handle = m_handle;
+		m_loaded.insert({ filepath, handle });
+
+		TextureInfo info{};
+		info.filepath = filepath;
+		info.name = std::filesystem::path(filepath).stem().string();
+		info.srv = std::move(srv);
+		m_textures.emplace(handle, std::move(info));
+
+		return handle;
 	}
 
 	void TextureManager::SetFaceData(uint32_t index, const void* pixels, size_t size)

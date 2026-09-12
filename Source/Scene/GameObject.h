@@ -2,13 +2,13 @@
 #include <memory>
 #include <unordered_map>
 
-#include "Scene.h"
 #include "Core/Object.h"
 #include "Components/Component.h"
 
 namespace Dive
 {
 	class Scene;
+	class Component;
 	class Transform;
 
 	class GameObject : public Object
@@ -41,7 +41,7 @@ namespace Dive
 		void DetachFromParent();
 
 		uint32_t GetChildCount() { return static_cast<uint32_t>(m_children.size()); }
-		std::vector<GameObject*>& GetChildren() { return m_children; }
+		std::vector<GameObject*> GetChildren() { return m_children; }	// 일단 복사로 변경
 		GameObject* GetChildByIndex(uint32_t index) const;
 		bool HasChildren() const { return !m_children.empty(); }
 		void DetachChildren();

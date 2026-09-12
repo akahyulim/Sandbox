@@ -30,6 +30,14 @@ struct MaterialData
     uint2 padding;
 };
 
+struct WeatherData
+{
+    float4 lightDir;
+    float4 lightColor;
+    float4 ambientColor;
+    float4 skyColor;
+};
+
 struct LightData
 {
     float3 color; // c0.xyz
@@ -44,6 +52,12 @@ struct LightData
     float cosInnerAngle; // c3.x
     float cosOuterAngle; // c3.y
     float2 paddingRow4; // c3.zw
+};
+
+struct SelectedObjectData
+{
+    uint id;
+    uint3 dummy;
 };
 
 cbuffer cbFrame: register(b0)
@@ -61,9 +75,19 @@ cbuffer cbMaterial : register(b2)
     MaterialData materialData;
 }
 
-cbuffer cbLightData : register(b3)
+cbuffer cbWeather : register(b3)
+{
+    WeatherData weatherData;
+}
+
+cbuffer cbLightData : register(b4)
 {
     LightData lightData;
+}
+
+cbuffer cbSelectedObjectData : register(b5)
+{
+    SelectedObjectData selectedObject;
 }
 
 bool HasAlbedoMap()

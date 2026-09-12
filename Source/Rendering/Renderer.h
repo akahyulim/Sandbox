@@ -17,6 +17,12 @@ namespace Dive
 	class IndexBuffer;
 	class Scene;
 
+	enum class eSkyMode : uint8_t
+	{
+		Skybox,
+		ClearColor
+	};
+
 	class Renderer
 	{
 		enum class eDepthStencilState : uint8_t
@@ -72,7 +78,9 @@ namespace Dive
 			Frame,
 			Object,
 			Material,
+			Weather,
 			Light,
+			SelectedObject,
 			Count
 		};
 
@@ -92,7 +100,17 @@ namespace Dive
 
 		void SetMousePosition(const DirectX::XMUINT2& cursorPos);
 
+		void SetSelectedObjectID(uint32_t objectID);
+
+		void ProcessPicking();
 		PickingData GetPickingData() const { return m_pickingData; }
+
+		eSkyMode GetSkyMode() const { return m_skyMode; }
+		void SetSkyMode(eSkyMode mode) { m_skyMode = mode; }
+
+		DirectX::XMFLOAT4 GetSkyColor() const { return m_skyColor; }
+		void SetSkyColor(const DirectX::XMFLOAT4& color) { m_skyColor = color; }
+		void SetSkyColor(float r, float g, float b, float a) { m_skyColor = { r, g, b, a }; }
 
 	private:
 		void createDepthStencilStates();
@@ -109,11 +127,12 @@ namespace Dive
 		void loadTextures();
 
 		void bindGlobals();
+		
+		void updateWeather();
 
 		void passGBuffer(Scene* scene);
-		void passPicking();
 		void passDeferredLighting();
-		void passSkybox(Scene* scene);
+		void passSky(Scene* scene);
 		void passForward();
 		void passPostProcessing();
 
@@ -141,11 +160,17 @@ namespace Dive
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
 		MaterialData m_materialData{};
 		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbMaterial;
+		WeatherData m_weatherData{};
+		std::unique_ptr<ConstantBuffer<WeatherData>> m_cbWeather;
 		LightData m_lightData{};
 		std::unique_ptr<ConstantBuffer<LightData>> m_cbLight;
 
+		uint32_t m_lastSelectedObjectID = 0;
+		std::unique_ptr<ConstantBuffer<SelectedObjectData>> m_cbSelectedObject;
+
 		PickingData m_pickingData{};
 		std::unique_ptr<StructuredBuffer<PickingData>> m_pickingBuffer;
+
 
 		RenderPassDesc m_gbufferPass;
 		RenderPassDesc m_deferredLightingPass;
@@ -156,5 +181,8 @@ namespace Dive
 		std::unique_ptr<IndexBuffer> m_cubeIB;
 
 		DirectX::XMFLOAT2 m_mousePosition;
+
+		DirectX::XMFLOAT4 m_skyColor = { 0.0f, 0.75f, 1.0f , 0.0f };
+		eSkyMode m_skyMode = eSkyMode::Skybox;
 	};
 }

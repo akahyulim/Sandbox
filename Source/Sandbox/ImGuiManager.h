@@ -13,7 +13,9 @@ namespace Dive
 
 		void Begin() const;
 		void End() const;
+		
 		void HandleWindowMessage(const WindowEventData& data) const;
+		
 		bool IsVisible() const { return m_visible; }
 
 	private:

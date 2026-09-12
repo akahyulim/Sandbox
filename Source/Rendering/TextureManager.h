@@ -16,6 +16,13 @@ namespace Dive
 
 	class Graphics;
 
+	struct TextureInfo
+	{
+		std::wstring filepath;
+		std::string name;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+	};
+
 	class TextureManager
 	{
 	public:
@@ -32,8 +39,12 @@ namespace Dive
 		TextureHandle LoadTexture(const std::string& filepath, bool mips = true);
 		TextureHandle LoadCubemap(const std::wstring& filepath);
 
-		ID3D11ShaderResourceView* GetTextureView(TextureHandle handle) const;
+		void SetFaceData(uint32_t index, const void* pixels, size_t size);
 
+		std::wstring GetTextureFilepath(TextureHandle handle) const;
+		std::string GetTextureName(TextureHandle handle) const;
+		ID3D11ShaderResourceView* GetTextureView(TextureHandle handle) const;
+		
 	private:
 		TextureManager() = default;
 		TextureManager(const TextureManager&) = delete;
@@ -52,11 +63,10 @@ namespace Dive
 		Graphics* m_graphics = nullptr;
 		
 		TextureHandle m_handle = INVALID_TEXTURE_HANDLE;
-		std::unordered_map<TextureHandle, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
+		//std::unordered_map<TextureHandle, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
+		std::unordered_map<TextureHandle, TextureInfo> m_textures;
 		std::unordered_map<std::wstring, TextureHandle> m_loaded;
 
-
-		void SetFaceData(uint32_t index, const void* pixels, size_t size);
 		std::array<std::vector<uint8_t>, 6> m_faceData;
 	};
 }

@@ -126,6 +126,11 @@ namespace Dive
 			spdlog::error("Skybox PS 생성 실패");
 			return false;
 		}
+		if (!createPixelShader(graphics, "Source/Shaders/UniformSky.hlsl"))
+		{
+			spdlog::error("UniformSky PS 생성 실패");
+			return false;
+		}
 		if (!createPixelShader(graphics, "Source/Shaders/ResolveScene.hlsl"))
 		{
 			spdlog::error("ResolveScene PS 생성 실패");
@@ -160,6 +165,11 @@ namespace Dive
 		if (!createShaderProgram("Skybox", "Skybox", eShaderPrograms::Skybox))
 		{
 			spdlog::error("Skybox ShaderProgram 생성 실패");
+			return false;
+		}
+		if (!createShaderProgram("Skybox", "UniformSky", eShaderPrograms::UniformSky))
+		{
+			spdlog::error("UniformSky ShaderProgram 생성 실패");
 			return false;
 		}
 		if (!createShaderProgram("ResolveScene", "ResolveScene", eShaderPrograms::Resolve))

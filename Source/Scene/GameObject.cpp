@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "GameObject.h"
-//#include "Scene.h"
+#include "Scene.h"
 #include "Components/Transform.h"
 
 namespace Dive
@@ -59,7 +59,7 @@ namespace Dive
 			return;
 
 		// 자손이 부모가 될 수 없다.
-		if (IsDescendantOf(parent))
+		if (parent && parent->IsDescendantOf(this))
 			return;
 
 		if (m_parent)
@@ -78,9 +78,10 @@ namespace Dive
 		if (m_parent == nullptr)
 			return;
 
-		auto it = std::find(m_parent->m_children.begin(), m_parent->m_children.end(), this);
-		if (it != m_parent->m_children.end())
-			m_parent->m_children.erase(it);
+		auto& siblings = m_parent->m_children;
+		auto it = std::find(siblings.begin(), siblings.end(), this);
+		if (it != siblings.end())
+			siblings.erase(it);
 
 		m_parent = nullptr;
 
@@ -124,6 +125,7 @@ namespace Dive
 		notifySceneChanged();
 	}
 
+	// this가 target의 자손인지 확인
 	bool GameObject::IsDescendantOf(GameObject* target) const
 	{
 		if(target == nullptr)

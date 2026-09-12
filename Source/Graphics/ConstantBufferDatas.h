@@ -38,6 +38,14 @@ namespace Dive
         uint32_t padding[2] = { 0, 0 };
     };
 
+    struct WeatherData
+    {
+        DirectX::XMFLOAT4 lightDir{ -1.0f, -1.0f, 1.0f, 1.0f };
+        DirectX::XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+        DirectX::XMFLOAT4 ambientColor{ 0.5f, 0.5f, 0.5f, 1.0f };
+        DirectX::XMFLOAT4 skyColor{ 0.0f, 0.0f, 0.0f , 1.0f };
+    };
+
     struct LightData
     {
         DirectX::XMFLOAT3 color = { 1.0f, 1.0f, 1.0f };
@@ -54,21 +62,17 @@ namespace Dive
         uint32_t paddingRow4[2] = { 0, 0 };
     };
 
-    struct ForwardLightData
-    {
-        DirectX::XMFLOAT4 ambientColor;
-        
-        int32_t lightCount;
-        DirectX::XMFLOAT3 padding;
-        
-        LightData lights[MAX_LIGHTS];
-    };
-
     struct PickingData
     {
         DirectX::XMFLOAT4 position = { 0.0f, 0.0f, 0.0f, 1.0f };
         DirectX::XMFLOAT4 normal = { 0.0f, 1.0f, 0.0f, 0.0f };
         uint32_t id = 0;
         DirectX::XMUINT3 pad = { 0, 0, 0 };
+    };
+
+    struct SelectedObjectData
+    {
+        uint32_t slectedObjectID = 0;
+        uint32_t dummy[3] = { 0, 0, 0 };
     };
 }

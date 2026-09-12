@@ -351,5 +351,8 @@
     <FxCompile Include="Source\Shaders\Picker.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Source\Shaders\UniformSky.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

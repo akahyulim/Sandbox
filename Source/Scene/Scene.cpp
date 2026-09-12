@@ -14,8 +14,7 @@ namespace Dive
 		m_camera = new GameObject(this);
 		m_camera->SetName("MainCamera");
 		m_camera->AddComponent<Camera>();
-		m_camera->GetTransform()->SetPosition(0.0f, .0f, -5.0f);
-		//m_camera->GetTransform()->SetRotationByDegrees({ 0.0f, 180.0f, 0.0f });
+		m_camera->GetTransform()->SetPosition(0.0f, 1.0f, -5.0f);
 	}
 
 	Scene::~Scene()
@@ -170,6 +169,16 @@ namespace Dive
 			if (!gameObect->HasParent())
 				outRoots.emplace_back(gameObect.get());
 		}
+	}
+
+	std::vector<GameObject*> Scene::GetRootGameObjects()
+	{
+		std::vector<GameObject*> roots;
+		for (auto& [id, gameObject] : m_gameObjectMap)
+			if (!gameObject->HasParent())
+				roots.emplace_back(gameObject.get());
+
+		return roots;
 	}
 
 	// 추후 캐싱 컨테이너를 만들자.

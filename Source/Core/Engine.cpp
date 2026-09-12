@@ -30,14 +30,8 @@ namespace Dive
 		m_window->GetResizedEvent().AddMember(&Graphics::ResizeBackbuffer, *m_graphics);
 		m_window->GetResizedEvent().AddMember(&Renderer::OnResize, *m_renderer);
 	}
-
-	void Engine::Shutdown()
-	{
-		MaterialManager::Get().Shutdown();
-		TextureManager::Get().Shutdown();
-		ShaderManager::Get().Shutdown();
-		MeshManager::Get().Shutdown();
-	}
+	
+	Engine::~Engine() = default;
 
 	// settings를 받는다.
 	void Engine::Run()
@@ -58,6 +52,14 @@ namespace Dive
 		m_graphics->SwapBuffers(m_vSync);
 	}
 	
+	void Engine::Shutdown()
+	{
+		MaterialManager::Get().Shutdown();
+		TextureManager::Get().Shutdown();
+		ShaderManager::Get().Shutdown();
+		MeshManager::Get().Shutdown();
+	}
+
 	Scene* Engine::NewScene()
 	{
 		m_scene.reset();

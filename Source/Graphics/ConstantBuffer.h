@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <cstdint>
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 #include "core/Common.h"
 #include "Graphics.h"

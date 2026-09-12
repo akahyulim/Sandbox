@@ -5,6 +5,11 @@
 #include "Window.h"
 #include "Utilities/Delegate.h"
 
+//#include "Input/Input.h"
+//#include "Graphics/Graphics.h"
+//#include "Rendering/Renderer.h"
+//#include "Scene/Scene.h"
+
 namespace Dive
 {
 	class Input;
@@ -27,14 +32,11 @@ namespace Dive
 		Engine(Engine&&) = delete;
 		Engine& operator=(const Engine&) = delete;
 		Engine& operator=(Engine&&) = delete;
-		~Engine() = default;
-
-		void Shutdown();
-
-		//void OnWindowEvent(const WindowEventData& data);
+		~Engine();
 
 		void Run();
 		void Present();
+		void Shutdown();
 
 		Scene* NewScene();
 		Scene* GetScene() const { return m_scene.get(); }

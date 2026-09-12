@@ -73,6 +73,8 @@ namespace Dive
         m_frameData.screenResolution.y = static_cast<float>(m_height);
         m_frameData.mousePosition = m_mousePosition;
         m_cbFrame->Update(m_graphics, m_frameData);
+
+        updateWeather();
 	}
 	
     // Render에는 RenderSettings가 전달
@@ -85,9 +87,8 @@ namespace Dive
             return;
 
         passGBuffer(scene);
-        passPicking();
         passDeferredLighting();
-        passSkybox(scene);
+        passSky(scene);
         //passForward();
         //passPostProcessing();
 	}
@@ -134,6 +135,55 @@ namespace Dive
     {
         m_mousePosition.x = static_cast<float>(cursorPos.x);
         m_mousePosition.y = static_cast<float>(cursorPos.y);
+    }
+
+    void Renderer::SetSelectedObjectID(uint32_t objectID)
+    {
+        if (m_lastSelectedObjectID != objectID)
+        {
+            m_lastSelectedObjectID = objectID;
+
+            SelectedObjectData data = { objectID, 0, 0, 0 };
+            m_cbSelectedObject->Update(m_graphics, data);
+        }
+    }
+
+    void Renderer::ProcessPicking()
+    {
+        // gbuffer 중 normal, depth의 srv 사용
+        auto normalSrv = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetShaderResourceView();
+        auto idSrv = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetShaderResourceView();
+        auto depthSrv = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetShaderResourceView();
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, &normalSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, &idSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, &depthSrv);
+
+        // uav도 사용
+        auto uav = m_pickingBuffer->GetUAV();
+        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
+
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Bind(m_graphics);
+        m_graphics->GetDeviceContext()->Dispatch(1, 1, 1);      // 추후 랩핑 필요
+
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, nullptr);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, nullptr);
+        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, nullptr);
+        ID3D11UnorderedAccessView* nullUAV = nullptr;
+        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
+        // 다른 cs를 바인딩하지 않으므로 데이터 갱신을 위해 명시적으로 해제
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Unbind(m_graphics);
+
+        // uav를 map/unmap 해서 계산 결과를 복사
+        D3D11_MAPPED_SUBRESOURCE mapped_buffer{};
+        auto hr = m_graphics->GetDeviceContext()->Map((ID3D11Resource*)m_pickingBuffer->GetBuffer(), 0u, D3D11_MAP_READ, 0u, &mapped_buffer);
+        if (FAILED(hr))
+        {
+            spdlog::error("StructuredBuffer Map 실패: {}", ErrorUtils::ToVerbose(hr));
+            return;
+        }
+        const PickingData* data = (const PickingData*)mapped_buffer.pData;
+        m_pickingData = *data;
+        m_graphics->GetDeviceContext()->Unmap(m_pickingBuffer->GetBuffer(), 0);
     }
 
     void Renderer::createDepthStencilStates()
@@ -448,7 +498,10 @@ namespace Dive
         m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics); 
         m_cbObject = std::make_unique<ConstantBuffer<ObjectData>>(m_graphics);
         m_cbMaterial = std::make_unique<ConstantBuffer<MaterialData>>(m_graphics);
+        m_cbWeather = std::make_unique<ConstantBuffer<WeatherData>>(m_graphics);
         m_cbLight = std::make_unique<ConstantBuffer<LightData>>(m_graphics);
+
+        m_cbSelectedObject = std::make_unique<ConstantBuffer<SelectedObjectData>>(m_graphics);
 
         m_pickingBuffer = std::make_unique<StructuredBuffer<PickingData>>(m_graphics, eStructuredBufferType::Read);
 
@@ -667,12 +720,15 @@ namespace Dive
             // vs
             m_cbFrame->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Object));
+            m_cbWeather->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Weather));
             
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Object));
             m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
+            m_cbWeather->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Weather));
             //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
+            m_cbSelectedObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::SelectedObject));
 
             // cs
             m_cbFrame->Bind(m_graphics, eShaderStage::CS, static_cast<uint32_t>(eConstantBuffer::Frame));
@@ -689,6 +745,15 @@ namespace Dive
 
             called = true;
         }
+    }
+
+    void Renderer::updateWeather()
+    {
+        m_weatherData.lightDir = {};
+        m_weatherData.lightColor = {};
+        m_weatherData.ambientColor = {};
+        m_weatherData.skyColor = m_skyColor;
+        m_cbWeather->Update(m_graphics, m_weatherData);
     }
 
     void Renderer::passGBuffer(Scene* scene)
@@ -723,44 +788,6 @@ namespace Dive
 
         m_graphics->EndRenderPass();
     }
-
-    void Renderer::passPicking()
-    {
-        // gbuffer 중 normal, depth의 srv 사용
-        auto normalSrv = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetShaderResourceView();
-        auto idSrv = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetShaderResourceView();
-        auto depthSrv = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, &normalSrv);
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, &idSrv);
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, &depthSrv);
-
-        // uav도 사용
-        auto uav = m_pickingBuffer->GetUAV();
-        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
-
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Bind(m_graphics);
-        m_graphics->GetDeviceContext()->Dispatch(1, 1, 1);      // 추후 랩핑 필요
-
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 7, nullptr);
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 9, nullptr);
-        m_graphics->SetShaderResourceView(eShaderStage::CS, 10, nullptr);
-        ID3D11UnorderedAccessView* nullUAV = nullptr;
-        m_graphics->GetDeviceContext()->CSSetUnorderedAccessViews(0, 1, &nullUAV, nullptr);
-        // 다른 cs를 바인딩하지 않으므로 데이터 갱신을 위해 명시적으로 해제
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Picking)->Unbind(m_graphics);
-        
-        // uav를 map/unmap 해서 계산 결과를 복사
-        D3D11_MAPPED_SUBRESOURCE mapped_buffer{};
-        auto hr = m_graphics->GetDeviceContext()->Map((ID3D11Resource*)m_pickingBuffer->GetBuffer(), 0u, D3D11_MAP_READ, 0u, &mapped_buffer);
-        if (FAILED(hr))
-        {
-            spdlog::error("StructuredBuffer Map 실패: {}", ErrorUtils::ToVerbose(hr));
-            return;
-        }
-        const PickingData* data = (const PickingData*)mapped_buffer.pData;
-        m_pickingData = *data;
-        m_graphics->GetDeviceContext()->Unmap(m_pickingBuffer->GetBuffer(), 0);
-    }
     
     void Renderer::passDeferredLighting()
     {
@@ -776,7 +803,11 @@ namespace Dive
 
         // SetGBufferSRV 같은 걸 만드는 게 나을 듯하다.
         auto srv = m_gbuffer[0]->GetShaderResourceView();
+        auto normalSrv = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetShaderResourceView();
+        auto idSrv = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetShaderResourceView();
         m_graphics->SetShaderResourceView(eShaderStage::PS, 6, &srv);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 7, &normalSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 9, &idSrv);
 
         m_graphics->SetVertexBuffer(nullptr);
         m_graphics->Draw(4);
@@ -784,7 +815,7 @@ namespace Dive
         m_graphics->EndRenderPass();
     }
 
-    void Renderer::passSkybox(Scene* scene)
+    void Renderer::passSky(Scene* scene)
     {
         // adria에선 passForward안에서 다수의 pass가 호출되며 이때 m_forwardPass를 사용한다.
         m_graphics->BeginRenderPass(m_skyboxPass);
@@ -794,11 +825,18 @@ namespace Dive
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Skybox].Get(), 0);
 
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
-        
-        auto& envData = scene->GetEnviroment();
-        auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
+        if (m_skyMode == eSkyMode::Skybox)
+        {
+            ShaderManager::Get().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
+
+            auto& envData = scene->GetEnviroment();
+            auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+            m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
+        }
+        else
+        {
+            ShaderManager::Get().GetShaderProgram(eShaderPrograms::UniformSky)->Bind(m_graphics);
+        }
 
         auto camera = scene->GetCamera();
         m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));

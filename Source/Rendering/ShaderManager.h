@@ -16,6 +16,7 @@ namespace Dive
 		GBuffer,
 		DeferredLighting,
 		Skybox,
+		UniformSky,
 		Resolve,
 		Picking,
 		Test,

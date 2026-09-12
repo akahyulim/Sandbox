@@ -1,4 +1,5 @@
 #pragma once
+#include <wrl/client.h>
 #include <cstdint>
 #include <Windows.h>
 #include <dinput.h>

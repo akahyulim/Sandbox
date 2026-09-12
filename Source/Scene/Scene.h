@@ -6,13 +6,10 @@
 #include <filesystem>
 
 #include "Core/Types.h"
-#include "Components/Component.h"
-//#include "GameObject.h"
 #include "Rendering/TextureManager.h"
 
 namespace Dive
 {
-	// 이유는 모르겠지만 전방선언만으로 해결되지 않는다.
 	class GameObject;
 
 	class Camera;
@@ -40,6 +37,7 @@ namespace Dive
 		void RemoveGameObjectByID(uint64_t id);
 
 		void GetRootGameObjects(std::vector<GameObject*>& outRoots);
+		std::vector<GameObject*> GetRootGameObjects();	// 복사 리턴 추가
 
 		GameObject* GetGameObjectByObjectID(uint32_t objectID);
 

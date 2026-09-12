@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d11.h>
+#include <spdlog/spdlog.h>
 
 #include "Graphics.h"
 

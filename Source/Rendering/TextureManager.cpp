@@ -354,7 +354,7 @@ namespace Dive
 	{
 		if (index > 5)
 		{
-			//DV_LOG(Cubemap, warn, "[::SetFaceData] 잘못된 Face 인덱스 전달: {}", index);
+			spdlog::warn("잘못된 Face 인덱스 전달: {}", index);
 			return;
 		}
 

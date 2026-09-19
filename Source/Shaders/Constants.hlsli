@@ -21,13 +21,17 @@ struct ObjectData
 
 struct MaterialData
 {
-    float4 baseColor;
-    float2 tiling;
-    float2 offset;
+    float4 baseColor; // [16바이트] 알베도 색상 (RGBA)
     
-    uint flags;
-    uint renderingMode;
-    uint2 padding;
+    float3 emissiveFactor; // [12바이트] 자체 발광 색상
+    float roughnessFactor; // [ 4바이트] 거칠기 (합쳐서 16바이트)
+    
+    float2 tiling; // [ 8바이트] UV 타일링
+    float2 offset; // [ 8바이트] UV 오프셋 (합쳐서 16바이트)
+    
+    float metallicFactor; // [ 4바이트] 금속성
+    uint flags; // [ 4바이트] 텍스처 유무 플래그 등
+    uint2 padding; // [ 8바이트] 16바이트 배수를 맞추기 위한 패딩 (합쳐서 16바이트)
 };
 
 struct WeatherData

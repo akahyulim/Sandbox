@@ -20,7 +20,7 @@ namespace Dive
 	enum class eSkyMode : uint8_t
 	{
 		Skybox,
-		ClearColor
+		UniformColor
 	};
 
 	class Renderer
@@ -73,17 +73,6 @@ namespace Dive
 			Count
 		};
 
-		enum class eConstantBuffer : uint8_t
-		{	
-			Frame,
-			Object,
-			Material,
-			Weather,
-			Light,
-			SelectedObject,
-			Count
-		};
-
 	public:
 		explicit Renderer(Graphics* graphics, uint32_t width, uint32_t height);
 		~Renderer();
@@ -111,6 +100,18 @@ namespace Dive
 		DirectX::XMFLOAT4 GetSkyColor() const { return m_skyColor; }
 		void SetSkyColor(const DirectX::XMFLOAT4& color) { m_skyColor = color; }
 		void SetSkyColor(float r, float g, float b, float a) { m_skyColor = { r, g, b, a }; }
+
+		DirectX::XMFLOAT3 GetLightColor() const { return { m_lightColor.x, m_lightColor.y, m_lightColor.z }; }
+		void SetLightColor(const DirectX::XMFLOAT3& color) { m_lightColor = { color.x, color.y, color.z, 1.0f }; }
+		void SetLightColor(float r, float g, float b, float a) { m_lightColor = { r, g, b, a }; }
+
+		DirectX::XMFLOAT3 GetLightDir() const { return { m_lightDir.x, m_lightDir.y, m_lightDir.z }; }
+		void SetLightDir(const DirectX::XMFLOAT3& dir) { m_lightDir = { dir.x, dir.y, dir.z, 1.0f }; }
+		void SetLightDir(float x, float y, float z) { m_lightDir = { x, y, z, 1.0f }; }
+
+		DirectX::XMFLOAT3 GetAmbientColor() const { return { m_ambientColor.x, m_ambientColor.y, m_ambientColor.z }; }
+		void SetAmbientColor(const DirectX::XMFLOAT3& color) { m_ambientColor = { color.x, color.y, color.z , 1.0f }; }
+		void SetAmbientColor(float r, float g, float b, float a) { m_ambientColor = { r, g, b, a }; }
 
 	private:
 		void createDepthStencilStates();
@@ -158,8 +159,6 @@ namespace Dive
 		std::unique_ptr<ConstantBuffer<FrameData>> m_cbFrame;
 		ObjectData m_objectData{};
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
-		MaterialData m_materialData{};
-		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbMaterial;
 		WeatherData m_weatherData{};
 		std::unique_ptr<ConstantBuffer<WeatherData>> m_cbWeather;
 		LightData m_lightData{};
@@ -184,5 +183,9 @@ namespace Dive
 
 		DirectX::XMFLOAT4 m_skyColor = { 0.0f, 0.75f, 1.0f , 0.0f };
 		eSkyMode m_skyMode = eSkyMode::Skybox;
+
+		DirectX::XMFLOAT4 m_lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		DirectX::XMFLOAT4 m_lightDir = { -1.0f, -1.0f, 1.0f, 1.0f };
+		DirectX::XMFLOAT4 m_ambientColor = { 0.3f, 0.3f, 0.3f, 1.0f };
 	};
 }

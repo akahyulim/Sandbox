@@ -1,8 +1,12 @@
 #pragma once
 #include <array>
 #include <string>
+#include <memory>
 
+#include "Resource/Resource.h"
 #include "TextureManager.h"
+#include "Graphics/ConstantBufferDatas.h"
+#include "Graphics/ConstantBuffer.h"
 
 namespace Dive
 {
@@ -19,35 +23,45 @@ namespace Dive
 
 	class Graphics;
 
-	class Material 
+	class Material : public Resource
 	{
 	public:
 		Material();
-		~Material() = default;
+		virtual ~Material();
 
 		ID3D11ShaderResourceView* GetMap(eMapType type) const;
 		void SetMap(const std::string& path, eMapType type);
 
-		DirectX::XMFLOAT4 GetBaseColor() const { return m_baseColor; }
-		void SetBaseColor(float r, float g, float b, float a) { m_baseColor = { r, g, b, a }; }
+		DirectX::XMFLOAT4 GetBaseColor() const { return m_data.baseColor; }
+		void SetBaseColor(const DirectX::XMFLOAT4& color);
+		void SetBaseColor(float r, float g, float b, float a);
 
-		DirectX::XMFLOAT2 GetTiling() const { return m_tiling; }
-		void SetTiling(float x, float y) { m_tiling = { x, y }; }
+		DirectX::XMFLOAT3 GetEmissiveFactor() const { return m_data.emissiveFactor; }
+		void SetEmissiveFactor(const DirectX::XMFLOAT3& factor);
+		void SetEmissiveFactor(float r, float g, float b);
 
-		DirectX::XMFLOAT2 GetOffset() const { return m_offset; }
-		void SetOffset(float x, float y) { m_offset = { x, y }; }
+		float GetRoughnessFactor() const { return m_data.roughnessFactor; }
+		void SetRoughnessFactor(float factor);
 
-		uint32_t GetFlags() const { return m_flags; }
+		DirectX::XMFLOAT2 GetTiling() const { return m_data.tiling; }
+		void SetTiling(const DirectX::XMFLOAT2& tiling);
+		void SetTiling(float x, float y);
+
+		DirectX::XMFLOAT2 GetOffset() const { return m_data.offset; }
+		void SetOffset(const DirectX::XMFLOAT2& offset);
+		void SetOffset(float x, float y);
+
+		float GetMetalicFactor() const { return m_data.metalicFactor; }
+		void SetMetalicFactor(float factor);
+
+		uint32_t GetFlags() const { return m_data.flags; }
 
 		void Bind(Graphics* graphics);
 
 	private:
+		MaterialData m_data{};
 		std::array<TextureHandle, static_cast<size_t>(eMapType::Count)> m_maps{};
-		
-		DirectX::XMFLOAT4 m_baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT2 m_tiling = { 1.0f, 1.0f };
-		DirectX::XMFLOAT2 m_offset = { 0.0f, 0.0f };
 
-		uint32_t m_flags = 0;
+		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbuffer;
 	};
 }

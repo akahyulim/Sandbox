@@ -34,9 +34,14 @@ namespace Dive
 		void cameraControll();
 		
 		void sceneView();
-		void showEnviroment();
-		void newScene();
 
+		void drawCanvasContextMenu();
+		
+		void showEnviroment();
+		void showProperties();
+		void showQuit();
+
+		void newScene();
 		void setSelectedObject(GameObject* gameObject);
 
 	private:
@@ -48,8 +53,12 @@ namespace Dive
 		GameObject* m_mainCamera = nullptr;
 		GameObject* m_directionalLight = nullptr;
 		GameObject* m_selectedObject = nullptr;
+		GameObject* m_contextTargetObject = nullptr;
+		GameObject* m_field = nullptr;
 
-		bool m_showEnviromentWindow = false;
+		bool m_showEnviromentMenu = false;
+		bool m_showPropertiesMenu = false;
+		bool m_showQuitMenu = false;
 
 		bool m_isSceneViewHovered = false;
 
@@ -59,7 +68,5 @@ namespace Dive
 		
 		float m_cameraPitch = 0.0f;
 		float m_cameraYaw = 0.0f;
-
-		//EnviromentData m_enviromentData;
 	};
 }

@@ -6,6 +6,17 @@ namespace Dive
 {
 #define MAX_LIGHTS 16
     
+    enum class eConstantBuffer : uint8_t
+    {
+        Frame,
+        Object,
+        Material,
+        Weather,
+        Light,
+        SelectedObject,
+        Count
+    };
+
     struct FrameData
     {
         DirectX::XMMATRIX view;
@@ -29,12 +40,16 @@ namespace Dive
 
     struct MaterialData
     {
-        DirectX::XMFLOAT4 baseColor;
-        DirectX::XMFLOAT2 tiling;
-        DirectX::XMFLOAT2 offset;
+        DirectX::XMFLOAT4 baseColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-        uint32_t flags;
-        uint32_t renderingMode = 0;
+        DirectX::XMFLOAT3 emissiveFactor{ 0.0f, 0.0f, 0.0f };
+        float roughnessFactor = 0.0f;
+
+        DirectX::XMFLOAT2 tiling{ 1.0f, 1.0f };
+        DirectX::XMFLOAT2 offset{ 0.0f, 0.0f };
+
+        float metalicFactor = 0.0f;
+        uint32_t flags = 0;
         uint32_t padding[2] = { 0, 0 };
     };
 

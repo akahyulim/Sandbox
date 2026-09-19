@@ -196,6 +196,9 @@
     <ClInclude Include="Source\Graphics\StructuredBuffer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="External\imgui\imgui_stdlib.h">
+      <Filter>External\ImGui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Window.cpp">
@@ -322,6 +325,9 @@
     </ClCompile>
     <ClCompile Include="Source\Rendering\MaterialManager.cpp">
       <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_stdlib.cpp">
+      <Filter>External\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

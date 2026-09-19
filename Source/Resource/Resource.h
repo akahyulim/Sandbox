@@ -42,6 +42,7 @@ namespace Dive
 		//static constexpr eResourceType StaticType() { return eResourceType::Undefined; }
 
 		std::string GetName() const override;
+		void SetName(const std::string&) override;
 
 		bool IsDirty() const { return m_isDirty; }
 

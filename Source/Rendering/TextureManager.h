@@ -63,7 +63,6 @@ namespace Dive
 		Graphics* m_graphics = nullptr;
 		
 		TextureHandle m_handle = INVALID_TEXTURE_HANDLE;
-		//std::unordered_map<TextureHandle, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>> m_textures;
 		std::unordered_map<TextureHandle, TextureInfo> m_textures;
 		std::unordered_map<std::wstring, TextureHandle> m_loaded;
 

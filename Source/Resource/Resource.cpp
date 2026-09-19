@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Resource.h"
 
 namespace Dive
@@ -23,5 +23,14 @@ namespace Dive
 		if (m_filepath.empty()) return "Unknown_Resource";
 
 		return m_filepath.stem().string();
+	}
+
+	void Resource::SetName(const std::string& name)
+	{
+		if (GetName() != name)
+		{
+			MarkDirty();
+			Object::SetName(name);
+		}
 	}
 }

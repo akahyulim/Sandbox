@@ -17,8 +17,8 @@ Texture2D OpacityMap : register(t5);
 Texture2D<float4> GBuffer_AlbedoRoughness : register(t6);   // RGB: Albedo(기본 색상) / A: Roughness(거친 정도)
 Texture2D<float4> GBuffer_NormalMetallic : register(t7);    // RGB: View Space Normal(법선) / A: Metallic(금속성)
 Texture2D<float4> GBuffer_Emissive : register(t8);          // RGB: Emissive(자체 발광 색상)
-Texture2D<uint> GBuffer_ObjectID : register(t9);           // 추후 슬롯 맞추기
-Texture2D<float> GBuffer_Depth : register(t10);              // Depth (깊이 버퍼 - 월드 좌표 복원용)
+Texture2D<uint> GBuffer_ObjectID : register(t9);            // 추후 슬롯 맞추기
+Texture2D<float> GBuffer_Depth : register(t10);             // Depth (깊이 버퍼 - 월드 좌표 복원용)
 
 TextureCube SkyMap : register(t11);
 Texture2D<float4> OffScreen : register(t12);

@@ -52,23 +52,18 @@ namespace Dive
         bindGlobals();
 
         auto camera = scene->GetCamera()->GetComponent<Camera>();
+        auto transform = camera->GetTransform();
 
         camera->SetAspectRatio(static_cast<float>(m_width), static_cast<float>(m_height));
-
-        m_frameData.cameraPosition = DirectX::XMFLOAT4(
-            camera->GetTransform()->GetPosition().x,
-            camera->GetTransform()->GetPosition().y,
-            camera->GetTransform()->GetPosition().z,
-            1.0f);
-        m_frameData.cameraForward = DirectX::XMFLOAT4(
-            camera->GetTransform()->GetForward().x,
-            camera->GetTransform()->GetForward().y,
-            camera->GetTransform()->GetForward().z,
-            1.0f);
+        
         m_frameData.view = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
         m_frameData.projection = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
         m_frameData.viewProjection = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
         m_frameData.inverseViewProjection = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, camera->GetViewProjMatrix()));
+        auto pos = transform->GetPosition();
+        m_frameData.cameraPosition = DirectX::XMFLOAT4(pos.x, pos.y, pos.z, 1.0f);
+        auto forward = transform->GetForward();
+        m_frameData.cameraForward = DirectX::XMFLOAT4(forward.x, forward.y, forward.z, 1.0f);
         m_frameData.screenResolution.x = static_cast<float>(m_width);
         m_frameData.screenResolution.y = static_cast<float>(m_height);
         m_frameData.mousePosition = m_mousePosition;
@@ -497,7 +492,6 @@ namespace Dive
     {
         m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics); 
         m_cbObject = std::make_unique<ConstantBuffer<ObjectData>>(m_graphics);
-        m_cbMaterial = std::make_unique<ConstantBuffer<MaterialData>>(m_graphics);
         m_cbWeather = std::make_unique<ConstantBuffer<WeatherData>>(m_graphics);
         m_cbLight = std::make_unique<ConstantBuffer<LightData>>(m_graphics);
 
@@ -559,9 +553,6 @@ namespace Dive
         desc.SampleDesc.Count = 1;
         desc.Usage = D3D11_USAGE_DEFAULT;
         desc.MiscFlags = 0;
-
-        //desc.Format = DXGI_FORMAT_R32_UINT;
-        //m_objectIDRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
 
         desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         m_hdrRenderTarget = std::make_unique<RenderTexture>(m_graphics, desc);
@@ -725,7 +716,6 @@ namespace Dive
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Object));
-            m_cbMaterial->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
             m_cbWeather->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Weather));
             //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
             m_cbSelectedObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::SelectedObject));
@@ -749,9 +739,12 @@ namespace Dive
 
     void Renderer::updateWeather()
     {
-        m_weatherData.lightDir = {};
-        m_weatherData.lightColor = {};
-        m_weatherData.ambientColor = {};
+        DirectX::XMVECTOR dir = DirectX::XMLoadFloat4(&m_lightDir);
+        DirectX::XMVector4Normalize(dir);
+        DirectX::XMStoreFloat4(&m_weatherData.lightDir, dir);
+  
+        m_weatherData.lightColor = m_lightColor;
+        m_weatherData.ambientColor = m_ambientColor;
         m_weatherData.skyColor = m_skyColor;
         m_cbWeather->Update(m_graphics, m_weatherData);
     }
@@ -769,6 +762,9 @@ namespace Dive
 
         for (auto renderable : scene->GetRenderables())
         {
+            if (!renderable->IsActive())
+                continue;
+
             auto transform = renderable->GetTransform();
             auto staticMesh = renderable->GetComponent<MeshRenderer>();
             auto material = staticMesh->GetMaterial();
@@ -776,12 +772,6 @@ namespace Dive
             m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
             m_objectData.id = staticMesh->GetObjectID();
             m_cbObject->Update(m_graphics, m_objectData);
-
-            m_materialData.baseColor = material->GetBaseColor();
-            m_materialData.offset = material->GetOffset();
-            m_materialData.tiling = material->GetTiling();
-            m_materialData.flags = material->GetFlags();
-            m_cbMaterial->Update(m_graphics, m_materialData);
 
             staticMesh->Draw(m_graphics);
         }
@@ -802,12 +792,14 @@ namespace Dive
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::DeferredLighting)->Bind(m_graphics);
 
         // SetGBufferSRV 같은 걸 만드는 게 나을 듯하다.
-        auto srv = m_gbuffer[0]->GetShaderResourceView();
+        auto albedoSrv = m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)]->GetShaderResourceView();
         auto normalSrv = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetShaderResourceView();
         auto idSrv = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 6, &srv);
+        auto depthSrv = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetShaderResourceView();
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 6, &albedoSrv);
         m_graphics->SetShaderResourceView(eShaderStage::PS, 7, &normalSrv);
         m_graphics->SetShaderResourceView(eShaderStage::PS, 9, &idSrv);
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 10, &depthSrv);
 
         m_graphics->SetVertexBuffer(nullptr);
         m_graphics->Draw(4);

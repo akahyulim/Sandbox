@@ -22,6 +22,7 @@ namespace Dive
         Material* LoadFromFile(const std::string& path);
         Material* CreateMaterial(const std::string& name);
 
+        Material* GetDefault() const;
         Material* GetMaterial(const std::string& name) const;
 
     private:
@@ -29,6 +30,7 @@ namespace Dive
         ~MaterialManager() = default;
 
     private:
+        std::unique_ptr<Material> m_default;
         std::unordered_map<std::string, std::unique_ptr<Material>> m_materials;
     };
 }

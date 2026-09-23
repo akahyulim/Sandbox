@@ -16,6 +16,7 @@
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/MeshRenderer.h"
+#include "Scene/Components/Light.h"
 
 namespace Dive
 {
@@ -69,6 +70,28 @@ namespace Dive
         m_frameData.mousePosition = m_mousePosition;
         m_cbFrame->Update(m_graphics, m_frameData);
 
+        const auto& lights = scene->GetLightQueue();
+
+        m_lightConstants = {};
+
+        if (!lights.empty())
+        {
+            size_t count = std::min(lights.size(), size_t(32));
+            m_lightConstants.lightCount = static_cast<uint32_t>(count);
+
+            for (size_t i = 0; i < count; ++i)
+            {
+                auto lightCom = lights[i]->GetComponent<Light>();
+                m_lightConstants.lights[i] = lightCom->GetLightData();
+            }
+
+            m_cbLight->Update(m_graphics, m_lightConstants);
+        }
+        else
+        {
+            m_lightConstants.lightCount = 0;
+        }
+
         updateWeather();
 	}
 	
@@ -94,7 +117,7 @@ namespace Dive
 
         m_graphics->SetViewport(m_offScreenRenderTarget->GetWidth(), m_offScreenRenderTarget->GetHeight());
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);  // 원래 srv slot enum class가 없었나...
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 13, &srv);  // 원래 srv slot enum class가 없었나...
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
@@ -108,7 +131,7 @@ namespace Dive
         m_graphics->SetBackbuffer();
 
         auto srv = m_ldrRenderTarget->GetShaderResourceView();
-        m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);  // 원래 srv slot enum class가 없었나...
+        m_graphics->SetShaderResourceView(eShaderStage::PS, 13, &srv);  // 원래 srv slot enum class가 없었나...
         ShaderManager::Get().GetShaderProgram(eShaderPrograms::Resolve)->Bind(m_graphics);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
         m_graphics->SetVertexBuffer(nullptr);
@@ -486,6 +509,22 @@ namespace Dive
             m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)] =
                 m_graphics->CreateSamplerState(desc);
         }
+
+        // Skysphere (Equirectangular 2D 맵 전용)
+        {
+            ZeroMemory(&desc, sizeof(desc));
+            desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // 부드러운 선형 필터링
+            desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;  // 좌우 끝은 자연스럽게 이어지도록 Wrap
+            desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP; // 상하 극점은 찢어지지 않게 Clamp
+            desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+            desc.MaxAnisotropy = 1;
+            desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+            desc.MinLOD = 0;
+            desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+            m_samplerStates[static_cast<size_t>(eSamplerState::SkySphere)] =
+                m_graphics->CreateSamplerState(desc);
+        }
     }
 
     void Renderer::createBuffers()
@@ -493,7 +532,7 @@ namespace Dive
         m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics); 
         m_cbObject = std::make_unique<ConstantBuffer<ObjectData>>(m_graphics);
         m_cbWeather = std::make_unique<ConstantBuffer<WeatherData>>(m_graphics);
-        m_cbLight = std::make_unique<ConstantBuffer<LightData>>(m_graphics);
+        m_cbLight = std::make_unique<ConstantBuffer<LightConstants>>(m_graphics);
 
         m_cbSelectedObject = std::make_unique<ConstantBuffer<SelectedObjectData>>(m_graphics);
 
@@ -717,7 +756,7 @@ namespace Dive
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Object));
             m_cbWeather->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Weather));
-            //m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
+            m_cbLight->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Light));
             m_cbSelectedObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::SelectedObject));
 
             // cs
@@ -729,6 +768,7 @@ namespace Dive
                 m_samplerStates[static_cast<size_t>(eSamplerState::ClampPoint)].Get(),
                 m_samplerStates[static_cast<size_t>(eSamplerState::ClampLinear)].Get(),
                 m_samplerStates[static_cast<size_t>(eSamplerState::Skybox)].Get(),
+                m_samplerStates[static_cast<size_t>(eSamplerState::SkySphere)].Get(),
                 m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)].Get()
             };
             deviceContext->PSSetSamplers(0, static_cast<UINT>(eSamplerState::Count), samplers);
@@ -748,7 +788,7 @@ namespace Dive
         m_weatherData.skyColor = m_skyColor;
         m_cbWeather->Update(m_graphics, m_weatherData);
     }
-
+    
     void Renderer::passGBuffer(Scene* scene)
     {
         m_graphics->BeginRenderPass(m_gbufferPass);
@@ -758,8 +798,6 @@ namespace Dive
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
 
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::GBuffer)->Bind(m_graphics);
-
         for (auto renderable : scene->GetRenderables())
         {
             if (!renderable->IsActive())
@@ -768,6 +806,19 @@ namespace Dive
             auto transform = renderable->GetTransform();
             auto staticMesh = renderable->GetComponent<MeshRenderer>();
             auto material = staticMesh->GetMaterial();
+
+            bool hasTessellation = material->HasMap(eMapType::Displacement);
+
+            if (hasTessellation)
+            {
+                ShaderManager::Get().GetShaderProgram(eShaderPrograms::GBufferTessellation)->Bind(m_graphics);
+                m_graphics->SetTopology(ePrimitiveTopology::PatchList_3_ControlPoints);
+            }
+            else
+            {
+                ShaderManager::Get().GetShaderProgram(eShaderPrograms::GBuffer)->Bind(m_graphics);
+                m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+            }
 
             m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
             m_objectData.id = staticMesh->GetObjectID();
@@ -806,10 +857,9 @@ namespace Dive
 
         m_graphics->EndRenderPass();
     }
-
+    
     void Renderer::passSky(Scene* scene)
     {
-        // adria에선 passForward안에서 다수의 pass가 호출되며 이때 m_forwardPass를 사용한다.
         m_graphics->BeginRenderPass(m_skyboxPass);
 
         m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
@@ -824,6 +874,14 @@ namespace Dive
             auto& envData = scene->GetEnviroment();
             auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
             m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
+        }
+        else if (m_skyMode == eSkyMode::SkySphere)
+        {
+            ShaderManager::Get().GetShaderProgram(eShaderPrograms::SkySphere)->Bind(m_graphics);
+
+            auto& envData = scene->GetEnviroment();
+            auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+            m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);
         }
         else
         {

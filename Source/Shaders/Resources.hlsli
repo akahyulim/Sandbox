@@ -3,13 +3,14 @@ SamplerState WrapLinearSampler : register(s0);
 SamplerState ClampPointSampler : register(s1);
 SamplerState ClampLinearSampler : register(s2);
 SamplerState SkyboxSampler : register(s3);
-SamplerState ShadowCompare : register(s4);
+SamplerState SkySphereSampler : register(s4);
+SamplerState ShadowCompare : register(s5);
 
 // Material Textures (t0 ~ t5)
 Texture2D AlbedoMap : register(t0);
 Texture2D NormalMap : register(t1);
-Texture2D RoughnessMap : register(t2);
-Texture2D MetallicMap : register(t3);
+Texture2D ORMMap : register(t2);            // Ambient Occlusion (R), Roughness (G), Metallic (B) 통합 맵
+Texture2D DisplacementMap : register(t3);   // 테셀레이션 및 디스플레이스먼트용 높이 맵
 Texture2D EmissiveMap : register(t4);
 Texture2D OpacityMap : register(t5);
 
@@ -21,5 +22,6 @@ Texture2D<uint> GBuffer_ObjectID : register(t9);            // 추후 슬롯 맞
 Texture2D<float> GBuffer_Depth : register(t10);             // Depth (깊이 버퍼 - 월드 좌표 복원용)
 
 TextureCube SkyMap : register(t11);
-Texture2D<float4> OffScreen : register(t12);
+Texture2D SkySphere : register(t12);
+Texture2D<float4> OffScreen : register(t13);
 

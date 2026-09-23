@@ -16,7 +16,8 @@ namespace Dive
 		LineList,
 		LineStrip,
 		TriangleList,
-		TriangleStrip
+		TriangleStrip,
+		PatchList_3_ControlPoints
 	};
 
 	enum class eFormat

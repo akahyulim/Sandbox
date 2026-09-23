@@ -20,6 +20,7 @@ namespace Dive
 	enum class eSkyMode : uint8_t
 	{
 		Skybox,
+		SkySphere,
 		UniformColor
 	};
 
@@ -59,6 +60,7 @@ namespace Dive
 			ClampPoint,
 			ClampLinear,
 			Skybox,
+			SkySphere,
 			ShadowCompare,
 			Count
 		};
@@ -161,8 +163,8 @@ namespace Dive
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
 		WeatherData m_weatherData{};
 		std::unique_ptr<ConstantBuffer<WeatherData>> m_cbWeather;
-		LightData m_lightData{};
-		std::unique_ptr<ConstantBuffer<LightData>> m_cbLight;
+		LightConstants m_lightConstants;
+		std::unique_ptr<ConstantBuffer<LightConstants>> m_cbLight;
 
 		uint32_t m_lastSelectedObjectID = 0;
 		std::unique_ptr<ConstantBuffer<SelectedObjectData>> m_cbSelectedObject;
@@ -186,6 +188,6 @@ namespace Dive
 
 		DirectX::XMFLOAT4 m_lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		DirectX::XMFLOAT4 m_lightDir = { -1.0f, -1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 m_ambientColor = { 0.3f, 0.3f, 0.3f, 1.0f };
+		DirectX::XMFLOAT4 m_ambientColor = { 0.05f, 0.05f, 0.05f, 1.0f };
 	};
 }

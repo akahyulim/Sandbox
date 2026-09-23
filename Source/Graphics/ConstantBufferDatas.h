@@ -48,7 +48,7 @@ namespace Dive
         DirectX::XMFLOAT2 tiling{ 1.0f, 1.0f };
         DirectX::XMFLOAT2 offset{ 0.0f, 0.0f };
 
-        float metalicFactor = 0.0f;
+        float metallicFactor = 0.0f;
         uint32_t flags = 0;
         uint32_t padding[2] = { 0, 0 };
     };
@@ -67,14 +67,21 @@ namespace Dive
         uint32_t type = 0;
 
         DirectX::XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
-        float rangeRcp = 1.0f / 50.0f;
+        float rangeRcp = 1.0f / 5.0f;
 
         DirectX::XMFLOAT3 direction = { 0.0f, -1.0f, 0.0f };
-        float paddingRow3 = 0.0f;
+        float intensity = 1.0f;
 
         float cosInnerAngle = 1.0f;
         float cosOuterAngle = 0.707f;
         uint32_t paddingRow4[2] = { 0, 0 };
+    };
+
+    struct LightConstants
+    {
+        LightData lights[32];
+        uint32_t lightCount = 0;
+        uint32_t padding[3] = { 0, 0, 0 };
     };
 
     struct PickingData

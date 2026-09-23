@@ -95,11 +95,12 @@ namespace Dive
 
 					if (auto light = gameObect->GetComponent<Light>())
 					{
-						if (m_directionalLight == nullptr && light->GetLightType() == eLightType::Directional)
+						// 현재 m_direcitonalLight는 사용하지 않는다.
+						//if (m_directionalLight == nullptr && light->GetLightType() == eLightType::Directional)
 						{
-							m_directionalLight = gameObect.get();
+						//	m_directionalLight = gameObect.get();
 						}
-						else
+						//else
 						{
 							m_lights.emplace_back(gameObect.get());
 						}

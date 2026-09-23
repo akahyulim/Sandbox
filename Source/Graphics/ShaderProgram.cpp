@@ -27,6 +27,18 @@ namespace Dive
 		return *this;
 	}
 
+	ShaderProgram& ShaderProgram::SetHullShader(HullShader* hs)
+	{
+		m_hs = hs;
+		return *this;
+	}
+
+	ShaderProgram& ShaderProgram::SetDomainShader(DomainShader* ds)
+	{
+		m_ds = ds;
+		return *this;
+	}
+
 	ShaderProgram& ShaderProgram::SetPixelShader(PixelShader* ps)
 	{
 		m_ps = ps;
@@ -51,6 +63,10 @@ namespace Dive
 			graphics->SetInputLayout(m_il);
 		if (m_vs) 
 			graphics->SetVertexShader(m_vs);
+		if (m_hs)
+			graphics->SetHullShader(m_hs);
+		if (m_ds)
+			graphics->SetDomainShader(m_ds);
 		if (m_ps) 
 			graphics->SetPixelShader(m_ps);
 		if (m_cs) 
@@ -63,6 +79,10 @@ namespace Dive
 			graphics->SetInputLayout(nullptr);
 		if (m_vs) 
 			graphics->SetVertexShader(nullptr);
+		if (m_hs)
+			graphics->SetHullShader(nullptr);
+		if (m_ds)
+			graphics->SetDomainShader(nullptr);
 		if (m_ps) 
 			graphics->SetPixelShader(nullptr);
 		if (m_cs) 

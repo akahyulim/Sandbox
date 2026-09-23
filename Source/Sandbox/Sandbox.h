@@ -38,7 +38,7 @@ namespace Dive
 		void drawCanvasContextMenu();
 		
 		void showEnviroment();
-		void showProperties();
+		void showInspector();
 		void showQuit();
 
 		void newScene();
@@ -51,13 +51,13 @@ namespace Dive
 		Scene* m_scene = nullptr;
 
 		GameObject* m_mainCamera = nullptr;
-		GameObject* m_directionalLight = nullptr;
+		GameObject* m_directionalLight = nullptr;	// 역시 현재 사용하지 않고 있다.
 		GameObject* m_selectedObject = nullptr;
 		GameObject* m_contextTargetObject = nullptr;
 		GameObject* m_field = nullptr;
 
 		bool m_showEnviromentMenu = false;
-		bool m_showPropertiesMenu = false;
+		bool m_showInspectorMenu = false;
 		bool m_showQuitMenu = false;
 
 		bool m_isSceneViewHovered = false;

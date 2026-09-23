@@ -19,12 +19,13 @@ namespace Dive
 		{
 			switch (topology)
 			{
-			case ePrimitiveTopology::PointList:		return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-			case ePrimitiveTopology::LineList:		return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-			case ePrimitiveTopology::LineStrip:		return D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			case ePrimitiveTopology::TriangleList:	return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case ePrimitiveTopology::TriangleStrip:	return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-			default:								return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+			case ePrimitiveTopology::PointList:						return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+			case ePrimitiveTopology::LineList:						return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+			case ePrimitiveTopology::LineStrip:						return D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+			case ePrimitiveTopology::TriangleList:					return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			case ePrimitiveTopology::TriangleStrip:					return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+			case ePrimitiveTopology::PatchList_3_ControlPoints:		return D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
+			default:												return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
 			}
 		}
 
@@ -120,7 +121,10 @@ namespace Dive
 		// 매 프레임 한 번은 초기화하고, 내부 pass 과정에서 참조하는 듯하다.
 		{
 			m_currentVS = nullptr;
+			m_currentHS = nullptr;
+			m_currentDS = nullptr;
 			m_currentPS = nullptr;
+			m_currentCS = nullptr;
 
 			m_currentIL = nullptr;
 
@@ -340,6 +344,24 @@ namespace Dive
 		{
 			m_currentVS = vs;
 			m_deviceContext->VSSetShader(vs ? *vs : nullptr, nullptr, 0);
+		}
+	}
+
+	void Graphics::SetHullShader(HullShader* hs)
+	{
+		if (hs != m_currentHS)
+		{
+			m_currentHS = hs;
+			m_deviceContext->HSSetShader(hs ? *hs : nullptr, nullptr, 0);
+		}
+	}
+
+	void Graphics::SetDomainShader(DomainShader* ds)
+	{
+		if (ds != m_currentDS)
+		{
+			m_currentDS = ds;
+			m_deviceContext->DSSetShader(ds ? *ds : nullptr, nullptr, 0);
 		}
 	}
 

@@ -27,7 +27,17 @@ namespace Dive
 				target = "vs_5_0";
 				break;
 			}
-			case eShaderStage::PS:
+			case eShaderStage::HS:
+			{
+				entryPoint = "MainHS";
+				target = "hs_5_0";
+				break;
+			}case eShaderStage::DS:
+			{
+				entryPoint = "MainDS";
+				target = "ds_5_0";
+				break;
+			}case eShaderStage::PS:
 			{
 				entryPoint = "MainPS";
 				target = "ps_5_0";
@@ -88,6 +98,11 @@ namespace Dive
 			spdlog::error("GBuffer VS 생성 실패");
 			return false;
 		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/GBufferTessellation.hlsl", eInputLayout::Lit))
+		{
+			spdlog::error("GBufferTessellation VS 생성 실패");
+			return false;
+		}
 		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/DeferredLighting.hlsl", eInputLayout::None))
 		{
 			spdlog::error("DeferredLighting VS 생성 실패");
@@ -98,12 +113,30 @@ namespace Dive
 			spdlog::error("Skybox VS 생성 실패");
 			return false;
 		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/SkySphere.hlsl", eInputLayout::Position))
+		{
+			spdlog::error("SkySphere VS 생성 실패");
+			return false;
+		}
 		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/ResolveScene.hlsl", eInputLayout::None))
 		{
 			spdlog::error("ResolveScene VS 생성 실패");
 			return false;
 		}
-		
+
+		// hull shader
+		if (!createHullShader(graphics, "Source/Shaders/GBufferTessellation.hlsl"))
+		{
+			spdlog::error("GBufferTessellation HS 생성 실패");
+			return false;
+		}
+
+		// domain shader
+		if (!createDomainShader(graphics, "Source/Shaders/GBufferTessellation.hlsl"))
+		{
+			spdlog::error("GBufferTessellation DS 생성 실패");
+			return false;
+		}
 
 		// pixel shader
 		if (!createPixelShader(graphics, "Source/Shaders/Test.hlsl"))
@@ -116,6 +149,11 @@ namespace Dive
 			spdlog::error("GBuffer PS 생성 실패");
 			return false;
 		}
+		if (!createPixelShader(graphics, "Source/Shaders/GBufferTessellation.hlsl"))
+		{
+			spdlog::error("GBufferTessellation PS 생성 실패");
+			return false;
+		}
 		if (!createPixelShader(graphics, "Source/Shaders/DeferredLighting.hlsl"))
 		{
 			spdlog::error("DeferredLighting PS 생성 실패");
@@ -124,6 +162,11 @@ namespace Dive
 		if (!createPixelShader(graphics, "Source/Shaders/Skybox.hlsl"))
 		{
 			spdlog::error("Skybox PS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/SkySphere.hlsl"))
+		{
+			spdlog::error("SkySphere PS 생성 실패");
 			return false;
 		}
 		if (!createPixelShader(graphics, "Source/Shaders/UniformSky.hlsl"))
@@ -155,6 +198,16 @@ namespace Dive
 			spdlog::error("GBuffer ShaderProgram 생성 실패");
 			return false;
 		}
+		{
+			if (!createShaderProgram("GBufferTessellation", "GBufferTessellation", eShaderPrograms::GBufferTessellation))
+			{
+				spdlog::error("GBufferTessellation ShaderProgram 생성 실패");
+				return false;
+			}
+
+			m_shaderPrograms[eShaderPrograms::GBufferTessellation]->SetHullShader(m_hss.find("GBufferTessellation")->second.get());
+			m_shaderPrograms[eShaderPrograms::GBufferTessellation]->SetDomainShader(m_dss.find("GBufferTessellation")->second.get());
+		}
 		if (!createShaderProgram("DeferredLighting", "DeferredLighting", eShaderPrograms::DeferredLighting))
 		{
 			spdlog::error("DeferredLighting ShaderProgram 생성 실패");
@@ -165,6 +218,11 @@ namespace Dive
 		if (!createShaderProgram("Skybox", "Skybox", eShaderPrograms::Skybox))
 		{
 			spdlog::error("Skybox ShaderProgram 생성 실패");
+			return false;
+		}
+		if (!createShaderProgram("SkySphere", "SkySphere", eShaderPrograms::SkySphere))
+		{
+			spdlog::error("SkySphere ShaderProgram 생성 실패");
 			return false;
 		}
 		if (!createShaderProgram("Skybox", "UniformSky", eShaderPrograms::UniformSky))
@@ -219,6 +277,42 @@ namespace Dive
 
 		if (eInputLayout::None != type)
 			m_ils[shaderName] = std::make_unique<InputLayout>(graphics, type, blob.Get());
+
+		return true;
+	}
+
+	bool ShaderManager::createHullShader(Graphics* graphics, const std::filesystem::path& path)
+	{
+		std::string shaderName = path.stem().string();
+		if (m_hss.find(shaderName) != m_hss.end())
+		{
+			spdlog::warn("이미 생성 및 저장된 셰이더");
+			return false;
+		}
+
+		auto blob = CompileShader(path, eShaderStage::HS);
+		if (!blob)
+			return false;
+
+		m_hss[shaderName] = std::make_unique<HullShader>(graphics, blob.Get());
+
+		return true;
+	}
+
+	bool ShaderManager::createDomainShader(Graphics* graphics, const std::filesystem::path& path)
+	{
+		std::string shaderName = path.stem().string();
+		if (m_dss.find(shaderName) != m_dss.end())
+		{
+			spdlog::warn("이미 생성 및 저장된 셰이더");
+			return false;
+		}
+
+		auto blob = CompileShader(path, eShaderStage::DS);
+		if (!blob)
+			return false;
+
+		m_dss[shaderName] = std::make_unique<DomainShader>(graphics, blob.Get());
 
 		return true;
 	}

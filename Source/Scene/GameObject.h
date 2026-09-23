@@ -23,9 +23,11 @@ namespace Dive
 
 		void Update();
 
-		template<typename T>T* AddComponent();
+		template<typename T> T* AddComponent();
 
-		template<typename T>T* GetComponent() const;
+		template<typename T> bool HasComponent() const;
+
+		template<typename T> T* GetComponent() const;
 		Component* GetComponentByType(eComponentType type) const;
 
 		Transform* GetTransform() const { return m_transform.get(); }
@@ -81,6 +83,12 @@ namespace Dive
 		notifySceneChanged();
 
 		return componentPtr;
+	}
+
+	template<typename T>
+	inline bool GameObject::HasComponent() const
+	{
+		return GetComponent<T>() != nullptr;
 	}
 
 	template<typename T>

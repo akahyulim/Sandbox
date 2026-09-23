@@ -66,6 +66,8 @@ namespace Dive
 		void SetBlendState(ID3D11BlendState* bs, float* blendFactor = nullptr, uint32_t smaplerMask = 0xFFFFFFFF);
 
 		void SetVertexShader(VertexShader* vs);
+		void SetHullShader(HullShader* hs);
+		void SetDomainShader(DomainShader* ds);
 		void SetPixelShader(PixelShader* ps);
 		void SetComputeShader(ComputeShader* cs);
 		void SetInputLayout(InputLayout* il);
@@ -99,6 +101,8 @@ namespace Dive
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_backbufferRTV;
 
 		VertexShader* m_currentVS = nullptr;
+		HullShader* m_currentHS = nullptr;
+		DomainShader* m_currentDS = nullptr;
 		PixelShader* m_currentPS = nullptr;
 		ComputeShader* m_currentCS = nullptr;
 		InputLayout* m_currentIL = nullptr;

@@ -181,6 +181,10 @@ namespace Dive
         m_skyCubemaps.emplace("Cloudy", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/cloudy_skybox.dds"));
         m_skyCubemaps.emplace("Sunset", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/sunsetcube1024.dds"));
         m_skyCubemaps.emplace("Desert", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/desertcube1024.dds"));
+
+        m_skyCubemaps.emplace("night_puresky", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/qwantani_night_puresky_4k.hdr"));
+        m_skyCubemaps.emplace("dawn", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/aarfontein_dawn_2_4k.hdr"));
+        m_skyCubemaps.emplace("clear_night", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/rogland_clear_night_4k.hdr"));
  
         newScene();
     }
@@ -200,7 +204,7 @@ namespace Dive
                     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
                     {
                         if (m_showEnviromentMenu) m_showEnviromentMenu = false;
-                        else if (m_showPropertiesMenu) m_showPropertiesMenu = false;
+                        else if (m_showInspectorMenu) m_showInspectorMenu = false;
                         else if (m_selectedObject) setSelectedObject(nullptr);
                         else m_showQuitMenu = !m_showQuitMenu;
                     }
@@ -212,7 +216,7 @@ namespace Dive
 
                     if (ImGui::IsKeyPressed(ImGuiKey_I) && m_selectedObject)
                     {
-                        m_showPropertiesMenu = !m_showPropertiesMenu;
+                        m_showInspectorMenu = !m_showInspectorMenu;
                     }
 
                     if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q))
@@ -436,7 +440,7 @@ namespace Dive
         ImGui::End();
 
         showEnviroment();
-        showProperties();
+        showInspector();
         showQuit();
     }
 
@@ -484,7 +488,7 @@ namespace Dive
                 
                 ImGui::Separator();
 
-                ImGui::MenuItem("Properties", "I", &m_showPropertiesMenu);
+                ImGui::MenuItem("Inspector", "I", &m_showInspectorMenu);
             }
             else
             {
@@ -544,6 +548,15 @@ namespace Dive
                     }
                     if (ImGui::MenuItem("Point Light"))
                     {
+                        auto gameObject = m_scene->CreateGameObject();
+                        gameObject->SetName("PointLight");
+                        auto light = gameObject->AddComponent<Light>();
+                        light->SetLightType(eLightType::Point);
+                        light->SetColor(1.0f, 0.0f, 0.0f);
+                        auto transform = gameObject->GetTransform();
+                        transform->SetPosition(0.0f, 5.0f, 0.0f);
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
                     }
                     ImGui::EndMenu();
                 }
@@ -558,7 +571,7 @@ namespace Dive
         if (!m_showEnviromentMenu)
             return;
 
-        if (m_showPropertiesMenu) m_showPropertiesMenu = false;
+        if (m_showInspectorMenu) m_showInspectorMenu = false;
 
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
@@ -587,15 +600,28 @@ namespace Dive
 
                 int currentSkyMode = static_cast<int>(renderer->GetSkyMode());
 
+                // Skybox랑 Sphere를 하나로 합치고 싶다.
                 if (ImGui::RadioButton("Skybox", &currentSkyMode, 0))
                     renderer->SetSkyMode(eSkyMode::Skybox);
                 ImGui::SameLine();
-                if(ImGui::RadioButton("Uniform Color", &currentSkyMode, 1))
+                if (ImGui::RadioButton("SkySphere", &currentSkyMode, 1))
+                    renderer->SetSkyMode(eSkyMode::SkySphere);
+                ImGui::SameLine();
+                if(ImGui::RadioButton("Uniform Color", &currentSkyMode, 2))
                     renderer->SetSkyMode(eSkyMode::UniformColor);
 
                 if (currentSkyMode == 0)
                 {
                     const char* items[] = { "Cloudy", "Sunset", "Desert"};
+                    static int item_current = 0;
+                    ImGui::Combo("cube map", &item_current, items, IM_COUNTOF(items));
+
+                    auto handle = m_skyCubemaps[items[item_current]];
+                    m_scene->GetEnviroment().skyboxCubemap = handle;    // 이 부분이 마음에 들지 않는다.
+                }
+                if (currentSkyMode == 1)
+                {
+                    const char* items[] = { "night_puresky", "dawn", "clear_night"};
                     static int item_current = 0;
                     ImGui::Combo("cube map", &item_current, items, IM_COUNTOF(items));
 
@@ -612,7 +638,8 @@ namespace Dive
 
             ImGui::Separator();
 
-            // 일단 Lighting부터 적용하자.
+            // 현재 dir light가 Renderer에 귀속되어 있다.
+            // weather 구현 중 같이 묶인 것 같다.
             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             if (ImGui::CollapsingHeader("Lighting"))
             {
@@ -671,9 +698,9 @@ namespace Dive
         ImGui::PopStyleColor();
     }
 
-    void Sandbox::showProperties()
+    void Sandbox::showInspector()
     {
-        if (!m_showPropertiesMenu || !m_selectedObject)
+        if (!m_showInspectorMenu || !m_selectedObject)
             return;
 
         // 호출 순서때문에 이게 안먹힌다.
@@ -690,7 +717,7 @@ namespace Dive
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
 
-        if (ImGui::Begin("Properties", &m_showPropertiesMenu, flags))
+        if (ImGui::Begin("Inspector", &m_showInspectorMenu, flags))
         {
             // Active
             {
@@ -731,6 +758,85 @@ namespace Dive
                 DrawVec3Control("Scale", scale, 1.0f, 100.0f);
                 transform->SetLocalScale(scale);
             }
+
+            ImGui::Separator();
+
+            if (m_selectedObject->HasComponent<Light>())
+            {
+                ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+                if (ImGui::CollapsingHeader("LIGHT"))
+                {
+                    auto light = m_selectedObject->GetComponent<Light>();
+
+                    // type
+                    ImGui::PushID("LightType");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Type");
+                    ImGui::NextColumn();
+                    std::vector<const char*> lightTypes;
+                    lightTypes.push_back("Direcitonal");
+                    lightTypes.push_back("Point");
+                    lightTypes.push_back("Spot");
+                    int currentType = static_cast<int>(light->GetLightType());
+                    ImGui::Combo("##LightType", &currentType, lightTypes.data(), static_cast<int>(lightTypes.size()));
+                    light->SetLightType(static_cast<eLightType>(currentType));
+                    ImGui::Columns(1);
+                    ImGui::PopID();
+
+                    if (currentType != static_cast<int>(eLightType::Directional))
+                    {
+                        // range
+                        ImGui::PushID("LightRange");
+                        ImGui::Columns(2);
+                        ImGui::SetColumnWidth(0, 150.0f);
+                        ImGui::Text("Range");
+                        ImGui::NextColumn();
+                        float range = light->GetRange();
+                        ImGui::DragFloat("##LightRange", &range, 0.1f, 0.0f, 0.0f, "%.2f");
+                        light->SetRange(range);
+                        ImGui::Columns(1);
+                        ImGui::PopID();
+
+                        if (currentType == static_cast<int>(eLightType::Spot))
+                        {
+                            // spot angles
+                            static DirectX::XMFLOAT2 spotAngles = { 0.0f, 0.0f };
+                            spotAngles.x = 0;// light->GetInnerAngleDegrees();
+                            spotAngles.y = 0;// light->GetOuterAngleDegrees();
+                            DrawVec2Control("Spot Angles", spotAngles, 0.0f, 150.0f, "I", "O");
+                            //light->SetInnerAngleDegrees(spotAngles.x);
+                            //light->SetOuterAngleDegrees(spotAngles.y);
+                        }
+                    }
+
+                    // color
+                    ImGui::PushID("LightColor");
+                    ImVec4 color = { light->GetColor().x, light->GetColor().y, light->GetColor().z, 1.0f };
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Color");
+                    ImGui::NextColumn();
+                    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
+                    ImGui::ColorEdit3("##LightColor", (float*)&color, flags);
+                    light->SetColor(color.x, color.y, color.z);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
+
+                    // intensity
+                    ImGui::PushID("LightIntensity");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Intensity");
+                    ImGui::NextColumn();
+                    float intensity = light->GetIntensity();
+                    ImGui::DragFloat("##LightIntensity", &intensity, 0.1f, 0.0f, 8.0f, "%.2f");
+                    light->SetIntensity(intensity);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
+                }
+            }
+
 
             ImGui::Separator();
 
@@ -827,28 +933,27 @@ namespace Dive
                 ImGui::Columns(1);
                 ImGui::PopID();
 
+                textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
+                    material->GetMap(eMapType::ORM) : 0);
+
                 // Metalic Map
-                ImGui::PushID("MetalicMap");
-                textureID = (ImTextureID)(material->GetMap(eMapType::Metallic) ?
-                    material->GetMap(eMapType::Metallic) : 0);
+                ImGui::PushID("MetallicMap");
                 ImGui::Columns(2);
                 ImGui::SetColumnWidth(0, 150.0f);
                 if (ImGui::ImageButton("##Metalic", textureID, ImVec2(20, 20)))
                 {
                 }
                 ImGui::SameLine();
-                ImGui::Text("Metalic Map");
+                ImGui::Text("Metallic Map");
                 ImGui::NextColumn();
-                float metalicFactor = material->GetMetalicFactor();
-                ImGui::SliderFloat("##MetalicFactor", &metalicFactor, 0.0f, 1.0f, "%.2f");
-                material->SetMetalicFactor(metalicFactor);
+                float metallicFactor = material->GetMetallicFactor();
+                ImGui::SliderFloat("##MetallicFactor", &metallicFactor, 0.0f, 1.0f, "%.2f");
+                material->SetMetallicFactor(metallicFactor);
                 ImGui::Columns(1);
                 ImGui::PopID();
 
                 // Roughness Map
                 ImGui::PushID("RoughnessMap");
-                textureID = (ImTextureID)(material->GetMap(eMapType::Roughness) ?
-                    material->GetMap(eMapType::Metallic) : 0);
                 ImGui::Columns(2);
                 ImGui::SetColumnWidth(0, 150.0f);
                 if (ImGui::ImageButton("##Roughness", textureID, ImVec2(20, 20)))
@@ -862,7 +967,7 @@ namespace Dive
                 material->SetRoughnessFactor(roughnessFactor);
                 ImGui::Columns(1);
                 ImGui::PopID();
-
+                
                 // Emissive Map
                 ImGui::PushID("EmissiveMap");
                 textureID = (ImTextureID)(material->GetMap(eMapType::Emissive) ?
@@ -965,9 +1070,21 @@ namespace Dive
         m_scene->SetName("Sandbox");
 
         auto& env = m_scene->GetEnviroment();
-        env.skyboxCubemap = m_skyCubemaps["Cloudy"];
+        env.skyboxCubemap = m_skyCubemaps["clear_night"];
+        m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
 
-        m_mainCamera = m_scene->GetCamera();
+        // camera
+        {
+            m_mainCamera = m_scene->GetCamera();
+            auto transform = m_mainCamera->GetTransform();
+            transform->SetPosition(0.0f, 5.0f, -12.0f);
+            transform->SetRotationByDegrees({15.0f, 0.0f, 0.0f});
+        }
+
+        {
+            auto renderer = m_engine->GetRenderer();
+            renderer->SetLightDir(1.0f, -1.0f, 1.0f);
+        }
 
         // field
         {
@@ -977,8 +1094,10 @@ namespace Dive
             meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
 
             auto mtrl = MaterialManager::Get().CreateMaterial("Field");
-            mtrl->SetMap("Assets/Textures/stone01.tga", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/normal01.tga", eMapType::Normal);
+            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_nor_dx_1k.png", eMapType::Normal);
+            //mtrl->SetMap("Assets/Textures/rocky_terrain_02_1k/rocky_terrain_02_disp_1k.png", eMapType::Displacement);
+            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_arm_1k.png", eMapType::ORM);
             meshRenderer->SetMaterial(mtrl);
         }
 
@@ -990,10 +1109,14 @@ namespace Dive
             cube->SetName("Cube");
 
             auto mtrl = MaterialManager::Get().CreateMaterial("Cube");
-            mtrl->SetBaseColor(1.0f, 0.0f, 0.0f, 1.0f);
+            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_nor_dx_1k.png", eMapType::Normal);
+            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_arm_1k.png", eMapType::ORM);
             meshRenderer->SetMaterial(mtrl);
 
-            cube->GetTransform()->SetPosition(-3.0f, 1.0f, 3.0f);
+            auto transform = cube->GetTransform();
+            transform->SetScale({2.0f, 2.0f, 2.0f});
+            transform->SetPosition(-2.0f, 1.0f, 3.0f);
         }
 
         // Spherer
@@ -1003,11 +1126,13 @@ namespace Dive
             meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
             sphere->SetName("Sphere");
 
-            //auto mtrl = MaterialManager::Get().CreateMaterial("Sphere");
-            //mtrl->SetMap("Assets/Textures/dokev.jpeg", eMapType::Albedo);
-            //meshRenderer->SetMaterial(mtrl);
+            auto mtrl = MaterialManager::Get().CreateMaterial("Sphere");
+            mtrl->SetMap("Assets/Textures/marble_cliff_06_1k/marble_cliff_06_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/marble_cliff_06_1k/marble_cliff_06_nor_dx_1k.png", eMapType::Normal);
+            meshRenderer->SetMaterial(mtrl);
 
-            sphere->GetTransform()->SetPosition(0.0f, 1.0f, 3.0f);
+            auto transform = sphere->GetTransform();
+            transform->SetPosition(0.0f, 1.0f, -3.0f);
         }
 
         // Capsule
@@ -1018,10 +1143,13 @@ namespace Dive
             capsule->SetName("Capsule");
 
             auto mtrl = MaterialManager::Get().CreateMaterial("Capsule");
-            mtrl->SetBaseColor(0.0f, 0.0f, 1.0f, 1.0f);
+            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_nor_dx_1k.png", eMapType::Normal);
+            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_arm_1k.png", eMapType::ORM);
             meshRenderer->SetMaterial(mtrl);
 
-            capsule->GetTransform()->SetPosition(3.0f, 1.0f, 3.0f);
+            auto transform = capsule->GetTransform();
+            transform->SetPosition(3.0f, 1.0f, -3.0f);
         }
 
         // Quad Left
@@ -1032,7 +1160,10 @@ namespace Dive
             quad->SetName("Quad_Left");
 
             auto mtrl = MaterialManager::Get().CreateMaterial("Quad_Left");
-            mtrl->SetMap("Assets/Textures/dokev.jpeg", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_nor_dx_1k.png", eMapType::Normal);
+            //mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_disp_1k.png", eMapType::Displacement);
+            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_arm_1k.png", eMapType::ORM);
             meshRenderer->SetMaterial(mtrl);
 
             quad->GetTransform()->SetScale({ 5.0f, 5.0f, 1.0f });
@@ -1046,12 +1177,14 @@ namespace Dive
             meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
             quad->SetName("Quad_Right");
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Quad_Right"); 
-            mtrl->SetMap("Assets/Textures/dmc.jpg", eMapType::Albedo);
+            auto mtrl = MaterialManager::Get().CreateMaterial("Quad_Right");
+            mtrl->SetMap("Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_diff_1k.png", eMapType::Albedo);
+            mtrl->SetMap("Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_nor_dx_1k.png", eMapType::Normal);
             meshRenderer->SetMaterial(mtrl);
 
-            quad->GetTransform()->SetScale({ 5.0f, 5.0f, 1.0f });
-            quad->GetTransform()->SetPosition(2.5f, 2.5f, 5.0f);
+            auto transform = quad->GetTransform();
+            transform->SetScale({ 5.0f, 5.0f, 1.0f });
+            transform->SetPosition(2.5f, 2.5f, 5.0f);
         }
     }
 
@@ -1065,7 +1198,7 @@ namespace Dive
             uint32_t id = (obj != nullptr) ? obj->GetComponent<MeshRenderer>()->GetObjectID() : 0; // 엔진 설계에 맞게 ID 취득
             m_engine->GetRenderer()->SetSelectedObjectID(id);
 
-            m_showPropertiesMenu = false;
+            m_showInspectorMenu = false;
         }
     }
 }

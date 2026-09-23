@@ -18,6 +18,8 @@ namespace Dive
 
 	struct EnviromentData
 	{
+		// skysphere랑 공유해도 된다.
+		// 따라서 이름을 바꾸는 편이 낫다
 		TextureHandle skyboxCubemap = INVALID_TEXTURE_HANDLE;
 	};
 

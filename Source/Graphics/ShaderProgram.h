@@ -4,6 +4,8 @@
 namespace Dive
 {
 	class VertexShader;
+	class HullShader;
+	class DomainShader;
 	class PixelShader;
 	class ComputeShader;
 	class InputLayout;
@@ -17,6 +19,8 @@ namespace Dive
 		~ShaderProgram() = default;
 
 		ShaderProgram& SetVertexShader(VertexShader* vs);
+		ShaderProgram& SetHullShader(HullShader* hs);
+		ShaderProgram& SetDomainShader(DomainShader* ds);
 		ShaderProgram& SetPixelShader(PixelShader* ps);
 		ShaderProgram& SetComputeShader(ComputeShader* cs);
 		ShaderProgram& SetInputLayout(InputLayout* il);
@@ -26,6 +30,8 @@ namespace Dive
 
 	private:
 		VertexShader* m_vs = nullptr;
+		HullShader* m_hs = nullptr;
+		DomainShader* m_ds = nullptr;
 		PixelShader* m_ps = nullptr;
 		ComputeShader* m_cs = nullptr;
 

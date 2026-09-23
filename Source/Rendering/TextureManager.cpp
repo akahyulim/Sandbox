@@ -112,6 +112,8 @@ namespace Dive
 			return loadDDSTexture(filepath, mips);
 		case TextureFormat::TGA:
 			return loadTGATexture(filepath, mips);
+		case TextureFormat::HDR:
+			return loadHDRTexture(filepath);
 		case TextureFormat::BMP:
 		case TextureFormat::PNG:
 		case TextureFormat::JPG:
@@ -289,6 +291,25 @@ namespace Dive
 		return createTexture(filepath, scratchImage, metaData, mips);
 	}
 
+	TextureHandle TextureManager::loadHDRTexture(const std::wstring& filepath)
+	{
+		DirectX::TexMetadata metaData{};
+		DirectX::ScratchImage scratchImage;
+
+		auto hr = DirectX::LoadFromHDRFile(
+			filepath.c_str(),
+			&metaData,
+			scratchImage
+		);
+		if (FAILED(hr))
+		{
+			spdlog::error("Load HDR Texture 실패: {}", ErrorUtils::ToVerbose(hr));
+			return INVALID_TEXTURE_HANDLE;
+		}
+
+		return createTexture(filepath, scratchImage, metaData, false);
+	}
+
 	TextureHandle TextureManager::createTexture(const std::wstring& filepath, DirectX::ScratchImage& scratchImage, DirectX::TexMetadata& metaData, bool mips)
 	{
 		{
@@ -318,6 +339,7 @@ namespace Dive
 			else
 			{
 				scratchImage = std::move(mipChain);
+				metaData.mipLevels = scratchImage.GetMetadata().mipLevels;
 			}
 		}
 

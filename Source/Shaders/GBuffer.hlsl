@@ -61,7 +61,19 @@ PSOutput MainPS(VSToPS input)
         albedo *= AlbedoMap.Sample(WrapLinearSampler, uv).xyz;
         albedo *= albedo;
     }
-    output.AlbedoRoughness = float4(albedo, materialData.roughnessFactor);
+    
+    float roughness = materialData.roughnessFactor;
+    float metallic = materialData.metallicFactor;
+
+    if (HasORMMap())
+    {
+        float3 orm = ORMMap.Sample(WrapLinearSampler, uv).xyz;
+        //orm.r (AO는 필요에 따라 Ambient Occlusion 렌더 타겟에 쓸 수 있음)
+        roughness *= orm.g;
+        metallic *= orm.b;
+    }
+    
+    output.AlbedoRoughness = float4(albedo, roughness);
     
     float3 normal = input.Normal;
     if (HasNormalMap())
@@ -71,10 +83,9 @@ PSOutput MainPS(VSToPS input)
 
         normal = normalize((bumpMap.x * input.Tangent) + (bumpMap.y * input.BiNormal) + (bumpMap.z * input.Normal));
     }
-    output.NormalMetallic = float4(normal * 0.5f + 0.5f, materialData.metallicFactor);
+    output.NormalMetallic = float4(normal * 0.5f + 0.5f, metallic);
     
     output.Emissive = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    
     output.ObjectID = objectData.id;
     
     return output;

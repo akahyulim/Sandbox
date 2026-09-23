@@ -14,8 +14,8 @@ namespace Dive
 	{
 		Albedo,
 		Normal,
-		Roughness,
-		Metallic,
+		ORM,         // Occlusion (R), Roughness (G), Metallic (B) 통합 맵
+		Displacement,
 		Emissive,
 		Opacity,
 		Count
@@ -31,6 +31,7 @@ namespace Dive
 
 		ID3D11ShaderResourceView* GetMap(eMapType type) const;
 		void SetMap(const std::string& path, eMapType type);
+		bool HasMap(eMapType type) const;
 
 		DirectX::XMFLOAT4 GetBaseColor() const { return m_data.baseColor; }
 		void SetBaseColor(const DirectX::XMFLOAT4& color);
@@ -51,8 +52,8 @@ namespace Dive
 		void SetOffset(const DirectX::XMFLOAT2& offset);
 		void SetOffset(float x, float y);
 
-		float GetMetalicFactor() const { return m_data.metalicFactor; }
-		void SetMetalicFactor(float factor);
+		float GetMetallicFactor() const { return m_data.metallicFactor; }
+		void SetMetallicFactor(float factor);
 
 		uint32_t GetFlags() const { return m_data.flags; }
 

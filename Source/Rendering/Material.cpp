@@ -29,11 +29,33 @@ namespace Dive
 		m_maps[slot] =  TextureManager::Get().LoadTexture(path);
 
 		if (m_maps[slot] != INVALID_TEXTURE_HANDLE)
+		{
 			m_data.flags |= (1U << slot);
+
+			if (type == eMapType::ORM)
+			{
+				m_data.roughnessFactor = 1.0f;
+				m_data.metallicFactor = 1.0f;
+			}
+		}
 		else
+		{
 			m_data.flags &= ~(1U << slot);
 
+			if (type == eMapType::ORM)
+			{
+				m_data.roughnessFactor = 0.0f;
+				m_data.metallicFactor = 0.0f;
+			}
+		}
+
 		MarkDirty();
+	}
+
+	bool Material::HasMap(eMapType type) const
+	{
+		size_t slot = static_cast<size_t>(type);
+		return m_maps[slot] != INVALID_TEXTURE_HANDLE;
 	}
 
 	void Material::SetBaseColor(const DirectX::XMFLOAT4& color)
@@ -106,11 +128,11 @@ namespace Dive
 		SetOffset(DirectX::XMFLOAT2(x, y));
 	}
 
-	void Material::SetMetalicFactor(float factor)
+	void Material::SetMetallicFactor(float factor)
 	{
-		if (m_data.metalicFactor != factor)
+		if (m_data.metallicFactor != factor)
 		{
-			m_data.metalicFactor = factor;
+			m_data.metallicFactor = factor;
 			MarkDirty();
 		}
 	}

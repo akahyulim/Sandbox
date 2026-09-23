@@ -39,6 +39,30 @@ namespace Dive
 		Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vs;
 	};
 
+	class HullShader : public Shader
+	{
+	public:
+		HullShader(Graphics* graphics, ID3DBlob* code);
+		~HullShader() override;
+
+		operator ID3D11HullShader* () const { return m_hs.Get(); }
+
+	private:
+		Microsoft::WRL::ComPtr<ID3D11HullShader> m_hs;
+	};
+
+	class DomainShader : public Shader
+	{
+	public:
+		DomainShader(Graphics* graphics, ID3DBlob* code);
+		~DomainShader() override;
+
+		operator ID3D11DomainShader* () const { return m_ds.Get(); }
+
+	private:
+		Microsoft::WRL::ComPtr<ID3D11DomainShader> m_ds;
+	};
+
 	class PixelShader : public Shader
 	{
 	public:

@@ -57,6 +57,7 @@ namespace Dive
 		TextureHandle loadDDSTexture(const std::wstring& filepath, bool mips);
 		TextureHandle loadTGATexture(const std::wstring& filepath, bool mips);
 		TextureHandle loadWICTexture(const std::wstring& filepath, bool mips);
+		TextureHandle loadHDRTexture(const std::wstring& filepath);
 		TextureHandle createTexture(const std::wstring& name, DirectX::ScratchImage& scratchImage, DirectX::TexMetadata& metaData, bool mips);
 
 	private:

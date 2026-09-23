@@ -51,11 +51,18 @@ struct LightData
     float rangeRcp; // c1.w
     
     float3 direction; // c2.xyz
-    float paddingRow3; // c2.w
+    float intensity; // c2.w
     
     float cosInnerAngle; // c3.x
     float cosOuterAngle; // c3.y
     float2 paddingRow4; // c3.zw
+};
+
+struct LightConstants
+{
+    LightData lights[32];
+    uint lightCount;
+    uint padding[3];
 };
 
 struct SelectedObjectData
@@ -86,7 +93,7 @@ cbuffer cbWeather : register(b3)
 
 cbuffer cbLightData : register(b4)
 {
-    LightData lightData;
+    LightConstants lights;
 }
 
 cbuffer cbSelectedObjectData : register(b5)
@@ -101,4 +108,14 @@ bool HasAlbedoMap()
 bool HasNormalMap()
 {
     return materialData.flags & (1 << 1);
+}
+
+bool HasORMMap()
+{
+    return materialData.flags & (1 << 2);
+}
+
+bool HasDisplacementMap()
+{
+    return materialData.flags & (1 << 3);
 }

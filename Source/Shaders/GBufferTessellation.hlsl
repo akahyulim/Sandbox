@@ -36,7 +36,7 @@ struct DSToPS
     float3 Tangent : TANGENT;
     float3 BiNormal : BINORMAL;
 };
-
+/*
 VSOutput MainVS(VSInput input)
 {
     VSOutput output;
@@ -56,7 +56,26 @@ VSOutput MainVS(VSInput input)
     
     return output;
 }
-
+*/
+VSOutput MainVS(VSInput input)
+{
+    VSOutput output;
+    
+    float4 position = input.Position;
+    position.w = 1.0f;
+    
+    // 월드 좌표까지만 계산
+    output.PositionW = mul(position, objectData.model);
+    output.UV = input.UV;
+    output.Normal = mul(input.Normal, (float3x3) objectData.model);
+    output.Normal = normalize(output.Normal);
+    output.Tangent = mul(input.Tangent, (float3x3) objectData.model);
+    output.Tangent = normalize(output.Tangent);
+    output.BiNormal = mul(input.BiNormal, (float3x3) objectData.model);
+    output.BiNormal = normalize(output.BiNormal);
+    
+    return output;
+}
 // =========================================================================
 // 2. Hull Shader - Patch Constant Function (얼마나 잘게 쪼갤지 결정)
 // =========================================================================
@@ -66,8 +85,36 @@ HS_CONSTANT_DATA_OUTPUT CalcPatchConstants(
 {
     HS_CONSTANT_DATA_OUTPUT output;
 
+    // 1. 패치의 3개 정점 중점(Center) 계산 (또는 각 정점과 카메라 거리 계산)
+    float3 patchCenter = (patch[0].PositionW.xyz + patch[1].PositionW.xyz + patch[2].PositionW.xyz) / 3.0f;
+
+    // 2. 카메라 위치와의 거리 계산 (frameData 등에 카메라 월드 포지션이 있다고 가정)
+    float distanceToCamera = distance(patchCenter, frameData.cameraPosition.xyz);
+
+    // 3. 거리에 따른 테셀레이션 팩터 조절 (거리가 가까울수록 큼, 멀어지면 1.0으로 수렴)
+    // 예: 최소 거리 5m 이내는 팩터 16, 최대 거리 50m 이상은 팩터 1 (테셀레이션 안 함)
+    float minDistance = 5.0f;
+    float maxDistance = 50.0f;
+    
+    // 거리에 비례하여 선형 또는 지수 함수로 보간 (saturate로 0~1 제한)
+    float factor = 1.0f + 15.0f * saturate(1.0f - (distanceToCamera - minDistance) / (maxDistance - minDistance));
+
+    output.EdgeTess[0] = factor;
+    output.EdgeTess[1] = factor;
+    output.EdgeTess[2] = factor;
+    output.InsideTess = factor;
+
+    return output;
+}
+/*
+HS_CONSTANT_DATA_OUTPUT CalcPatchConstants(
+    InputPatch<VSOutput, 3> patch,
+    uint patchID : SV_PrimitiveID)
+{
+    HS_CONSTANT_DATA_OUTPUT output;
+
     // TODO: 카메라와의 거리에 따른 동적 테셀레이션 레벨 조절 가능 (우선 고정값 4.0f)
-    float tessFactor = 2.0f;
+    float tessFactor = 4.0f; //16.0f;
 
     output.EdgeTess[0] = tessFactor;
     output.EdgeTess[1] = tessFactor;
@@ -76,7 +123,7 @@ HS_CONSTANT_DATA_OUTPUT CalcPatchConstants(
 
     return output;
 }
-
+*/
 // =========================================================================
 // 3. Hull Shader - Control Point Function
 // =========================================================================
@@ -93,6 +140,61 @@ VSOutput MainHS(InputPatch<VSOutput, 3> patch, uint i : SV_OutputControlPointID)
 // =========================================================================
 // 4. Domain Shader (정점 분할 및 디스플레이스먼트 적용)
 // =========================================================================
+[domain("tri")]
+DSToPS MainDS(
+    HS_CONSTANT_DATA_OUTPUT inputConst,
+    const OutputPatch<VSOutput, 3> patch,
+    float3 barycentricCoords : SV_DomainLocation)
+{
+    DSToPS output;
+
+    // 바리센트릭 좌표를 이용한 월드 포지션 보간
+    output.WorldPos = patch[0].PositionW.xyz * barycentricCoords.x +
+                      patch[1].PositionW.xyz * barycentricCoords.y +
+                      patch[2].PositionW.xyz * barycentricCoords.z;
+
+    output.UV = patch[0].UV * barycentricCoords.x +
+                patch[1].UV * barycentricCoords.y +
+                patch[2].UV * barycentricCoords.z;
+
+    output.Normal = normalize(patch[0].Normal * barycentricCoords.x +
+                              patch[1].Normal * barycentricCoords.y +
+                              patch[2].Normal * barycentricCoords.z);
+
+    output.Tangent = normalize(patch[0].Tangent * barycentricCoords.x +
+                               patch[1].Tangent * barycentricCoords.y +
+                               patch[2].Tangent * barycentricCoords.z);
+
+    output.BiNormal = normalize(patch[0].BiNormal * barycentricCoords.x +
+                                patch[1].BiNormal * barycentricCoords.y +
+                                patch[2].BiNormal * barycentricCoords.z);
+
+    // 디스플레이스먼트 적용 (월드 공간 기준)
+    float2 uv = (output.UV * materialData.tiling) + materialData.offset;
+    
+    if (HasDisplacementMap())
+    {
+        float height = DisplacementMap.SampleLevel(WrapLinearSampler, uv, 0).r;
+        output.WorldPos += output.Normal * (height * materialData.heightScale);
+    }
+    /*
+    if (HasDisplacementMap())
+    {
+        float height = DisplacementMap.SampleLevel(WrapLinearSampler, uv, 0).r;
+        
+        // ★ 0~1 범위를 -0.5 ~ 0.5 범위로 변환 (0.5가 기본 평면 높이가 됨)
+        float heightOffset = height - 0.5f;
+        
+        float heightScale = 0.2f; // 타일은 너무 높으면 깨지므로 0.2~0.3 정도로 낮춰서 테스트
+        output.WorldPos += output.Normal * (heightOffset * heightScale);
+    }
+*/
+    // ★ 여기서 딱 한 번만 뷰-프로젝션 행렬 곱하여 클립 공간(SV_POSITION)으로 변환
+    output.PositionH = mul(float4(output.WorldPos, 1.0f), frameData.viewProjection);
+
+    return output;
+}
+/*
 [domain("tri")]
 DSToPS MainDS(
     HS_CONSTANT_DATA_OUTPUT inputConst,
@@ -143,7 +245,7 @@ DSToPS MainDS(
 
     return output;
 }
-
+*/
 struct PSOutput
 {
     float4 AlbedoRoughness : SV_TARGET0;
@@ -177,6 +279,20 @@ PSOutput MainPS(DSToPS input)
         //orm.r (AO는 필요에 따라 Ambient Occlusion 렌더 타겟에 쓸 수 있음)
         roughness *= orm.g;
         metallic *= orm.b;
+    }
+    else
+    {
+        if (HasRoughnessMap())
+        {
+            float value = RoughnessMap.Sample(WrapLinearSampler, uv).r;
+            roughness *= value;
+        }
+        
+        if (HasMetallicMap())
+        {
+            float value = MetallicMap.Sample(WrapLinearSampler, uv).r;
+            metallic *= value;
+        }
     }
 
     output.AlbedoRoughness = float4(albedo, roughness);

@@ -337,6 +337,9 @@
     <None Include="Source\Shaders\Resources.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Source\Shaders\Lighting.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Shaders\ResolveScene.hlsl">
@@ -351,7 +354,7 @@
     <FxCompile Include="Source\Shaders\GBuffer.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Shaders\DeferredLighting.hlsl">
+    <FxCompile Include="Source\Shaders\Deferred.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\Picker.hlsl">
@@ -364,6 +367,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\GBufferTessellation.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Shaders\Forward.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

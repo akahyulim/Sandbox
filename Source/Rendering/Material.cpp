@@ -22,7 +22,7 @@ namespace Dive
 		return TextureManager::Get().GetTextureView(m_maps[static_cast<size_t>(type)]);
 	}
 
-	void Material::SetMap(const std::string& path, eMapType type)
+	void Material::SetMap(eMapType type, const std::string& path)
 	{
 		size_t slot = static_cast<size_t>(type);
 
@@ -37,6 +37,18 @@ namespace Dive
 				m_data.roughnessFactor = 1.0f;
 				m_data.metallicFactor = 1.0f;
 			}
+			else
+			{
+				if (type == eMapType::Roughness)
+				{
+					m_data.roughnessFactor = 1.0f;
+				}
+
+				if (type == eMapType::Metallic)
+				{
+					m_data.metallicFactor = 1.0f;
+				}
+			}
 		}
 		else
 		{
@@ -46,6 +58,73 @@ namespace Dive
 			{
 				m_data.roughnessFactor = 0.0f;
 				m_data.metallicFactor = 0.0f;
+			}
+			else
+			{
+
+				if (type == eMapType::Roughness)
+				{
+					m_data.roughnessFactor = 0.0f;
+				}
+
+				if (type == eMapType::Metallic)
+				{
+					m_data.metallicFactor = 0.0f;
+				}
+			}
+		}
+
+		MarkDirty();
+	}
+
+	void Material::SetMap(eMapType type, TextureHandle handle)
+	{
+		size_t slot = static_cast<size_t>(type);
+	
+		if (nullptr == TextureManager::Get().GetTextureView(handle))
+		{
+			m_maps[slot] = INVALID_TEXTURE_HANDLE;
+			m_data.flags &= ~(1U << slot);
+
+			if (type == eMapType::ORM)
+			{
+				m_data.roughnessFactor = 0.0f;
+				m_data.metallicFactor = 0.0f;
+			}
+			else
+			{
+				if (type == eMapType::Roughness)
+				{
+					m_data.roughnessFactor = 0.0f;
+				}
+
+				if (type == eMapType::Metallic)
+				{
+					m_data.metallicFactor = 0.0f;
+				}
+			}
+		}
+		else
+		{
+			m_maps[slot] = handle;
+			m_data.flags |= (1U << slot);
+
+			if (type == eMapType::ORM)
+			{
+				m_data.roughnessFactor = 1.0f;
+				m_data.metallicFactor = 1.0f;
+			}
+			else
+			{
+				if (type == eMapType::Roughness)
+				{
+					m_data.roughnessFactor = 1.0f;
+				}
+
+				if (type == eMapType::Metallic)
+				{
+					m_data.metallicFactor = 1.0f;
+				}
 			}
 		}
 
@@ -113,6 +192,15 @@ namespace Dive
 		SetTiling(DirectX::XMFLOAT2(x, y));
 	}
 
+	void Material::SetHeightScale(float scale)
+	{
+		if (scale != m_data.heightScale)
+		{
+			m_data.heightScale = scale;
+			MarkDirty();
+		}
+	}
+
 	void Material::SetOffset(const DirectX::XMFLOAT2& offset)
 	{
 		auto current = m_data.offset;
@@ -137,6 +225,15 @@ namespace Dive
 		}
 	}
 
+	void Material::SetTransparent(bool transparent)
+	{
+		if (transparent != m_isTransparent)
+		{
+			m_isTransparent = transparent;
+			MarkDirty();
+		}
+	}
+
 	void Material::Bind(Graphics* graphics)
 	{
 		if (!m_cbuffer)
@@ -152,11 +249,16 @@ namespace Dive
 				auto srv = TextureManager::Get().GetTextureView(handle);
 
 				if (srv)
+				{
+					graphics->SetShaderResourceView(eShaderStage::DS, i, &srv);
 					graphics->SetShaderResourceView(eShaderStage::PS, i, &srv);
+				}
 			}
 		}
 
 		m_cbuffer->Update(graphics, m_data);
+
+		m_cbuffer->Bind(graphics, eShaderStage::DS, static_cast<uint32_t>(eConstantBuffer::Material));
 		m_cbuffer->Bind(graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
 	}
 }

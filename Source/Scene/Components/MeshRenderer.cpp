@@ -29,7 +29,7 @@ namespace Dive
 	{
 		if (m_mesh)
 		{
-			graphics->SetTopology(m_topology);
+			//graphics->SetTopology(m_topology);
 
 			if (m_material)
 				m_material->Bind(graphics);

@@ -24,6 +24,7 @@ namespace Dive
 		void Update();
 
 		template<typename T> T* AddComponent();
+		template<typename T> void RemoveComponent();
 
 		template<typename T> bool HasComponent() const;
 
@@ -33,7 +34,7 @@ namespace Dive
 		Transform* GetTransform() const { return m_transform.get(); }
 
 		bool IsActive() const;
-		void SetActive(bool active) { m_isActive = active; }
+		void SetActive(bool active);
 
 		// Hierarchy
 		GameObject* GetRoot() { return m_parent ? m_parent->GetRoot() : this; }
@@ -83,6 +84,19 @@ namespace Dive
 		notifySceneChanged();
 
 		return componentPtr;
+	}
+
+	template<typename T>
+	inline void GameObject::RemoveComponent()
+	{
+		eComponentType type = T::GetType();
+
+		auto it = m_components.find(type);
+		if (it != m_components.end())
+		{
+			m_components.erase(it);
+			notifySceneChanged();
+		}
 	}
 
 	template<typename T>

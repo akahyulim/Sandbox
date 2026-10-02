@@ -71,8 +71,28 @@ PSOutput MainPS(VSToPS input)
         //orm.r (AO는 필요에 따라 Ambient Occlusion 렌더 타겟에 쓸 수 있음)
         roughness *= orm.g;
         metallic *= orm.b;
+        //roughness *= (1.0 - orm.g);
+        //metallic *= (1.0 - orm.b);
     }
-    
+    else
+    {
+        //if(HasOcclusionMap())
+        {
+        //    float value = OcclusionMap.Sample(WrapLinearSampler, uv).r;
+        }
+        
+        if (HasRoughnessMap())
+        {
+            float value = RoughnessMap.Sample(WrapLinearSampler, uv).r;
+            roughness *= value;
+        }
+        
+        if (HasMetallicMap())
+        {
+            float value = MetallicMap.Sample(WrapLinearSampler, uv).r;
+            metallic *= value;
+        }
+    }
     output.AlbedoRoughness = float4(albedo, roughness);
     
     float3 normal = input.Normal;

@@ -103,9 +103,14 @@ namespace Dive
 			spdlog::error("GBufferTessellation VS 생성 실패");
 			return false;
 		}
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/DeferredLighting.hlsl", eInputLayout::None))
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Deferred.hlsl", eInputLayout::None))
 		{
-			spdlog::error("DeferredLighting VS 생성 실패");
+			spdlog::error("Deferred VS 생성 실패");
+			return false;
+		}
+		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Forward.hlsl", eInputLayout::Lit))
+		{
+			spdlog::error("Forward VS 생성 실패");
 			return false;
 		}
 		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Skybox.hlsl", eInputLayout::Position))
@@ -154,9 +159,14 @@ namespace Dive
 			spdlog::error("GBufferTessellation PS 생성 실패");
 			return false;
 		}
-		if (!createPixelShader(graphics, "Source/Shaders/DeferredLighting.hlsl"))
+		if (!createPixelShader(graphics, "Source/Shaders/Deferred.hlsl"))
 		{
-			spdlog::error("DeferredLighting PS 생성 실패");
+			spdlog::error("Deferred PS 생성 실패");
+			return false;
+		}
+		if (!createPixelShader(graphics, "Source/Shaders/Forward.hlsl"))
+		{
+			spdlog::error("Forward PS 생성 실패");
 			return false;
 		}
 		if (!createPixelShader(graphics, "Source/Shaders/Skybox.hlsl"))
@@ -208,9 +218,14 @@ namespace Dive
 			m_shaderPrograms[eShaderPrograms::GBufferTessellation]->SetHullShader(m_hss.find("GBufferTessellation")->second.get());
 			m_shaderPrograms[eShaderPrograms::GBufferTessellation]->SetDomainShader(m_dss.find("GBufferTessellation")->second.get());
 		}
-		if (!createShaderProgram("DeferredLighting", "DeferredLighting", eShaderPrograms::DeferredLighting))
+		if (!createShaderProgram("Deferred", "Deferred", eShaderPrograms::Deferred))
 		{
-			spdlog::error("DeferredLighting ShaderProgram 생성 실패");
+			spdlog::error("Deferred ShaderProgram 생성 실패");
+			return false;
+		}
+		if (!createShaderProgram("Forward", "Forward", eShaderPrograms::Forward))
+		{
+			spdlog::error("Forward ShaderProgram 생성 실패");
 			return false;
 		}
 		// 하나의 hlsl파일에 vs, ps를 모두 구현하면 이렇게 동일한 이름으로 저장된다.

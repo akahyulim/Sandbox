@@ -50,7 +50,9 @@ namespace Dive
 
         float metallicFactor = 0.0f;
         uint32_t flags = 0;
-        uint32_t padding[2] = { 0, 0 };
+
+        float heightScale = 0.0f;
+        uint32_t padding = 0;
     };
 
     struct WeatherData

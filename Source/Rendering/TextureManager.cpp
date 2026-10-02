@@ -278,6 +278,7 @@ namespace Dive
 
 		auto hr = DirectX::LoadFromWICFile(
 			filepath.c_str(),
+			//DirectX::WIC_FLAGS_FORCE_LINEAR,
 			DirectX::WIC_FLAGS_NONE,
 			&metaData,
 			scratchImage

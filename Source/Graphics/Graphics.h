@@ -63,7 +63,7 @@ namespace Dive
 
 		void SetDepthStencilState(ID3D11DepthStencilState* dss, uint32_t stencilRef);
 		void SetRasterizerState(ID3D11RasterizerState* rs);
-		void SetBlendState(ID3D11BlendState* bs, float* blendFactor = nullptr, uint32_t smaplerMask = 0xFFFFFFFF);
+		void SetBlendState(ID3D11BlendState* bs, const float* blendFactor = nullptr, uint32_t sampleMask = 0xFFFFFFFF);
 
 		void SetVertexShader(VertexShader* vs);
 		void SetHullShader(HullShader* hs);

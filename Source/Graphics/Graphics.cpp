@@ -293,9 +293,6 @@ namespace Dive
 		case eShaderStage::VS:
 			m_deviceContext->VSSetConstantBuffers(slot, 1, ppBuffer);
 			break;
-		case eShaderStage::PS:
-			m_deviceContext->PSSetConstantBuffers(slot, 1, ppBuffer);
-			break;
 		case eShaderStage::HS:
 			m_deviceContext->HSSetConstantBuffers(slot, 1, ppBuffer);
 			break;
@@ -304,6 +301,9 @@ namespace Dive
 			break;
 		case eShaderStage::GS:
 			m_deviceContext->GSSetConstantBuffers(slot, 1, ppBuffer);
+			break;
+		case eShaderStage::PS:
+			m_deviceContext->PSSetConstantBuffers(slot, 1, ppBuffer);
 			break;
 		case eShaderStage::CS:
 			m_deviceContext->CSSetConstantBuffers(slot, 1, ppBuffer);
@@ -329,12 +329,12 @@ namespace Dive
 		}
 	}
 
-	void Graphics::SetBlendState(ID3D11BlendState* bs, float* blendFactor, uint32_t smaplerMask)
+	void Graphics::SetBlendState(ID3D11BlendState* bs, const float* blendFactor, uint32_t sampleMask)
 	{
 		if (m_currentBS != bs)
 		{
 			m_currentBS = bs;
-			m_deviceContext->OMSetBlendState(bs ? m_currentBS : nullptr, blendFactor, smaplerMask);
+			m_deviceContext->OMSetBlendState(bs ? m_currentBS : nullptr, blendFactor, sampleMask);
 		}
 	}
 
@@ -405,6 +405,9 @@ namespace Dive
 		{
 		case eShaderStage::VS:
 			m_deviceContext->VSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);
+			break;
+		case eShaderStage::DS:
+			m_deviceContext->DSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);
 			break;
 		case eShaderStage::PS:
 			m_deviceContext->PSSetShaderResources(slot, 1, ppSrv != nullptr ? ppSrv : &nullSrv);

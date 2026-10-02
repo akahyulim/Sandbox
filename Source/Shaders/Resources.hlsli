@@ -10,9 +10,9 @@ SamplerState ShadowCompare : register(s5);
 Texture2D AlbedoMap : register(t0);
 Texture2D NormalMap : register(t1);
 Texture2D ORMMap : register(t2);            // Ambient Occlusion (R), Roughness (G), Metallic (B) 통합 맵
-Texture2D DisplacementMap : register(t3);   // 테셀레이션 및 디스플레이스먼트용 높이 맵
-Texture2D EmissiveMap : register(t4);
-Texture2D OpacityMap : register(t5);
+Texture2D DisplacementMap : register(t3);
+Texture2D RoughnessMap : register(t4);
+Texture2D MetallicMap : register(t5);
 
 // G-Buffer Inputs (t6 ~ t9)
 Texture2D<float4> GBuffer_AlbedoRoughness : register(t6);   // RGB: Albedo(기본 색상) / A: Roughness(거친 정도)

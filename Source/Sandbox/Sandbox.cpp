@@ -178,13 +178,7 @@ namespace Dive
         m_engine = std::make_unique<Engine>(init.engin_init);
         m_gui = std::make_unique<ImGuiManager>(m_engine->GetGraphics());
 
-        m_skyCubemaps.emplace("Cloudy", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/cloudy_skybox.dds"));
-        m_skyCubemaps.emplace("Sunset", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/sunsetcube1024.dds"));
-        m_skyCubemaps.emplace("Desert", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/desertcube1024.dds"));
-
-        m_skyCubemaps.emplace("night_puresky", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/qwantani_night_puresky_4k.hdr"));
-        m_skyCubemaps.emplace("dawn", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/aarfontein_dawn_2_4k.hdr"));
-        m_skyCubemaps.emplace("clear_night", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/rogland_clear_night_4k.hdr"));
+        loadResources();
  
         newScene();
     }
@@ -385,6 +379,117 @@ namespace Dive
 
             m_isSceneViewHovered = ImGui::IsItemHovered();
 
+            
+            if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
+            {
+                auto cameraCom = m_mainCamera->GetComponent<Camera>();
+                DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
+                DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
+                DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
+
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+                for (const auto& lightObject : m_scene->GetLightQueue())
+                {
+                    auto type = lightObject->GetComponent<Light>()->GetLightType();
+                    if (type == eLightType::Directional)
+                        continue;
+
+                    DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
+
+                    // 1. 3D 월드 좌표를 클립/NDC 공간으로 변환
+                    DirectX::XMVECTOR projected = DirectX::XMVector3TransformCoord(worldPos, viewProj);
+
+                    float ndcX = DirectX::XMVectorGetX(projected);
+                    float ndcY = DirectX::XMVectorGetY(projected);
+                    float ndcZ = DirectX::XMVectorGetZ(projected);
+
+                    // 2. 카메라 뒤쪽에 있는 라이트는 무시 (클리핑)
+                    if (ndcZ < 0.0f || ndcZ > 1.0f) continue;
+
+                    // 3. NDC(-1~1)를 뷰포트 내의 실제 픽셀 화면 좌표로 변환
+                    float screenX = viewportPos.x + (1.0f + ndcX) * 0.5f * viewportSize.x;
+                    float screenY = viewportPos.y + (1.0f - ndcY) * 0.5f * viewportSize.y; // DirectX는 Y축 아래가 정방향
+
+                    // 4. ImGui로 아이콘 그리기 (예: 32x32 크기)
+                    float iconSize = 64.0f;
+                    auto srv = (type == eLightType::Point) ? 
+                        TextureManager::Get().GetTextureView(m_pointLightIcon) : 
+                        TextureManager::Get().GetTextureView(m_spotLightIcon);
+
+                    ImTextureID lightIconID = (ImTextureID)srv;
+
+                    drawList->AddImage(lightIconID,
+                        ImVec2(screenX - iconSize * 0.5f, screenY - iconSize * 0.5f),
+                        ImVec2(screenX + iconSize * 0.5f, screenY + iconSize * 0.5f));
+                }
+            }
+            // ==========================================
+
+            if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                bool clickedLightIcon = false;
+
+                // 1. 먼저 라이트 아이콘들을 클릭했는지 순회하며 검사
+                if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
+                {
+                    auto cameraCom = m_mainCamera->GetComponent<Camera>();
+                    DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
+                    DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
+                    DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
+
+                    ImVec2 mousePos = ImGui::GetMousePos(); // 현재 마우스의 화면 픽셀 좌표
+                    float iconSize = 64.0f;
+                    float halfSize = iconSize * 0.5f;
+
+                    for (const auto& lightObject : m_scene->GetLightQueue())
+                    {
+                        auto type = lightObject->GetComponent<Light>()->GetLightType();
+                        if (type == eLightType::Directional) continue; // 디렉셔널은 아이콘 위치가 모호하므로 패스
+
+                        DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
+                        DirectX::XMVECTOR projected = DirectX::XMVector3TransformCoord(worldPos, viewProj);
+
+                        float ndcX = DirectX::XMVectorGetX(projected);
+                        float ndcY = DirectX::XMVectorGetY(projected);
+                        float ndcZ = DirectX::XMVectorGetZ(projected);
+
+                        if (ndcZ < 0.0f || ndcZ > 1.0f) continue;
+
+                        float screenX = viewportPos.x + (1.0f + ndcX) * 0.5f * viewportSize.x;
+                        float screenY = viewportPos.y + (1.0f - ndcY) * 0.5f * viewportSize.y;
+
+                        // 아이콘의 2D 사각형 영역(Bounding Box) 계산
+                        ImVec2 minBound(screenX - halfSize, screenY - halfSize);
+                        ImVec2 maxBound(screenX + halfSize, screenY + halfSize);
+
+                        // 마우스 커서가 아이콘 사각형 내부에 있는지 확인
+                        if (mousePos.x >= minBound.x && mousePos.x <= maxBound.x &&
+                            mousePos.y >= minBound.y && mousePos.y <= maxBound.y)
+                        {
+                            // 현재 ObjectI가 MeshRenderer에 존재하지만
+                            // Light Object는 MeshRenderer를 가지고 있지 않다.
+                            setSelectedObject(lightObject); // 라이트 오브젝트 선택!
+                            clickedLightIcon = true;
+                            break;
+                        }
+                    }
+                }
+
+                // 2. 라이트 아이콘을 클릭하지 않았을 때만 기존 3D 셰이프(메쉬) 픽킹 수행
+                if (!clickedLightIcon)
+                {
+                    auto renderer = m_engine->GetRenderer();
+                    renderer->ProcessPicking();
+                    auto data = renderer->GetPickingData();
+                    auto selected = m_scene->GetGameObjectByObjectID(data.id);
+                    if (m_selectedObject != selected)
+                    {
+                        setSelectedObject(selected);
+                    }
+                }
+            }
+            /*
             if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 if (m_isSceneViewHovered && !ImGuizmo::IsUsing())
@@ -399,7 +504,7 @@ namespace Dive
                     }
                 }
             }
-
+            */
             drawCanvasContextMenu();
 
             if (m_selectedObject != nullptr && m_mainCamera != nullptr)
@@ -446,7 +551,7 @@ namespace Dive
 
     void Sandbox::drawCanvasContextMenu()
     {
-        if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
         {
             if (m_selectedObject)
             {
@@ -543,20 +648,36 @@ namespace Dive
                 }
                 if (ImGui::BeginMenu("Light"))
                 {
-                    if (ImGui::MenuItem("Spot Light"))
-                    {
-                    }
                     if (ImGui::MenuItem("Point Light"))
                     {
                         auto gameObject = m_scene->CreateGameObject();
                         gameObject->SetName("PointLight");
+                        
                         auto light = gameObject->AddComponent<Light>();
                         light->SetLightType(eLightType::Point);
-                        light->SetColor(1.0f, 0.0f, 0.0f);
+                        light->SetColor(1.0f, 1.0f, 1.0f);
+                        
                         auto transform = gameObject->GetTransform();
                         transform->SetPosition(0.0f, 5.0f, 0.0f);
+                        
+                        // 임시다. ObjectID를 위해 추가했다.
                         auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                        meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
+                    }
+                    if (ImGui::MenuItem("Spot Light"))
+                    {
+                        auto gameObject = m_scene->CreateGameObject();
+                        gameObject->SetName("SpotLight");
+
+                        auto light = gameObject->AddComponent<Light>();
+                        light->SetLightType(eLightType::Spot);
+                        light->SetColor(1.0f, 1.0f, 1.0f);
+
+                        auto transform = gameObject->GetTransform();
+                        transform->SetPosition(0.0f, 5.0f, 0.0f);
+                        transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
+
+                        // 임시다. ObjectID를 위해 추가했다.
+                        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
                     }
                     ImGui::EndMenu();
                 }
@@ -708,8 +829,8 @@ namespace Dive
 
         const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-        ImGui::SetNextWindowPos({ viewport->WorkSize.x - 350.0f, viewport->WorkPos.y });
-        ImGui::SetNextWindowSize({ 350.0f, viewport->WorkSize.y });
+        ImGui::SetNextWindowPos({ viewport->WorkSize.x - 370.0f, viewport->WorkPos.y });
+        ImGui::SetNextWindowSize({ 370.0f, viewport->WorkSize.y });
 
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove |
@@ -804,7 +925,7 @@ namespace Dive
                             static DirectX::XMFLOAT2 spotAngles = { 0.0f, 0.0f };
                             spotAngles.x = 0;// light->GetInnerAngleDegrees();
                             spotAngles.y = 0;// light->GetOuterAngleDegrees();
-                            DrawVec2Control("Spot Angles", spotAngles, 0.0f, 150.0f, "I", "O");
+                            //DrawVec2Control("Spot Angles", spotAngles, 0.0f, 150.0f, "I", "O");
                             //light->SetInnerAngleDegrees(spotAngles.x);
                             //light->SetOuterAngleDegrees(spotAngles.y);
                         }
@@ -846,6 +967,7 @@ namespace Dive
                 auto meshRenderer = m_selectedObject->GetComponent<MeshRenderer>();
                 auto material = meshRenderer->GetMaterial();
 
+                // 여기에서 이미 생성해 놓은 것을 선택토록 하자.
                 // name
                 ImGui::PushID("MaterialName");
                 std::string mtrlName = material->GetName();
@@ -870,6 +992,20 @@ namespace Dive
                 }
                 ImGui::Columns(1);
                 ImGui::PopID();
+
+                // transparent
+                ImGui::PushID("RenderMode");
+                ImGui::Columns(2);
+                ImGui::SetColumnWidth(0, 150.0f);
+                ImGui::Text("Render Mode");
+                ImGui::NextColumn();
+                int curTransparent = material->IsTransparent() ? 1 : 0;
+                ImGui::RadioButton("Opaque", &curTransparent, 0);
+                ImGui::SameLine();
+                ImGui::RadioButton("Transparent", &curTransparent, 1);
+                material->SetTransparent(curTransparent ? true : false);
+                ImGui::Columns(1);
+                ImGui::PopID();
                 
                 // albedo
                 ImGui::PushID("Albedo");
@@ -881,7 +1017,7 @@ namespace Dive
                 if (ImGui::ImageButton("##Albedo", textureID, ImVec2(20, 20)))
                 {
                     /*
-                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jped;*.dds;*.bmp;*.tga\0"
+                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
                         "All Files (*.*)\0*.*\0\0";
                     auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
                     if (!openFile.empty())
@@ -913,7 +1049,7 @@ namespace Dive
                 if (ImGui::ImageButton("##Normal", textureID, ImVec2(20, 20)))
                 {
                     /*
-                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jped;*.dds;*.bmp;*.tga\0"
+                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
                         "All Files (*.*)\0*.*\0\0";
                     auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
                     if (!openFile.empty())
@@ -936,7 +1072,39 @@ namespace Dive
                 textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
                     material->GetMap(eMapType::ORM) : 0);
 
+                // Occlusion Map은 일단 제외
+              
+                // Roughness Map
+                if (textureID == 0)
+                {
+                    textureID = (ImTextureID)(material->HasMap(eMapType::Roughness) ?
+                        material->GetMap(eMapType::Roughness) : 0);
+                }
+                ImGui::PushID("RoughnessMap");
+                ImGui::Columns(2);
+                ImGui::SetColumnWidth(0, 150.0f);
+                if (ImGui::ImageButton("##Roughness", textureID, ImVec2(20, 20)))
+                {
+                }
+                ImGui::SameLine();
+                ImGui::Text("Roughness Map");
+                ImGui::NextColumn();
+                float roughnessFactor = material->GetRoughnessFactor();
+                ImGui::SliderFloat("##RoughnessFactor", &roughnessFactor, 0.0f, 1.0f, "%.2f");
+                material->SetRoughnessFactor(roughnessFactor);
+                ImGui::Columns(1);
+                ImGui::PopID();
+
+                // 조금 번잡하지만 일단 회피용이다.
+                textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
+                    material->GetMap(eMapType::ORM) : 0);
+
                 // Metalic Map
+                if (textureID == 0)
+                {
+                    textureID = (ImTextureID)(material->HasMap(eMapType::Metallic) ?
+                        material->GetMap(eMapType::Metallic) : 0);
+                }
                 ImGui::PushID("MetallicMap");
                 ImGui::Columns(2);
                 ImGui::SetColumnWidth(0, 150.0f);
@@ -952,34 +1120,23 @@ namespace Dive
                 ImGui::Columns(1);
                 ImGui::PopID();
 
-                // Roughness Map
-                ImGui::PushID("RoughnessMap");
+                // Displacement Map
+                ImGui::PushID("DisplacementMap");
+                textureID = (ImTextureID)(material->GetMap(eMapType::Displacement) ?
+                    material->GetMap(eMapType::Displacement) : 0);
                 ImGui::Columns(2);
                 ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Roughness", textureID, ImVec2(20, 20)))
+                if (ImGui::ImageButton("##Displacement", textureID, ImVec2(20, 20)))
                 {
                 }
                 ImGui::SameLine();
-                ImGui::Text("Roughness Map");
+                ImGui::Text("Displacement Map");
                 ImGui::NextColumn();
-                float roughnessFactor = material->GetRoughnessFactor();
-                ImGui::SliderFloat("##RoughnessFactor", &roughnessFactor, 0.0f, 1.0f, "%.2f");
-                material->SetRoughnessFactor(roughnessFactor);
-                ImGui::Columns(1);
-                ImGui::PopID();
-                
-                // Emissive Map
-                ImGui::PushID("EmissiveMap");
-                textureID = (ImTextureID)(material->GetMap(eMapType::Emissive) ?
-                    material->GetMap(eMapType::Emissive) : 0);
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Emissive", textureID, ImVec2(20, 20)))
+                float heightScale = material->GetHeightScale();
+                if (ImGui::DragFloat("##heightScale", &heightScale, 0.005f, 0.0f, 2.0f, "%.3f"))
                 {
+                    material->SetHeightScale(heightScale);
                 }
-                ImGui::SameLine();
-                ImGui::Text("Emissive Map");
-                ImGui::NextColumn();
                 ImGui::Columns(1);
                 ImGui::PopID();
             }
@@ -1081,110 +1238,238 @@ namespace Dive
             transform->SetRotationByDegrees({15.0f, 0.0f, 0.0f});
         }
 
+        // Lights
         {
-            auto renderer = m_engine->GetRenderer();
-            renderer->SetLightDir(1.0f, -1.0f, 1.0f);
+            // Dir Light
+            {
+                auto renderer = m_engine->GetRenderer();
+                renderer->SetLightDir(1.0f, -1.0f, 1.0f);
+
+            }
+            // Point Light Red
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Red");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(1.0f, 0.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(2.5f, 2.0f, -2.5f);
+                
+                // 임시다.
+                // MeshRenderer가 없어야 하지만
+                // ObjectID때문에 일단 되살렸다.
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+
+                //auto mtrl = MaterialManager::Get().CreateMaterial("PointLightIcon");
+                //mtrl->SetMap(eMapType::Albedo, m_pointLightIcon);
+                //mtrl->SetTransparent(true);
+                //meshRenderer->SetMaterial(mtrl);
+            }
+
+            // Point Light Green
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Green");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(0.0f, 1.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(-2.5f, 2.0f, 0.0f);
+
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+
+                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
+                //meshRenderer->SetMaterial(mtrl);
+            }
+
+            // Point Light Blue
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Blue");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(0.0f, 0.0f, 1.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(-1.0f, 2.0f, 3.0f);
+                
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+
+                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
+                //meshRenderer->SetMaterial(mtrl);
+            }
+
+            // Point Light Yellow
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(1.0f, 1.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(2.5f, 2.0f, 0.0f);
+                
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+
+                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
+                //meshRenderer->SetMaterial(mtrl);
+            }
+
+            // SpotLight White
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("SpotLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Spot);
+                light->SetColor(1.0f, 1.0f, 1.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(10.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(0.0f, 2.5f, -2.5f);
+                transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
+
+                // 임시다. ObjectID를 위해 추가했다.
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // SpotLight Purple
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("SpotLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Spot);
+                light->SetColor(1.0f, 0.0f, 1.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(10.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetPosition(2.5f, 2.5f, 3.0f);
+                transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
+
+                // 임시다. ObjectID를 위해 추가했다.
+                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
         }
-
-        // field
+        
+        // Objects
         {
-            m_field = m_scene->CreateGameObject();
-            m_field->SetName("field");
-            auto meshRenderer = m_field->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
+            // bottom
+            {
+                auto bottom = m_scene->CreateGameObject();
+                bottom->SetName("Bottom");
+                auto meshRenderer = bottom->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Field");
-            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_nor_dx_1k.png", eMapType::Normal);
-            //mtrl->SetMap("Assets/Textures/rocky_terrain_02_1k/rocky_terrain_02_disp_1k.png", eMapType::Displacement);
-            mtrl->SetMap("Assets/Textures/marble_mosaic_tiles_1k/marble_mosaic_tiles_arm_1k.png", eMapType::ORM);
-            meshRenderer->SetMaterial(mtrl);
-        }
+                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
+                meshRenderer->SetMaterial(mtrl);
+            }
 
-        // Cube
-        {
-            auto cube = m_scene->CreateGameObject();
-            auto meshRenderer = cube->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
-            cube->SetName("Cube");
+            // wall
+            {
+                auto wall = m_scene->CreateGameObject();
+                wall->SetName("Bottom");
+                auto meshRenderer = wall->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Cube");
-            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_nor_dx_1k.png", eMapType::Normal);
-            mtrl->SetMap("Assets/Textures/metal_plate_1k/metal_plate_arm_1k.png", eMapType::ORM);
-            meshRenderer->SetMaterial(mtrl);
+                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
+                meshRenderer->SetMaterial(mtrl);
 
-            auto transform = cube->GetTransform();
-            transform->SetScale({2.0f, 2.0f, 2.0f});
-            transform->SetPosition(-2.0f, 1.0f, 3.0f);
-        }
+                auto transform = wall->GetTransform();
+                transform->SetPosition(-2.5f, 2.5f, 5.0f);
+                transform->SetScale({ 5.0f, 5.0f, 1.0f });
+            }
 
-        // Spherer
-        {
-            auto sphere = m_scene->CreateGameObject();
-            auto meshRenderer = sphere->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
-            sphere->SetName("Sphere");
+            // Cube metal plate
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Cube");
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Sphere");
-            mtrl->SetMap("Assets/Textures/marble_cliff_06_1k/marble_cliff_06_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/marble_cliff_06_1k/marble_cliff_06_nor_dx_1k.png", eMapType::Normal);
-            meshRenderer->SetMaterial(mtrl);
+                auto mtrl = MaterialManager::Get().GetMaterial("Metal_Plate");
+                meshRenderer->SetMaterial(mtrl);
 
-            auto transform = sphere->GetTransform();
-            transform->SetPosition(0.0f, 1.0f, -3.0f);
-        }
+                auto transform = cube->GetTransform();
+                transform->SetPosition(-2.0f, 0.5f, 3.0f);
+            }
 
-        // Capsule
-        {
-            auto capsule = m_scene->CreateGameObject();
-            auto meshRenderer = capsule->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
-            capsule->SetName("Capsule");
+            // Cube Rusty Metal
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Quad_Left");
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Capsule");
-            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_nor_dx_1k.png", eMapType::Normal);
-            mtrl->SetMap("Assets/Textures/rusty_metal_05_1k/rusty_metal_05_arm_1k.png", eMapType::ORM);
-            meshRenderer->SetMaterial(mtrl);
+                auto mtrl = MaterialManager::Get().GetMaterial("Rusty_Metal_Grid");
+                meshRenderer->SetMaterial(mtrl);
 
-            auto transform = capsule->GetTransform();
-            transform->SetPosition(3.0f, 1.0f, -3.0f);
-        }
+                cube->GetTransform()->SetPosition(2.5f, 0.5f, 3.0f);
+            }
 
-        // Quad Left
-        {
-            auto quad = m_scene->CreateGameObject();
-            auto meshRenderer = quad->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-            quad->SetName("Quad_Left");
+            // Cube Stacked Brick Wall
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Quad_Right");
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Quad_Left");
-            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_nor_dx_1k.png", eMapType::Normal);
-            //mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_disp_1k.png", eMapType::Displacement);
-            mtrl->SetMap("Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_arm_1k.png", eMapType::ORM);
-            meshRenderer->SetMaterial(mtrl);
+                auto mtrl = MaterialManager::Get().GetMaterial("Stacked_Brick_Wall");
+                meshRenderer->SetMaterial(mtrl);
 
-            quad->GetTransform()->SetScale({ 5.0f, 5.0f, 1.0f });
-            quad->GetTransform()->SetPosition(-2.5f, 2.5f, 5.0f);
-        }
+                auto transform = cube->GetTransform();
+                transform->SetPosition(2.0f, 0.5f, 0.0f);
+            }
 
-        // Quad Right
-        {
-            auto quad = m_scene->CreateGameObject();
-            auto meshRenderer = quad->AddComponent<MeshRenderer>();
-            meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-            quad->SetName("Quad_Right");
+            // Spherer
+            {
+                auto sphere = m_scene->CreateGameObject();
+                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                sphere->SetName("Sphere");
 
-            auto mtrl = MaterialManager::Get().CreateMaterial("Quad_Right");
-            mtrl->SetMap("Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_diff_1k.png", eMapType::Albedo);
-            mtrl->SetMap("Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_nor_dx_1k.png", eMapType::Normal);
-            meshRenderer->SetMaterial(mtrl);
+                auto mtrl = MaterialManager::Get().GetMaterial("Marble_Cliff_06");
+                meshRenderer->SetMaterial(mtrl);
+                
+                auto transform = sphere->GetTransform();
+                transform->SetPosition(0.0f, 1.0f, -3.0f);
+            }
+        
+            // Capsule
+            {
+                auto capsule = m_scene->CreateGameObject();
+                auto meshRenderer = capsule->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
+                capsule->SetName("Capsule");
 
-            auto transform = quad->GetTransform();
-            transform->SetScale({ 5.0f, 5.0f, 1.0f });
-            transform->SetPosition(2.5f, 2.5f, 5.0f);
+                auto mtrl = MaterialManager::Get().GetMaterial("Rust_Metal_05");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = capsule->GetTransform();
+                transform->SetPosition(-3.5f, 1.0f, -3.0f);
+            }
         }
     }
 
@@ -1199,6 +1484,64 @@ namespace Dive
             m_engine->GetRenderer()->SetSelectedObjectID(id);
 
             m_showInspectorMenu = false;
+        }
+    }
+
+    void Sandbox::loadResources()
+    {
+        // sky
+        {
+            m_skyCubemaps.emplace("Cloudy", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/cloudy_skybox.dds"));
+            m_skyCubemaps.emplace("Sunset", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/sunsetcube1024.dds"));
+            m_skyCubemaps.emplace("Desert", TextureManager::Get().LoadCubemap(L"Assets/Textures/Skybox/desertcube1024.dds"));
+
+            m_skyCubemaps.emplace("night_puresky", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/qwantani_night_puresky_4k.hdr"));
+            m_skyCubemaps.emplace("dawn", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/aarfontein_dawn_2_4k.hdr"));
+            m_skyCubemaps.emplace("clear_night", TextureManager::Get().LoadTexture(L"Assets/Textures/Skysphere/rogland_clear_night_4k.hdr"));
+        }
+
+        // icons
+        {
+            m_pointLightIcon = TextureManager::Get().LoadTexture(L"Assets/Textures/Sandbox/pointlight.png");
+            m_spotLightIcon = TextureManager::Get().LoadTexture(L"Assets/Textures/Sandbox/spotlight.png");
+        }
+
+        // materials
+        {
+            auto mtrl = MaterialManager::Get().CreateMaterial("Tiles106");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Color.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_NormalDX.png");
+            mtrl->SetMap(eMapType::Roughness, "Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Roughness.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Displacement.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("Metal_Plate");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/metal_plate_1k/metal_plate_diff_1k.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/metal_plate_1k/metal_plate_nor_dx_1k.png");
+            mtrl->SetMap(eMapType::ORM, "Assets/Textures/metal_plate_1k/metal_plate_arm_1k.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/metal_plate_1k/metal_plate_disp_1k.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("Rusty_Metal_Grid");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_diff_1k.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_nor_dx_1k.png");
+            mtrl->SetMap(eMapType::ORM, "Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_arm_1k.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_disp_1k.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("Stacked_Brick_Wall");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_diff_1k.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_nor_dx_1k.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_disp_1k.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("Marble_Cliff_06");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/marble_cliff_06_1k/marble_cliff_06_diff_1k.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/marble_cliff_06_1k/marble_cliff_06_nor_dx_1k.png");
+            mtrl->SetMap(eMapType::Roughness, "Assets/Textures/marble_cliff_06_1k/marble_cliff_06_rough_1k.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/marble_cliff_06_1k/marble_cliff_06_disp_1k.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("Rust_Metal_05");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_diff_1k.png");
+            mtrl->SetMap(eMapType::Normal, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_nor_dx_1k.png");
+            mtrl->SetMap(eMapType::ORM, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_arm_1k.png");
+            mtrl->SetMap(eMapType::Displacement, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_disp_1k.png");
         }
     }
 }

@@ -31,7 +31,9 @@ struct MaterialData
     
     float metallicFactor; // [ 4바이트] 금속성
     uint flags; // [ 4바이트] 텍스처 유무 플래그 등
-    uint2 padding; // [ 8바이트] 16바이트 배수를 맞추기 위한 패딩 (합쳐서 16바이트)
+    
+    float heightScale;
+    uint padding; // [ 8바이트] 16바이트 배수를 맞추기 위한 패딩 (합쳐서 16바이트)
 };
 
 struct WeatherData
@@ -118,4 +120,14 @@ bool HasORMMap()
 bool HasDisplacementMap()
 {
     return materialData.flags & (1 << 3);
+}
+
+bool HasRoughnessMap()
+{
+    return materialData.flags & (1 << 4);
+}
+
+bool HasMetallicMap()
+{
+    return materialData.flags & (1 << 5);
 }

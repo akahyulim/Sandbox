@@ -79,7 +79,7 @@ namespace Dive
 			}
 		}
 
-		if (m_isDirty)
+		if (IsDirty())
 		{
 			m_lights.clear();
 			m_renderables.clear();

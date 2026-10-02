@@ -16,6 +16,7 @@ namespace Dive
 	class VertexBuffer;
 	class IndexBuffer;
 	class Scene;
+	class GameObject;
 
 	enum class eSkyMode : uint8_t
 	{
@@ -48,9 +49,7 @@ namespace Dive
 
 		enum class eBlendState : uint8_t
 		{
-			AlphaEnabled,
-			AlphaDisabled,
-			Additive,
+			Forward,
 			Count
 		};
 
@@ -133,7 +132,7 @@ namespace Dive
 		
 		void updateWeather();
 
-		void passGBuffer(Scene* scene);
+		void passGBuffer();
 		void passDeferredLighting();
 		void passSky(Scene* scene);
 		void passForward();
@@ -172,9 +171,9 @@ namespace Dive
 		PickingData m_pickingData{};
 		std::unique_ptr<StructuredBuffer<PickingData>> m_pickingBuffer;
 
-
 		RenderPassDesc m_gbufferPass;
 		RenderPassDesc m_deferredLightingPass;
+		RenderPassDesc m_forwardPass;
 		RenderPassDesc m_offScreenResolvePass;
 		RenderPassDesc m_skyboxPass;	// 원래는 forward를 사용
 
@@ -189,5 +188,9 @@ namespace Dive
 		DirectX::XMFLOAT4 m_lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		DirectX::XMFLOAT4 m_lightDir = { -1.0f, -1.0f, 1.0f, 1.0f };
 		DirectX::XMFLOAT4 m_ambientColor = { 0.05f, 0.05f, 0.05f, 1.0f };
+
+		std::vector<GameObject*> m_opaques;
+		std::vector<GameObject*> m_transparents;
+		std::vector<GameObject*> m_gizmos;
 	};
 }

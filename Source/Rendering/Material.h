@@ -16,8 +16,8 @@ namespace Dive
 		Normal,
 		ORM,         // Occlusion (R), Roughness (G), Metallic (B) 통합 맵
 		Displacement,
-		Emissive,
-		Opacity,
+		Roughness,
+		Metallic,
 		Count
 	};
 
@@ -30,7 +30,8 @@ namespace Dive
 		virtual ~Material();
 
 		ID3D11ShaderResourceView* GetMap(eMapType type) const;
-		void SetMap(const std::string& path, eMapType type);
+		void SetMap(eMapType type, const std::string& path);
+		void SetMap(eMapType type, TextureHandle handle);
 		bool HasMap(eMapType type) const;
 
 		DirectX::XMFLOAT4 GetBaseColor() const { return m_data.baseColor; }
@@ -48,6 +49,9 @@ namespace Dive
 		void SetTiling(const DirectX::XMFLOAT2& tiling);
 		void SetTiling(float x, float y);
 
+		float GetHeightScale() const { return m_data.heightScale; }
+		void SetHeightScale(float scale);
+
 		DirectX::XMFLOAT2 GetOffset() const { return m_data.offset; }
 		void SetOffset(const DirectX::XMFLOAT2& offset);
 		void SetOffset(float x, float y);
@@ -57,6 +61,9 @@ namespace Dive
 
 		uint32_t GetFlags() const { return m_data.flags; }
 
+		bool IsTransparent() const { return m_isTransparent; }
+		void SetTransparent(bool transparent);
+
 		void Bind(Graphics* graphics);
 
 	private:
@@ -64,5 +71,7 @@ namespace Dive
 		std::array<TextureHandle, static_cast<size_t>(eMapType::Count)> m_maps{};
 
 		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbuffer;
+
+		bool m_isTransparent = false;
 	};
 }

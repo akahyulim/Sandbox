@@ -53,6 +53,15 @@ namespace Dive
 		return m_isActive;
 	}
 
+	void GameObject::SetActive(bool active)
+	{
+		if (m_isActive != active)
+		{
+			m_isActive = active;
+			notifySceneChanged();
+		}
+	}
+
 	void GameObject::SetParent(GameObject* parent)
 	{
 		if (parent == m_parent)

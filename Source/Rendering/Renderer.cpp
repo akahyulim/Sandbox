@@ -84,15 +84,69 @@ namespace Dive
                 auto lightCom = lights[i]->GetComponent<Light>();
                 m_lightConstants.lights[i] = lightCom->GetLightData();
             }
-
-            m_cbLight->Update(m_graphics, m_lightConstants);
         }
         else
         {
             m_lightConstants.lightCount = 0;
         }
 
+        m_cbLight->Update(m_graphics, m_lightConstants);
+
         updateWeather();
+
+        // 추후 분리
+        {
+            m_opaques.clear();
+            m_transparents.clear();
+            m_gizmos.clear();
+
+            //auto cameraFrustum = camera->GetFrustum();
+            auto cameraPos = camera->GetTransform()->GetPosition();
+
+            // 1. 일반 오브젝트 순회
+            for (auto& renderable : scene->GetRenderables())
+            {
+                auto renderer = renderable->GetComponent<MeshRenderer>();
+                if (!renderer) continue;
+
+                // 💡 [1단계] 프러스텀 컬링: 화면에 안 보이면 스킵!
+                //if (!cameraFrustum.Contains(renderer->GetBoundingBox()))
+                //    continue; 
+
+                // 💡 [2단계] 분류
+                auto material = renderer->GetMaterial();
+                if (material->IsTransparent())
+                    m_transparents.push_back(renderable);
+                else
+                    m_opaques.push_back(renderable);
+            }
+
+            // 라이트 기즈모도 동일하게 컬링 후 수집...
+
+            // 💡 [3단계] 보이는 것들만 대상으로 반투명 정렬 수행
+            auto sortByDistanceDescending = [cameraPos](auto* a, auto* b) {
+                // 오브젝트의 월드 포지션 가져오기 (프로젝트에 맞는 메서드로 수정)
+                auto posA = a->GetTransform()->GetPosition(); // 혹은 a->GetPosition()
+                auto posB = b->GetTransform()->GetPosition();
+
+                // 직접 거리의 제곱(Distance Squared) 계산
+                float dxA = posA.x - cameraPos.x;
+                float dyA = posA.y - cameraPos.y;
+                float dzA = posA.z - cameraPos.z;
+                float distA = (dxA * dxA) + (dyA * dyA) + (dzA * dzA);
+
+                float dxB = posB.x - cameraPos.x;
+                float dyB = posB.y - cameraPos.y;
+                float dzB = posB.z - cameraPos.z;
+                float distB = (dxB * dxB) + (dyB * dyB) + (dzB * dzB);
+
+                // 먼 것부터 앞으로 오도록 정렬 (Back-to-Front)
+                return distA > distB;
+                };
+
+            std::sort(m_transparents.begin(), m_transparents.end(), sortByDistanceDescending);
+            //std::sort(m_gizmos.begin(), m_gizmos.end(), sortByDistanceDescending);
+        }
 	}
 	
     // Render에는 RenderSettings가 전달
@@ -104,10 +158,10 @@ namespace Dive
         if (!scene)
             return;
 
-        passGBuffer(scene);
+        passGBuffer();
         passDeferredLighting();
         passSky(scene);
-        //passForward();
+        passForward();
         //passPostProcessing();
 	}
 
@@ -166,6 +220,7 @@ namespace Dive
         }
     }
 
+    // id만 활용할 거라면 normal, depth 다 필요없다.
     void Renderer::ProcessPicking()
     {
         // gbuffer 중 normal, depth의 srv 사용
@@ -350,70 +405,29 @@ namespace Dive
 
     void Renderer::createBlendStates()
     {
-        D3D11_BLEND_DESC desc{};
-        desc.AlphaToCoverageEnable = false;
-        desc.IndependentBlendEnable = false;
-
-        // AlphaEnabled
+        // Forward
         {
-            const D3D11_RENDER_TARGET_BLEND_DESC alphaBlendDesc =
-            {
-                true,
-                D3D11_BLEND_SRC_ALPHA,
-                D3D11_BLEND_INV_SRC_ALPHA,
-                D3D11_BLEND_OP_ADD,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_INV_SRC_ALPHA,
-                D3D11_BLEND_OP_ADD,
-                D3D11_COLOR_WRITE_ENABLE_ALL
-            };
+            D3D11_BLEND_DESC desc{};
+            desc.AlphaToCoverageEnable = false;
+            desc.IndependentBlendEnable = true;
 
-            for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-                desc.RenderTarget[i] = alphaBlendDesc;
+            D3D11_RENDER_TARGET_BLEND_DESC colorBlendDesc = {};
+            colorBlendDesc.BlendEnable = true;
+            colorBlendDesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+            colorBlendDesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+            colorBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+            colorBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+            colorBlendDesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+            colorBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            colorBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+            desc.RenderTarget[0] = colorBlendDesc;
 
-            m_blendStates[static_cast<size_t>(eBlendState::AlphaEnabled)] =
-                m_graphics->CreateBlendState(desc);
-        }
+            D3D11_RENDER_TARGET_BLEND_DESC idBlendDesc = {};
+            idBlendDesc.BlendEnable = false; // 정수형 ID 타겟은 블렌딩 끄기
+            idBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+            desc.RenderTarget[1] = idBlendDesc;
 
-        // AlphaDisabled
-        {
-            const D3D11_RENDER_TARGET_BLEND_DESC alphaDisabledDesc =
-            {
-                false,
-                D3D11_BLEND_SRC_ALPHA,
-                D3D11_BLEND_INV_SRC_ALPHA,
-                D3D11_BLEND_OP_ADD,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_INV_SRC_ALPHA,
-                D3D11_BLEND_OP_ADD,
-                D3D11_COLOR_WRITE_ENABLE_ALL
-            };
-
-            for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-                desc.RenderTarget[i] = alphaDisabledDesc;
-
-            m_blendStates[static_cast<size_t>(eBlendState::AlphaDisabled)] =
-                m_graphics->CreateBlendState(desc);
-        }
-
-        // Additive
-        {
-            const D3D11_RENDER_TARGET_BLEND_DESC additiveBlendDesc =
-            {
-                true,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_OP_ADD,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_ONE,
-                D3D11_BLEND_OP_ADD,
-                D3D11_COLOR_WRITE_ENABLE_ALL,
-            };
-
-            for (UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
-                desc.RenderTarget[i] = additiveBlendDesc;
-
-            m_blendStates[static_cast<size_t>(eBlendState::Additive)] =
+            m_blendStates[static_cast<size_t>(eBlendState::Forward)] =
                 m_graphics->CreateBlendState(desc);
         }
     }
@@ -638,7 +652,7 @@ namespace Dive
     {
         // gbuffer 
         {
-            RenderTargetDesc albedoDesc;
+            RenderTargetDesc albedoDesc{};
             albedoDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)]->GetRenderTargetView();
             albedoDesc.ClearColor[0] = 0.0f;
             albedoDesc.ClearColor[1] = 0.0f;
@@ -646,7 +660,7 @@ namespace Dive
             albedoDesc.ClearColor[3] = 0.0f;
             albedoDesc.AccessType = eLoadAccessOp::Clear;
 
-            RenderTargetDesc normalDesc;
+            RenderTargetDesc normalDesc{};
             normalDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::NormalMetallic)]->GetRenderTargetView();
             normalDesc.ClearColor[0] = 0.0f;
             normalDesc.ClearColor[1] = 0.0f;
@@ -654,7 +668,7 @@ namespace Dive
             normalDesc.ClearColor[3] = 0.0f;
             normalDesc.AccessType = eLoadAccessOp::Clear;
 
-            RenderTargetDesc emissiveDesc;
+            RenderTargetDesc emissiveDesc{};
             emissiveDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::Emissive)]->GetRenderTargetView();
             emissiveDesc.ClearColor[0] = 0.0f;
             emissiveDesc.ClearColor[1] = 0.0f;
@@ -662,7 +676,7 @@ namespace Dive
             emissiveDesc.ClearColor[3] = 0.0f;
             emissiveDesc.AccessType = eLoadAccessOp::Clear;
 
-            RenderTargetDesc objectIDDesc;
+            RenderTargetDesc objectIDDesc{};
             objectIDDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetRenderTargetView();
             objectIDDesc.ClearColor[0] = 0.0f;
             objectIDDesc.ClearColor[1] = 0.0f;
@@ -670,7 +684,7 @@ namespace Dive
             objectIDDesc.ClearColor[3] = 0.0f;
             objectIDDesc.AccessType = eLoadAccessOp::Clear;
 
-            DepthStencilDesc dsDesc;
+            DepthStencilDesc dsDesc{};
             dsDesc.DepthStencilView = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetDetphStencilView();
             dsDesc.ClearFlags = D3D11_CLEAR_DEPTH;
             dsDesc.AccessType = eLoadAccessOp::Clear;
@@ -686,7 +700,7 @@ namespace Dive
 
         // Deferred Lighting
         {
-            RenderTargetDesc rtDesc;
+            RenderTargetDesc rtDesc{};
             rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
             rtDesc.ClearColor[0] = 0.0f;
             rtDesc.ClearColor[1] = 0.0f;
@@ -699,17 +713,34 @@ namespace Dive
             m_deferredLightingPass = desc;
         }
 
-        // Skybox
+        // Forward
         {
-            RenderTargetDesc rtDesc;
+            RenderTargetDesc rtDesc{};
             rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
-            rtDesc.ClearColor[0] = 0.0f;
-            rtDesc.ClearColor[1] = 0.0f;
-            rtDesc.ClearColor[2] = 0.0f;
-            rtDesc.ClearColor[3] = 0.0f;
             rtDesc.AccessType = eLoadAccessOp::Load;
 
-            DepthStencilDesc dsDesc;
+            RenderTargetDesc objectIDDesc{};
+            objectIDDesc.RenderTargetView = m_gbuffer[static_cast<size_t>(eGBufferType::ObjectID)]->GetRenderTargetView();
+            objectIDDesc.AccessType = eLoadAccessOp::Load;
+
+            DepthStencilDesc dsDesc{};
+            dsDesc.DepthStencilView = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetDetphStencilView();
+            dsDesc.AccessType = eLoadAccessOp::Load;
+
+            RenderPassDesc desc{};
+            desc.renderTargetDescs.push_back(rtDesc);
+            desc.renderTargetDescs.push_back(objectIDDesc);
+            desc.depthStencilDesc = dsDesc;
+            m_forwardPass = desc;
+        }
+
+        // Skybox
+        {
+            RenderTargetDesc rtDesc{};
+            rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
+            rtDesc.AccessType = eLoadAccessOp::Load;
+
+            DepthStencilDesc dsDesc{};
             dsDesc.DepthStencilView = m_gbuffer[static_cast<size_t>(eGBufferType::Depth)]->GetDetphStencilView();
             dsDesc.AccessType = eLoadAccessOp::Load;
 
@@ -721,13 +752,13 @@ namespace Dive
 
         // offScreen Resolve
         {
-            RenderTargetDesc rtDesc;
-            rtDesc.AccessType = eLoadAccessOp::Clear;
+            RenderTargetDesc rtDesc{};
             rtDesc.RenderTargetView = m_offScreenRenderTarget->GetRenderTargetView();
             rtDesc.ClearColor[0] = 0.0f;
             rtDesc.ClearColor[1] = 0.0f;
             rtDesc.ClearColor[2] = 0.0f;
             rtDesc.ClearColor[3] = 0.0f;
+            rtDesc.AccessType = eLoadAccessOp::Clear;
 
             RenderPassDesc desc{};
             desc.renderTargetDescs.push_back(rtDesc);
@@ -751,7 +782,13 @@ namespace Dive
             m_cbFrame->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Object));
             m_cbWeather->Bind(m_graphics, eShaderStage::VS, static_cast<uint32_t>(eConstantBuffer::Weather));
-            
+
+            // hs
+            m_cbFrame->Bind(m_graphics, eShaderStage::HS, static_cast<uint32_t>(eConstantBuffer::Frame));
+
+            // ds
+            m_cbFrame->Bind(m_graphics, eShaderStage::DS, static_cast<uint32_t>(eConstantBuffer::Frame));
+
             // ps
             m_cbFrame->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Frame));
             m_cbObject->Bind(m_graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Object));
@@ -771,6 +808,8 @@ namespace Dive
                 m_samplerStates[static_cast<size_t>(eSamplerState::SkySphere)].Get(),
                 m_samplerStates[static_cast<size_t>(eSamplerState::ShadowCompare)].Get()
             };
+
+            deviceContext->DSSetSamplers(0, static_cast<UINT>(eSamplerState::Count), samplers);
             deviceContext->PSSetSamplers(0, static_cast<UINT>(eSamplerState::Count), samplers);
 
             called = true;
@@ -789,7 +828,7 @@ namespace Dive
         m_cbWeather->Update(m_graphics, m_weatherData);
     }
     
-    void Renderer::passGBuffer(Scene* scene)
+    void Renderer::passGBuffer()
     {
         m_graphics->BeginRenderPass(m_gbufferPass);
 
@@ -798,15 +837,15 @@ namespace Dive
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
 
-        for (auto renderable : scene->GetRenderables())
+        for (auto opaque : m_opaques)
         {
-            if (!renderable->IsActive())
+            if (!opaque->IsActive())
                 continue;
 
-            auto transform = renderable->GetTransform();
-            auto staticMesh = renderable->GetComponent<MeshRenderer>();
+            auto transform = opaque->GetTransform();
+            auto staticMesh = opaque->GetComponent<MeshRenderer>();
             auto material = staticMesh->GetMaterial();
-
+            
             bool hasTessellation = material->HasMap(eMapType::Displacement);
 
             if (hasTessellation)
@@ -840,7 +879,7 @@ namespace Dive
         m_graphics->SetDepthStencilState(nullptr, 0);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
 
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::DeferredLighting)->Bind(m_graphics);
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Deferred)->Bind(m_graphics);
 
         // SetGBufferSRV 같은 걸 만드는 게 나을 듯하다.
         auto albedoSrv = m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)]->GetShaderResourceView();
@@ -906,10 +945,53 @@ namespace Dive
 
     void Renderer::passForward()
     {
-        // 반투명
-        // 지버퍼에서 objectID만 가져와 그려야 한다.
-        // 이때 clear가 아니라 Load로 설정해야 한다.
-        // 좀 더 명확하게 하자면 Load도 아니고 Add를 추가해야 한다.
+        m_graphics->BeginRenderPass(m_forwardPass);
+
+        m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
+
+        m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
+        m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Transparent].Get(), 0);
+        m_graphics->SetBlendState(m_blendStates[(size_t)eBlendState::Forward ].Get());
+
+        {
+            // gizmo
+
+            // tnrasparent
+            for (auto transparent : m_transparents)
+            {
+                if (!transparent->IsActive())
+                    continue;
+
+                auto transform = transparent->GetTransform();
+                auto staticMesh = transparent->GetComponent<MeshRenderer>();
+                auto material = staticMesh->GetMaterial();
+                /*
+                bool hasTessellation = material->HasMap(eMapType::Displacement);
+
+                if (hasTessellation)
+                {
+                    //ShaderManager::Get().GetShaderProgram(eShaderPrograms::ForwardTessellation)->Bind(m_graphics);
+                    //m_graphics->SetTopology(ePrimitiveTopology::PatchList_3_ControlPoints);
+                }
+                else*/
+                {
+                    ShaderManager::Get().GetShaderProgram(eShaderPrograms::Forward)->Bind(m_graphics);
+                    m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+                }
+
+                m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+                m_objectData.id = staticMesh->GetObjectID();
+                m_cbObject->Update(m_graphics, m_objectData);
+
+                staticMesh->Draw(m_graphics);
+            }
+        }
+
+        m_graphics->SetRasterizerState(nullptr);
+        m_graphics->SetDepthStencilState(nullptr, 0);
+        m_graphics->SetBlendState(nullptr);
+
+        m_graphics->EndRenderPass();
     }
 
     void Renderer::passPostProcessing()

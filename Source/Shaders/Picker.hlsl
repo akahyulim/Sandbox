@@ -19,7 +19,7 @@ void MainCS()
         return;
   
     uint2 mouseCoords = frameData.mousePosition;
-
+    /*
     float zw = GBuffer_Depth[mouseCoords].r;
 
     float2 uv = (mouseCoords + 0.5f) / frameData.screenResolution;
@@ -29,12 +29,12 @@ void MainCS()
     float4 worldSpacePosition = mul(float4(uv, zw, 1.0f), frameData.inverseViewProjection);
     float3 viewSpaceNormal = GBuffer_NormalMetallic[mouseCoords].xyz;
     viewSpaceNormal = 2.0f * viewSpaceNormal - 1.0f;
-    
+ */   
     uint objectID = GBuffer_ObjectID.Load(int3(mouseCoords, 0));
 
     PickingData picking_data;
-    picking_data.position = worldSpacePosition / worldSpacePosition.w;
-    picking_data.normal = float4(normalize(mul(viewSpaceNormal, (float3x3) transpose(frameData.view))), 0.0f);
+    picking_data.position = float4(0, 0, 0, 0); //worldSpacePosition / worldSpacePosition.w;
+    picking_data.normal = float4(0, 0, 0, 0); //float4(normalize(mul(viewSpaceNormal, (float3x3) transpose(frameData.view))), 0.0f);
     picking_data.id = objectID;
     picking_data.pad = uint3(0, 0, 0);
     

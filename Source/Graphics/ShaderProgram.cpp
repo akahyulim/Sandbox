@@ -65,8 +65,12 @@ namespace Dive
 			graphics->SetVertexShader(m_vs);
 		if (m_hs)
 			graphics->SetHullShader(m_hs);
+		else
+			graphics->SetHullShader(nullptr);
 		if (m_ds)
 			graphics->SetDomainShader(m_ds);
+		else
+			graphics->SetDomainShader(nullptr);
 		if (m_ps) 
 			graphics->SetPixelShader(m_ps);
 		if (m_cs) 

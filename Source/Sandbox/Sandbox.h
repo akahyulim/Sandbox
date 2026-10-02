@@ -19,6 +19,18 @@ namespace Dive
 		EngineInit engin_init;
 	};
 
+	enum class eMaterials
+	{
+		Default,
+		Tiles,
+		Metal_Plate,
+		Rusty_Metal_Grid,
+		Stacked_Brick_Wall,
+		Marble_Cliff,
+		Rust_Metal,
+		Count
+	};
+
 	class Sandbox
 	{
 	public:
@@ -44,6 +56,8 @@ namespace Dive
 		void newScene();
 		void setSelectedObject(GameObject* gameObject);
 
+		void loadResources();
+
 	private:
 		std::unique_ptr<Engine> m_engine;
 		std::unique_ptr<ImGuiManager> m_gui;
@@ -54,7 +68,7 @@ namespace Dive
 		GameObject* m_directionalLight = nullptr;	// 역시 현재 사용하지 않고 있다.
 		GameObject* m_selectedObject = nullptr;
 		GameObject* m_contextTargetObject = nullptr;
-		GameObject* m_field = nullptr;
+		//GameObject* m_field = nullptr;
 
 		bool m_showEnviromentMenu = false;
 		bool m_showInspectorMenu = false;
@@ -63,6 +77,9 @@ namespace Dive
 		bool m_isSceneViewHovered = false;
 
 		std::unordered_map<std::string, TextureHandle> m_skyCubemaps;
+
+		TextureHandle m_pointLightIcon = INVALID_TEXTURE_HANDLE;
+		TextureHandle m_spotLightIcon = INVALID_TEXTURE_HANDLE;
 		
 		// ================================================================
 		

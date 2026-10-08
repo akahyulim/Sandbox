@@ -21,19 +21,19 @@ struct ObjectData
 
 struct MaterialData
 {
-    float4 baseColor; // [16바이트] 알베도 색상 (RGBA)
+    float4 baseColor;
     
-    float3 emissiveFactor; // [12바이트] 자체 발광 색상
-    float roughnessFactor; // [ 4바이트] 거칠기 (합쳐서 16바이트)
+    float3 emissiveFactor;
+    float roughnessFactor;
     
-    float2 tiling; // [ 8바이트] UV 타일링
-    float2 offset; // [ 8바이트] UV 오프셋 (합쳐서 16바이트)
+    float2 tiling;
+    float2 offset;
     
-    float metallicFactor; // [ 4바이트] 금속성
-    uint flags; // [ 4바이트] 텍스처 유무 플래그 등
+    float metallicFactor;
+    uint flags;
     
     float heightScale;
-    uint padding; // [ 8바이트] 16바이트 배수를 맞추기 위한 패딩 (합쳐서 16바이트)
+    uint padding;
 };
 
 struct WeatherData
@@ -46,18 +46,18 @@ struct WeatherData
 
 struct LightData
 {
-    float3 color; // c0.xyz
-    uint type; // c0.w  (0: Directional, 1: Point, 2: Spot)
+    float3 color;
+    uint type;
     
-    float3 position; // c1.xyz
-    float rangeRcp; // c1.w
+    float3 position;
+    float rangeRcp;
     
-    float3 direction; // c2.xyz
-    float intensity; // c2.w
+    float3 direction;
+    float intensity;
     
-    float cosInnerAngle; // c3.x
-    float cosOuterAngle; // c3.y
-    float2 paddingRow4; // c3.zw
+    float cosInnerAngle;
+    float cosOuterAngle;
+    float2 paddingRow4;
 };
 
 struct LightConstants

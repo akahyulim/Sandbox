@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Light.h"
 #include "Transform.h"
+#include "Utilities/Math.h"
 
 namespace Dive
 {
@@ -9,35 +10,107 @@ namespace Dive
 	{
 	}
 
-	void Light::Update()
-	{
-		Transform* transform = GetTransform();
+    void Light::Update()
+    {
+        Transform* transform = GetTransform();
+        assert(transform != nullptr);
 
-		m_data.position = transform->GetPosition();
-		m_data.direction = transform->GetForward();
-	}
-    
+        DirectX::XMFLOAT3 curPos = transform->GetPosition();
+        DirectX::XMFLOAT3 curDir = transform->GetForward();
+
+        if (!Math::XMFLOAT3Equal(m_data.position, curPos) ||
+            !Math::XMFLOAT3Equal(m_data.direction, curDir))
+        {
+            m_data.position = curPos;
+            m_data.direction = curDir;
+            m_isDirty = true;
+        }
+    }
+    void Light::SetLightType(eLightType type)
+    {
+        uint32_t index = static_cast<uint32_t>(type);
+
+        if (m_data.type == index)
+            return;
+
+        m_data.type = index;
+        m_isDirty = true;
+    }
+
+    void Light::SetColor(const DirectX::XMFLOAT3& color)
+    {
+        SetColor(color.x, color.y, color.z);
+    }
+
+    void Light::SetColor(float r, float g, float b)
+    {
+        if (Math::XMFLOAT3Equal(m_data.color, DirectX::XMFLOAT3(r, g, b)))
+            return;
+
+        m_data.color = { r, g, b };
+        m_isDirty = true;
+    }
+
     float Light::GetRange() const
     {
-        // rangeRcp가 0이면 원래 range를 알 수 없으므로 안전하게 처리
-        if (m_data.rangeRcp > 0.0001f)
-        {
-            return 1.0f / m_data.rangeRcp;
-        }
-        return 0.0f; // 혹은 기본 범위값 반환
+        return (m_data.rangeRcp > 0.0001f) ?
+            1.0f / m_data.rangeRcp : 0.0f;
     }
 
     void Light::SetRange(float range)
     {
-        // 0이거나 너무 작은 값이 들어와서 생기는 크래시(Inf, NaN) 방지
-        if (range > 0.0001f)
-        {
-            m_data.rangeRcp = 1.0f / range;
-        }
-        else
-        {
-            m_data.rangeRcp = 0.0f;
-        }
+        auto rangeRcp = (range > 0.0001f) ?
+            1.0f / range : 0.0f;
+
+        if (fabsf(m_data.rangeRcp - rangeRcp) < 1e-5f)
+            return;
+
+        m_data.rangeRcp = rangeRcp;
+        m_isDirty = true;
+    }
+
+    float Light::GetInnerAngleDegrees() const
+    {
+        float radian = acosf(m_data.cosInnerAngle);
+        return DirectX::XMConvertToDegrees(radian);
+    }
+
+    void Light::SetInnerAngleDegrees(float degree)
+    {
+        degree = std::clamp(degree, 0.0f, 90.0f);
+        float cosRadian = cosf(DirectX::XMConvertToRadians(degree));
+
+        if (fabsf(m_data.cosInnerAngle - cosRadian) < 1e-5f)
+            return;
+
+        m_data.cosInnerAngle = cosRadian;
+
+        if (m_data.cosInnerAngle < m_data.cosOuterAngle)
+            m_data.cosOuterAngle = m_data.cosInnerAngle;
+
+        m_isDirty = true;
+    }
+
+    float Light::GetOuterAngleDegrees() const
+    {
+        float radian = acosf(m_data.cosOuterAngle);
+        return DirectX::XMConvertToDegrees(radian);
+    }
+
+    void Light::SetOuterAngleDegrees(float degree)
+    {
+        degree = std::clamp(degree, 0.0f, 90.0f);
+        float cosRadian = cosf(DirectX::XMConvertToRadians(degree));
+
+        if (fabsf(m_data.cosOuterAngle - cosRadian) < 1e-5f)
+            return;
+        
+        m_data.cosOuterAngle = cosRadian;
+
+        if (m_data.cosInnerAngle < m_data.cosOuterAngle)
+            m_data.cosInnerAngle = m_data.cosOuterAngle;
+
+        m_isDirty = true;
     }
 
     void Light::SetIntensity(float intensity)
@@ -46,6 +119,6 @@ namespace Dive
             return;
 
         m_data.intensity = intensity;
-        m_isDirty = true;   // MarkDirty()로 변경?
+        m_isDirty = true;
     }
 }

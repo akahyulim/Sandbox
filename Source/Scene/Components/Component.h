@@ -38,6 +38,7 @@ namespace Dive
 		Transform* GetTransform() const;
 
 		bool IsDirty() const { return m_isDirty; }
+		void ClearDirty() { m_isDirty = false; }
 
 		static constexpr eComponentType GetType() { return eComponentType::Undefined; }
 

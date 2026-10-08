@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <array>
+#include <imgui/imgui.h>
 
 #include "Core/Types.h"
 #include "Core/Engine.h"
@@ -46,17 +47,21 @@ namespace Dive
 		void cameraControll();
 		
 		void sceneView();
-
+		void renderLightIcons(const ImVec2& viewportPos, const ImVec2& viewportSize);
 		void drawCanvasContextMenu();
-		
+		void handleSceneClick(const ImVec2& viewportPos, const ImVec2& viewportSize);
+		void renderGizmo(const ImVec2& viewportPos, const ImVec2& viewportSize);
 		void showEnviroment();
 		void showInspector();
 		void showQuit();
 
-		void newScene();
 		void setSelectedObject(GameObject* gameObject);
 
 		void loadResources();
+
+		void sceneEmpty();
+		void sceneInnocent();
+		void sceneLighting();
 
 	private:
 		std::unique_ptr<Engine> m_engine;
@@ -65,7 +70,7 @@ namespace Dive
 		Scene* m_scene = nullptr;
 
 		GameObject* m_mainCamera = nullptr;
-		GameObject* m_directionalLight = nullptr;	// 역시 현재 사용하지 않고 있다.
+		GameObject* m_directionalLight = nullptr;
 		GameObject* m_selectedObject = nullptr;
 		GameObject* m_contextTargetObject = nullptr;
 		//GameObject* m_field = nullptr;

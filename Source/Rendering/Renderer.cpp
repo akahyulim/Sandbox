@@ -54,43 +54,55 @@ namespace Dive
 
         auto camera = scene->GetCamera()->GetComponent<Camera>();
         auto transform = camera->GetTransform();
-
         camera->SetAspectRatio(static_cast<float>(m_width), static_cast<float>(m_height));
-        
-        m_frameData.view = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
-        m_frameData.projection = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
-        m_frameData.viewProjection = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
-        m_frameData.inverseViewProjection = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, camera->GetViewProjMatrix()));
-        auto pos = transform->GetPosition();
-        m_frameData.cameraPosition = DirectX::XMFLOAT4(pos.x, pos.y, pos.z, 1.0f);
-        auto forward = transform->GetForward();
-        m_frameData.cameraForward = DirectX::XMFLOAT4(forward.x, forward.y, forward.z, 1.0f);
-        m_frameData.screenResolution.x = static_cast<float>(m_width);
-        m_frameData.screenResolution.y = static_cast<float>(m_height);
-        m_frameData.mousePosition = m_mousePosition;
-        m_cbFrame->Update(m_graphics, m_frameData);
 
-        const auto& lights = scene->GetLightQueue();
+        {    
+            FrameData frameData = {};
 
-        m_lightConstants = {};
+            frameData.view = DirectX::XMMatrixTranspose(camera->GetViewMatrix());
+            frameData.projection = DirectX::XMMatrixTranspose(camera->GetProjectionMatrix());
+            frameData.viewProjection = DirectX::XMMatrixTranspose(camera->GetViewProjMatrix());
+            frameData.inverseViewProjection = DirectX::XMMatrixTranspose(camera->GetInverseViewProjMatrix());
+            frameData.cameraPosition = camera->GetPosition();
+            frameData.cameraForward = camera->GetForward();
 
-        if (!lights.empty())
+            frameData.screenResolution.x = static_cast<float>(m_width);
+            frameData.screenResolution.y = static_cast<float>(m_height);
+            frameData.mousePosition = m_mousePosition;
+
+            m_cbFrame->Update(m_graphics, frameData);
+        }
+
         {
-            size_t count = std::min(lights.size(), size_t(32));
-            m_lightConstants.lightCount = static_cast<uint32_t>(count);
+            const auto& lights = scene->GetLightQueue();
 
-            for (size_t i = 0; i < count; ++i)
+            static LightConstants lightConstants = {};
+
+            bool anyLightChanged = false;
+
+            size_t currentCount = std::min(lights.size(), size_t(32));
+            if (lightConstants.lightCount != static_cast<uint32_t>(currentCount))
+            {
+                lightConstants.lightCount = static_cast<uint32_t>(currentCount);
+                anyLightChanged = true;
+            }
+
+            for (size_t i = 0; i < currentCount; ++i)
             {
                 auto lightCom = lights[i]->GetComponent<Light>();
-                m_lightConstants.lights[i] = lightCom->GetLightData();
+                if (lightCom->IsDirty())
+                {
+                    lightConstants.lights[i] = lightCom->GetLightData();
+                    lightCom->ClearDirty();
+                    anyLightChanged = true;
+                }
+            }
+
+            if (anyLightChanged)
+            {
+                m_cbLight->Update(m_graphics, lightConstants);
             }
         }
-        else
-        {
-            m_lightConstants.lightCount = 0;
-        }
-
-        m_cbLight->Update(m_graphics, m_lightConstants);
 
         updateWeather();
 
@@ -159,7 +171,7 @@ namespace Dive
             return;
 
         passGBuffer();
-        passDeferredLighting();
+        passDeferred();
         passSky(scene);
         passForward();
         //passPostProcessing();
@@ -816,16 +828,21 @@ namespace Dive
         }
     }
 
+    // 역시 Enviroment가 어울린다.
     void Renderer::updateWeather()
     {
+        // 이건 멤버 변수가 더 어울릴 수 있다.
+        // 현재는 데이터들을 개별 메서드로 전달, 입력받고 있기 때문이다.
+        WeatherData data;
+
         DirectX::XMVECTOR dir = DirectX::XMLoadFloat4(&m_lightDir);
         DirectX::XMVector4Normalize(dir);
-        DirectX::XMStoreFloat4(&m_weatherData.lightDir, dir);
+        DirectX::XMStoreFloat4(&data.lightDir, dir);
   
-        m_weatherData.lightColor = m_lightColor;
-        m_weatherData.ambientColor = m_ambientColor;
-        m_weatherData.skyColor = m_skyColor;
-        m_cbWeather->Update(m_graphics, m_weatherData);
+        data.lightColor = m_lightColor;
+        data.ambientColor = m_ambientColor;
+        data.skyColor = m_skyColor;
+        m_cbWeather->Update(m_graphics, data);
     }
     
     void Renderer::passGBuffer()
@@ -836,6 +853,8 @@ namespace Dive
 
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullBack].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Default].Get(), 0);
+
+        ObjectData data{};
 
         for (auto opaque : m_opaques)
         {
@@ -859,9 +878,9 @@ namespace Dive
                 m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
             }
 
-            m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
-            m_objectData.id = staticMesh->GetObjectID();
-            m_cbObject->Update(m_graphics, m_objectData);
+            data.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+            data.id = staticMesh->GetObjectID();
+            m_cbObject->Update(m_graphics, data);
 
             staticMesh->Draw(m_graphics);
         }
@@ -869,7 +888,7 @@ namespace Dive
         m_graphics->EndRenderPass();
     }
     
-    void Renderer::passDeferredLighting()
+    void Renderer::passDeferred()
     {
         m_graphics->BeginRenderPass(m_deferredLightingPass);
 
@@ -927,9 +946,10 @@ namespace Dive
             ShaderManager::Get().GetShaderProgram(eShaderPrograms::UniformSky)->Bind(m_graphics);
         }
 
+        ObjectData data{};
         auto camera = scene->GetCamera();
-        m_objectData.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
-        m_cbObject->Update(m_graphics, m_objectData);
+        data.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
+        m_cbObject->Update(m_graphics, data);
 
         m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
         
@@ -957,6 +977,7 @@ namespace Dive
             // gizmo
 
             // tnrasparent
+            ObjectData data{};
             for (auto transparent : m_transparents)
             {
                 if (!transparent->IsActive())
@@ -979,9 +1000,9 @@ namespace Dive
                     m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
                 }
 
-                m_objectData.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
-                m_objectData.id = staticMesh->GetObjectID();
-                m_cbObject->Update(m_graphics, m_objectData);
+                data.model = DirectX::XMMatrixTranspose(transform->GetWorldMatrix());
+                data.id = staticMesh->GetObjectID();
+                m_cbObject->Update(m_graphics, data);
 
                 staticMesh->Draw(m_graphics);
             }

@@ -23,7 +23,6 @@ namespace Dive
 		UniformSky,
 		Resolve,
 		Picking,
-		Test,
 		Count
 	};
 

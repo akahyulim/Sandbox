@@ -6,7 +6,6 @@
 namespace Dive
 {
 	class GameObject;
-	class Texture;
 
 	enum class eProjectionType
 	{
@@ -26,10 +25,13 @@ namespace Dive
 		DirectX::XMMATRIX GetProjectionMatrix() const;
 		DirectX::XMFLOAT4X4 GetViewProj() const;
 		DirectX::XMMATRIX GetViewProjMatrix() const;
+		DirectX::XMFLOAT4X4 GetInverseViewProj() const;
+		DirectX::XMMATRIX GetInverseViewProjMatrix() const;
 
 		eProjectionType GetProjectionType() const { return m_projectionType; }
-		void SetProjectionType(eProjectionType type) { m_projectionType = type; }
+		void SetProjectionType(eProjectionType type);
 
+		float GetAspectRatio() const { return m_aspectRatio; }
 		void SetAspectRatio(float width, float height);
 
 		float GetFieldOfView() const { return m_fov; }
@@ -41,8 +43,17 @@ namespace Dive
 		float GetFarClipPlane() const { return m_farClip; }
 		void SetFarClipPlane(float farPlane);
 
+		float GetOrthoHeight() const { return m_orthoHeight; }
+		void SetOrthoHeight(float height);
+
+		DirectX::XMFLOAT4 GetPosition() const;
+		DirectX::XMFLOAT4 GetForward() const;
+
 		// 사용하는 곳이 있나...?
 		static constexpr eComponentType GetType() { return eComponentType::Camera; }
+
+	private:
+		void updateProjection();
 
 	private:
 		eProjectionType m_projectionType = eProjectionType::Perspective;
@@ -52,5 +63,9 @@ namespace Dive
 		float m_farClip = 5000.0f;
 
 		float m_aspectRatio = 0.0f;
+
+		float m_orthoHeight = 0.0f;
+
+		DirectX::XMFLOAT4X4 m_projection;
 	};
 }

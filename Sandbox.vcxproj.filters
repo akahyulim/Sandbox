@@ -348,9 +348,6 @@
     <FxCompile Include="Source\Shaders\Skybox.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Shaders\Test.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Source\Shaders\GBuffer.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>

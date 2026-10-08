@@ -60,11 +60,9 @@ PSOutput MainPS(VSToPS input)
     {
         float4 texColor = AlbedoMap.Sample(WrapLinearSampler, uv);
     
-        // 1. 색상에 텍스처 컬러 곱하고 감마 보정(제곱) 적용
         albedoColor *= texColor.xyz;
         albedoColor *= albedoColor;
     
-        // 2. 알파는 제곱하지 않고 원본 비율 그대로 곱하기
         finalAlpha *= texColor.w;
     }
     
@@ -74,7 +72,6 @@ PSOutput MainPS(VSToPS input)
     if (HasORMMap())
     {
         float3 orm = ORMMap.Sample(WrapLinearSampler, uv).xyz;
-        //orm.r (AO는 필요에 따라 Ambient Occlusion 렌더 타겟에 쓸 수 있음)
         roughness *= orm.g;
         metallic *= orm.b;
     }
@@ -92,12 +89,15 @@ PSOutput MainPS(VSToPS input)
     
     float3 V = normalize(frameData.cameraPosition.xyz - input.WorldPos);
     
-    // 1. 기본 앰비언트(환경광) 계산
     float3 ambientColor = weatherData.ambientColor.xyz;
     float3 ambient = albedoColor * ambientColor;
-
-    // 2. 다중 라이트(디렉셔널, 포인트, 스팟) 누적 연산
-    float3 totalPbrLighting = 0.0f;
+    
+    float3 sunLightColor = weatherData.lightColor.xyz;
+    float3 sunLightDir = normalize(-weatherData.lightDir);
+    float sunIntensity = 3.0f;
+    
+    float3 totalPbrLighting = BRDF_PBR(normal, V, sunLightDir, albedoColor, metallic, roughness)
+                            * sunLightColor * sunIntensity * 1.0f;
 
     for (uint i = 0; i < lights.lightCount; ++i)
     {
@@ -106,29 +106,22 @@ PSOutput MainPS(VSToPS input)
         float3 lightDir = 0.0f;
         float attenuation = 1.0f;
         
-        if (light.type == 0) // Directional Light
-        {
-            lightDir = normalize(-light.direction);
-            attenuation = 1.0f;
-        }
-        else if (light.type == 1) // Point Light
+        if (light.type == 0)
         {
             float3 lightToPixel = light.position - input.WorldPos;
             float distance = length(lightToPixel);
             
-            // 범위를 벗어나면 연산 생략 (최적화)
             float range = 1.0f / light.rangeRcp;
             if (distance > range) 
                 continue;
                 
             lightDir = lightToPixel / distance;
             
-            // 거리 감쇠 계산 (Standard Clamped Distance Attenuation)
             float distanceNorm = distance * light.rangeRcp;
             float atten = saturate(1.0f - (distanceNorm * distanceNorm));
             attenuation = atten * atten;
         }
-        else if (light.type == 2) // Spot Light
+        else if (light.type == 1)
         {
             float3 lightToPixel = light.position - input.WorldPos;
             float distance = length(lightToPixel);
@@ -139,24 +132,26 @@ PSOutput MainPS(VSToPS input)
                 
             lightDir = lightToPixel / distance;
             
-            // 포인트 거리 감쇠
             float distanceNorm = distance * light.rangeRcp;
             float pointAtten = saturate(1.0f - (distanceNorm * distanceNorm));
             pointAtten = pointAtten * pointAtten;
             
-            // 스팟 콘(원뿔) 각도 감쇠
             float cosTheta = dot(-lightDir, light.direction);
             float spotAtten = saturate((cosTheta - light.cosOuterAngle) / (light.cosInnerAngle - light.cosOuterAngle));
             
             attenuation = pointAtten * spotAtten;
         }
+        else
+        {
+            continue;
+        }
         
-        // PBR BRDF 함수 적용 후 빛의 색상 및 감쇠 반영
-        float3 radiance = BRDF_PBR(normal, V, lightDir, albedoColor, metallic, roughness) * light.color * light.intensity * attenuation;
+        float3 radiance = BRDF_PBR(normal, V, lightDir, albedoColor, metallic, roughness)
+                       * light.color * light.intensity * attenuation;
+                       
         totalPbrLighting += radiance;
     }
 
-    // 3. 최종 색상 조합 (앰비언트 + 모든 라이트의 합)
     float3 finalColor = ambient + totalPbrLighting;
    
     // 계층구조일 땐 방법을 달리해야한다.
@@ -165,7 +160,6 @@ PSOutput MainPS(VSToPS input)
         finalColor = lerp(finalColor, float3(1.0f, 0.8f, 0.2f), 0.3f);
     }
     
-    // 감마 보정
     finalColor = pow(finalColor, 1.0 / 2.2);
     
     PSOutput output;

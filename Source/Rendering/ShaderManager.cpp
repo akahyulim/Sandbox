@@ -88,11 +88,6 @@ namespace Dive
 	{
 		assert(graphics);
 
-		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/Test.hlsl", eInputLayout::Lit))
-		{
-			spdlog::error("Test 생성 실패");
-			return false;
-		}
 		if (!createVertexShaderAndInputLayout(graphics, "Source/Shaders/GBuffer.hlsl", eInputLayout::Lit))
 		{
 			spdlog::error("GBuffer VS 생성 실패");
@@ -144,11 +139,6 @@ namespace Dive
 		}
 
 		// pixel shader
-		if (!createPixelShader(graphics, "Source/Shaders/Test.hlsl"))
-		{
-			spdlog::error("Test 생성 실패");
-			return false;
-		}
 		if(!createPixelShader(graphics, "Source/Shaders/GBuffer.hlsl"))
 		{
 			spdlog::error("GBuffer PS 생성 실패");
@@ -198,11 +188,6 @@ namespace Dive
 		}
 
 		// shader program
-		if (!createShaderProgram("Test", "Test", eShaderPrograms::Test))
-		{
-			spdlog::error("Test 생성 실패");
-			return false;
-		}
 		if(!createShaderProgram("GBuffer", "GBuffer", eShaderPrograms::GBuffer))
 		{
 			spdlog::error("GBuffer ShaderProgram 생성 실패");

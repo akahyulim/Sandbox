@@ -25,6 +25,7 @@ namespace Dive
         constexpr float BOOST_SPEED = 10.0f;
         constexpr float MIN_SPEED = 0.5f;
         constexpr float MAX_SPEED = 99.0f;
+        constexpr float LIGHT_ICON_SIZE = 64.0f;
     }
 
     static void DrawFloatControl(const std::string& label, float& value, float resetValue = 0.0f, float columnWidth = 100.0f)
@@ -173,6 +174,27 @@ namespace Dive
         return { value.x, value.y, value.z, value.w };
     }
 
+    static bool WorldToScreenPoint(const DirectX::XMVECTOR& worldPos, const DirectX::XMMATRIX& viewProj,
+            const ImVec2& viewportPos, const ImVec2& viewportSize,
+            float& outScreenX, float& outScreenY)
+    {
+        DirectX::XMVECTOR projected = DirectX::XMVector3TransformCoord(worldPos, viewProj);
+
+        float ndcX = DirectX::XMVectorGetX(projected);
+        float ndcY = DirectX::XMVectorGetY(projected);
+        float ndcZ = DirectX::XMVectorGetZ(projected);
+
+        // 카메라 뒤쪽에 있는 경우 클리핑
+        if (ndcZ < 0.0f || ndcZ > 1.0f)
+            return false;
+
+        // NDC(-1~1)를 뷰포트 내의 실제 픽셀 화면 좌표로 변환
+        outScreenX = viewportPos.x + (1.0f + ndcX) * 0.5f * viewportSize.x;
+        outScreenY = viewportPos.y + (1.0f - ndcY) * 0.5f * viewportSize.y;
+
+        return true;
+    }
+
     Sandbox::Sandbox(const SandboxInit& init)
     {
         m_engine = std::make_unique<Engine>(init.engin_init);
@@ -180,7 +202,8 @@ namespace Dive
 
         loadResources();
  
-        newScene();
+        //sceneInnocent();
+        sceneLighting();
     }
 
     void Sandbox::Run()
@@ -379,167 +402,16 @@ namespace Dive
 
             m_isSceneViewHovered = ImGui::IsItemHovered();
 
-            
-            if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
-            {
-                auto cameraCom = m_mainCamera->GetComponent<Camera>();
-                DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
-                DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
-                DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
-
-                ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-                for (const auto& lightObject : m_scene->GetLightQueue())
-                {
-                    auto type = lightObject->GetComponent<Light>()->GetLightType();
-                    if (type == eLightType::Directional)
-                        continue;
-
-                    DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
-
-                    // 1. 3D 월드 좌표를 클립/NDC 공간으로 변환
-                    DirectX::XMVECTOR projected = DirectX::XMVector3TransformCoord(worldPos, viewProj);
-
-                    float ndcX = DirectX::XMVectorGetX(projected);
-                    float ndcY = DirectX::XMVectorGetY(projected);
-                    float ndcZ = DirectX::XMVectorGetZ(projected);
-
-                    // 2. 카메라 뒤쪽에 있는 라이트는 무시 (클리핑)
-                    if (ndcZ < 0.0f || ndcZ > 1.0f) continue;
-
-                    // 3. NDC(-1~1)를 뷰포트 내의 실제 픽셀 화면 좌표로 변환
-                    float screenX = viewportPos.x + (1.0f + ndcX) * 0.5f * viewportSize.x;
-                    float screenY = viewportPos.y + (1.0f - ndcY) * 0.5f * viewportSize.y; // DirectX는 Y축 아래가 정방향
-
-                    // 4. ImGui로 아이콘 그리기 (예: 32x32 크기)
-                    float iconSize = 64.0f;
-                    auto srv = (type == eLightType::Point) ? 
-                        TextureManager::Get().GetTextureView(m_pointLightIcon) : 
-                        TextureManager::Get().GetTextureView(m_spotLightIcon);
-
-                    ImTextureID lightIconID = (ImTextureID)srv;
-
-                    drawList->AddImage(lightIconID,
-                        ImVec2(screenX - iconSize * 0.5f, screenY - iconSize * 0.5f),
-                        ImVec2(screenX + iconSize * 0.5f, screenY + iconSize * 0.5f));
-                }
-            }
-            // ==========================================
+            renderLightIcons(viewportPos, viewportSize);
 
             if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
-                bool clickedLightIcon = false;
-
-                // 1. 먼저 라이트 아이콘들을 클릭했는지 순회하며 검사
-                if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
-                {
-                    auto cameraCom = m_mainCamera->GetComponent<Camera>();
-                    DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
-                    DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
-                    DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
-
-                    ImVec2 mousePos = ImGui::GetMousePos(); // 현재 마우스의 화면 픽셀 좌표
-                    float iconSize = 64.0f;
-                    float halfSize = iconSize * 0.5f;
-
-                    for (const auto& lightObject : m_scene->GetLightQueue())
-                    {
-                        auto type = lightObject->GetComponent<Light>()->GetLightType();
-                        if (type == eLightType::Directional) continue; // 디렉셔널은 아이콘 위치가 모호하므로 패스
-
-                        DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
-                        DirectX::XMVECTOR projected = DirectX::XMVector3TransformCoord(worldPos, viewProj);
-
-                        float ndcX = DirectX::XMVectorGetX(projected);
-                        float ndcY = DirectX::XMVectorGetY(projected);
-                        float ndcZ = DirectX::XMVectorGetZ(projected);
-
-                        if (ndcZ < 0.0f || ndcZ > 1.0f) continue;
-
-                        float screenX = viewportPos.x + (1.0f + ndcX) * 0.5f * viewportSize.x;
-                        float screenY = viewportPos.y + (1.0f - ndcY) * 0.5f * viewportSize.y;
-
-                        // 아이콘의 2D 사각형 영역(Bounding Box) 계산
-                        ImVec2 minBound(screenX - halfSize, screenY - halfSize);
-                        ImVec2 maxBound(screenX + halfSize, screenY + halfSize);
-
-                        // 마우스 커서가 아이콘 사각형 내부에 있는지 확인
-                        if (mousePos.x >= minBound.x && mousePos.x <= maxBound.x &&
-                            mousePos.y >= minBound.y && mousePos.y <= maxBound.y)
-                        {
-                            // 현재 ObjectI가 MeshRenderer에 존재하지만
-                            // Light Object는 MeshRenderer를 가지고 있지 않다.
-                            setSelectedObject(lightObject); // 라이트 오브젝트 선택!
-                            clickedLightIcon = true;
-                            break;
-                        }
-                    }
-                }
-
-                // 2. 라이트 아이콘을 클릭하지 않았을 때만 기존 3D 셰이프(메쉬) 픽킹 수행
-                if (!clickedLightIcon)
-                {
-                    auto renderer = m_engine->GetRenderer();
-                    renderer->ProcessPicking();
-                    auto data = renderer->GetPickingData();
-                    auto selected = m_scene->GetGameObjectByObjectID(data.id);
-                    if (m_selectedObject != selected)
-                    {
-                        setSelectedObject(selected);
-                    }
-                }
+                handleSceneClick(viewportPos, viewportSize);
             }
-            /*
-            if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-            {
-                if (m_isSceneViewHovered && !ImGuizmo::IsUsing())
-                {
-                    auto renderer = m_engine->GetRenderer();
-                    renderer->ProcessPicking();
-                    auto data = renderer->GetPickingData();
-                    auto selected = m_scene->GetGameObjectByObjectID(data.id);
-                    if (m_selectedObject != selected)
-                    {
-                        setSelectedObject(selected);
-                    }
-                }
-            }
-            */
+
             drawCanvasContextMenu();
 
-            if (m_selectedObject != nullptr && m_mainCamera != nullptr)
-            {
-                ImGuizmo::BeginFrame();
-
-                ImGuizmo::SetRect(viewportPos.x, viewportPos.y, viewportSize.x, viewportSize.y);
-                ImGuizmo::SetOrthographic(false);
-                ImGuizmo::SetDrawlist();
-
-                auto cameraCom = m_mainCamera->GetComponent<Camera>();
-                DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
-                DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
-
-                auto transform = m_selectedObject->GetTransform();
-                DirectX::XMMATRIX world = transform->GetWorldMatrix();
-
-                DirectX::XMFLOAT4X4 viewMat, projMat, worldMat;
-                DirectX::XMStoreFloat4x4(&viewMat, view);
-                DirectX::XMStoreFloat4x4(&projMat, proj);
-                DirectX::XMStoreFloat4x4(&worldMat, world);
-
-                static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-                static ImGuizmo::MODE currentMode = ImGuizmo::WORLD;
-
-                if (ImGui::IsKeyPressed(ImGuiKey_Z)) currentOperation = ImGuizmo::TRANSLATE;
-                if (ImGui::IsKeyPressed(ImGuiKey_X)) currentOperation = ImGuizmo::ROTATE;
-                if (ImGui::IsKeyPressed(ImGuiKey_C)) currentOperation = ImGuizmo::SCALE;
-
-                if (ImGuizmo::Manipulate(&viewMat._11, &projMat._11, currentOperation, currentMode, &worldMat._11))
-                {
-                    DirectX::XMMATRIX newWorld = DirectX::XMLoadFloat4x4(&worldMat);
-                    transform->SetWorldMatrix(newWorld);
-                }
-            }
+            renderGizmo(viewportPos, viewportSize);
         }   
 
         ImGui::End();
@@ -547,6 +419,34 @@ namespace Dive
         showEnviroment();
         showInspector();
         showQuit();
+    }
+
+    void Sandbox::renderLightIcons(const ImVec2& viewportPos, const ImVec2& viewportSize)
+    {
+        if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
+        {
+            auto cameraCom = m_mainCamera->GetComponent<Camera>();
+            DirectX::XMMATRIX viewProj = cameraCom->GetViewProjMatrix();
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            for (const auto& lightObject : m_scene->GetLightQueue())
+            {
+                auto type = lightObject->GetComponent<Light>()->GetLightType();
+                DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
+
+                float screenX, screenY;
+                if (!WorldToScreenPoint(worldPos, viewProj, viewportPos, viewportSize, screenX, screenY))
+                    continue;
+
+                auto textureView = (type == eLightType::Point) ?
+                    TextureManager::Get().GetTextureView(m_pointLightIcon) :
+                    TextureManager::Get().GetTextureView(m_spotLightIcon);
+
+                drawList->AddImage((ImTextureID)textureView,
+                    ImVec2(screenX - LIGHT_ICON_SIZE * 0.5f, screenY - LIGHT_ICON_SIZE * 0.5f),
+                    ImVec2(screenX + LIGHT_ICON_SIZE * 0.5f, screenY + LIGHT_ICON_SIZE * 0.5f));
+            }
+        }
     }
 
     void Sandbox::drawCanvasContextMenu()
@@ -597,6 +497,24 @@ namespace Dive
             }
             else
             {
+                if (ImGui::BeginMenu("Scene"))
+                {
+                    if (ImGui::MenuItem("New"))
+                    {
+                        sceneEmpty();
+                    }
+                    if (ImGui::MenuItem("Innocent"))
+                    {
+                        sceneInnocent();
+                    }
+                    if (ImGui::MenuItem("Lighting"))
+                    {
+                        sceneLighting();
+                    }
+
+                    ImGui::EndMenu();
+                }
+
                 if (ImGui::BeginMenu("3D Object"))
                 {
                     if (ImGui::MenuItem("Triangle"))
@@ -658,7 +576,7 @@ namespace Dive
                         light->SetColor(1.0f, 1.0f, 1.0f);
                         
                         auto transform = gameObject->GetTransform();
-                        transform->SetPosition(0.0f, 5.0f, 0.0f);
+                        transform->SetLocalPosition(0.0f, 5.0f, 0.0f);
                         
                         // 임시다. ObjectID를 위해 추가했다.
                         auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
@@ -673,7 +591,7 @@ namespace Dive
                         light->SetColor(1.0f, 1.0f, 1.0f);
 
                         auto transform = gameObject->GetTransform();
-                        transform->SetPosition(0.0f, 5.0f, 0.0f);
+                        transform->SetLocalPosition(0.0f, 5.0f, 0.0f);
                         transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
 
                         // 임시다. ObjectID를 위해 추가했다.
@@ -684,6 +602,97 @@ namespace Dive
             }
 
             ImGui::EndPopup();
+        }
+    }
+
+
+    void Sandbox::handleSceneClick(const ImVec2& viewportPos, const ImVec2& viewportSize)
+    {
+        bool clickedLightIcon = false;
+
+        if (m_mainCamera != nullptr && !m_scene->GetLightQueue().empty())
+        {
+            auto cameraCom = m_mainCamera->GetComponent<Camera>();
+            DirectX::XMMATRIX viewProj = cameraCom->GetViewProjMatrix();
+
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float iconSize = 64.0f;
+            float halfSize = iconSize * 0.5f;
+
+            for (const auto& lightObject : m_scene->GetLightQueue())
+            {
+                DirectX::XMVECTOR worldPos = lightObject->GetTransform()->GetPositionVector();
+
+                float screenX, screenY;
+                if (!WorldToScreenPoint(worldPos, viewProj, viewportPos, viewportSize, screenX, screenY))
+                    continue;
+
+                ImVec2 minBound(screenX - halfSize, screenY - halfSize);
+                ImVec2 maxBound(screenX + halfSize, screenY + halfSize);
+
+                // 마우스가 라이트 아이콘 영역 안에 있는지 확인
+                if (mousePos.x >= minBound.x && mousePos.x <= maxBound.x &&
+                    mousePos.y >= minBound.y && mousePos.y <= maxBound.y)
+                {
+                    if (m_selectedObject != lightObject)
+                    {
+                        m_selectedObject = lightObject;
+                        m_showInspectorMenu = false;
+                    }
+                    clickedLightIcon = true;
+                    break;
+                }
+            }
+        }
+
+        // 라이트 아이콘을 클릭하지 않았다면 일반 3D 메쉬 픽킹 수행
+        if (!clickedLightIcon)
+        {
+            auto renderer = m_engine->GetRenderer();
+            renderer->ProcessPicking();
+            auto data = renderer->GetPickingData();
+            auto selected = m_scene->GetGameObjectByObjectID(data.id);
+            if (m_selectedObject != selected)
+            {
+                setSelectedObject(selected);
+            }
+        }
+    }
+
+    void Sandbox::renderGizmo(const ImVec2& viewportPos, const ImVec2& viewportSize)
+    {
+        if (m_selectedObject != nullptr && m_mainCamera != nullptr)
+        {
+            ImGuizmo::BeginFrame();
+
+            ImGuizmo::SetRect(viewportPos.x, viewportPos.y, viewportSize.x, viewportSize.y);
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+
+            auto cameraCom = m_mainCamera->GetComponent<Camera>();
+            DirectX::XMMATRIX view = cameraCom->GetViewMatrix();
+            DirectX::XMMATRIX proj = cameraCom->GetProjectionMatrix();
+
+            auto transform = m_selectedObject->GetTransform();
+            DirectX::XMMATRIX world = transform->GetWorldMatrix();
+
+            DirectX::XMFLOAT4X4 viewMat, projMat, worldMat;
+            DirectX::XMStoreFloat4x4(&viewMat, view);
+            DirectX::XMStoreFloat4x4(&projMat, proj);
+            DirectX::XMStoreFloat4x4(&worldMat, world);
+
+            static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+            static ImGuizmo::MODE currentMode = ImGuizmo::WORLD;
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Z)) currentOperation = ImGuizmo::TRANSLATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_X)) currentOperation = ImGuizmo::ROTATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_C)) currentOperation = ImGuizmo::SCALE;
+
+            if (ImGuizmo::Manipulate(&viewMat._11, &projMat._11, currentOperation, currentMode, &worldMat._11))
+            {
+                DirectX::XMMATRIX newWorld = DirectX::XMLoadFloat4x4(&worldMat);
+                transform->SetWorldMatrix(newWorld);
+            }
         }
     }
 
@@ -751,9 +760,9 @@ namespace Dive
                 }
                 else
                 {
-                    auto skyColor = renderer->GetSkyColor();
-                    ImGui::ColorEdit3("uniform color", (float*)&skyColor);
-                    renderer->SetSkyColor(skyColor);
+                    auto skyColor = renderer->GetLightColor();
+                    //ImGui::ColorEdit3("uniform color", (float*)&skyColor);
+                    renderer->SetSkyColor({ skyColor.x, skyColor.y, skyColor.z,1.0f });
                 }
             }
 
@@ -896,7 +905,6 @@ namespace Dive
                     ImGui::Text("Type");
                     ImGui::NextColumn();
                     std::vector<const char*> lightTypes;
-                    lightTypes.push_back("Direcitonal");
                     lightTypes.push_back("Point");
                     lightTypes.push_back("Spot");
                     int currentType = static_cast<int>(light->GetLightType());
@@ -905,31 +913,17 @@ namespace Dive
                     ImGui::Columns(1);
                     ImGui::PopID();
 
-                    if (currentType != static_cast<int>(eLightType::Directional))
-                    {
-                        // range
-                        ImGui::PushID("LightRange");
-                        ImGui::Columns(2);
-                        ImGui::SetColumnWidth(0, 150.0f);
-                        ImGui::Text("Range");
-                        ImGui::NextColumn();
-                        float range = light->GetRange();
-                        ImGui::DragFloat("##LightRange", &range, 0.1f, 0.0f, 0.0f, "%.2f");
-                        light->SetRange(range);
-                        ImGui::Columns(1);
-                        ImGui::PopID();
-
-                        if (currentType == static_cast<int>(eLightType::Spot))
-                        {
-                            // spot angles
-                            static DirectX::XMFLOAT2 spotAngles = { 0.0f, 0.0f };
-                            spotAngles.x = 0;// light->GetInnerAngleDegrees();
-                            spotAngles.y = 0;// light->GetOuterAngleDegrees();
-                            //DrawVec2Control("Spot Angles", spotAngles, 0.0f, 150.0f, "I", "O");
-                            //light->SetInnerAngleDegrees(spotAngles.x);
-                            //light->SetOuterAngleDegrees(spotAngles.y);
-                        }
-                    }
+                    // range
+                    ImGui::PushID("LightRange");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Range");
+                    ImGui::NextColumn();
+                    float range = light->GetRange();
+                    ImGui::DragFloat("##LightRange", &range, 0.1f, 0.0f, 0.0f, "%.2f");
+                    light->SetRange(range);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
                     // color
                     ImGui::PushID("LightColor");
@@ -955,190 +949,224 @@ namespace Dive
                     light->SetIntensity(intensity);
                     ImGui::Columns(1);
                     ImGui::PopID();
+
+                    if (currentType == static_cast<int>(eLightType::Spot))
+                    {
+                        // Inner Angle
+                        ImGui::PushID("LightInnerAngle");
+                        ImGui::Columns(2);
+                        ImGui::SetColumnWidth(0, 150.0f);
+                        ImGui::Text("Inner Angle");
+                        ImGui::NextColumn();
+                        float innerAngle = light->GetInnerAngleDegrees();
+                        if (ImGui::DragFloat("##LightInnerAngle", &innerAngle, 0.5f, 0.0f, 90.0f, "%.1f"))
+                        {
+                            light->SetInnerAngleDegrees(innerAngle);
+                        }
+                        ImGui::Columns(1);
+                        ImGui::PopID();
+
+                        // Outer Angle
+                        ImGui::PushID("LightOuterAngle");
+                        ImGui::Columns(2);
+                        ImGui::SetColumnWidth(0, 150.0f);
+                        ImGui::Text("Outer Angle");
+                        ImGui::NextColumn();
+                        float outerAngle = light->GetOuterAngleDegrees();
+                        if (ImGui::DragFloat("##LightOuterAngle", &outerAngle, 0.5f, 0.0f, 90.0f, "%.1f"))
+                        {
+                            light->SetOuterAngleDegrees(outerAngle);
+                        }
+                        ImGui::Columns(1);
+                        ImGui::PopID();
+                    }
                 }
             }
 
-
             ImGui::Separator();
 
-            ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-            if (ImGui::CollapsingHeader("Material"))
+            if (m_selectedObject->HasComponent<MeshRenderer>())
             {
                 auto meshRenderer = m_selectedObject->GetComponent<MeshRenderer>();
-                auto material = meshRenderer->GetMaterial();
 
-                // 여기에서 이미 생성해 놓은 것을 선택토록 하자.
-                // name
-                ImGui::PushID("MaterialName");
-                std::string mtrlName = material->GetName();
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                ImGui::Text("Material");
-                ImGui::NextColumn();
-                ImGui::InputText("##MtrlName", &mtrlName);
-                material->SetName(mtrlName);
-                ImGui::SameLine();
-                if (ImGui::Button("...##Material"))
+                ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+                if (ImGui::CollapsingHeader("Material"))
                 {
-                    /*
-                    const char* pFilter = "Material Files (*.mat)\0*.mat\0All Files (*.*)\0*.*\0\0";
-                    auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Materials");
-                    if (!openFile.empty())
+                    auto material = meshRenderer->GetMaterial();
+
+                    // 여기에서 이미 생성해 놓은 것을 선택토록 하자.
+                    // name
+                    ImGui::PushID("MaterialName");
+                    std::string mtrlName = material->GetName();
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Material");
+                    ImGui::NextColumn();
+                    ImGui::InputText("##MtrlName", &mtrlName);
+                    material->SetName(mtrlName);
+                    ImGui::SameLine();
+                    if (ImGui::Button("...##Material"))
                     {
-                        auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
-                        staticMeshRenderer->SetMaterial(ResourceManager::Load<Material>(relPath.replace_extension()));
+                        /*
+                        const char* pFilter = "Material Files (*.mat)\0*.mat\0All Files (*.*)\0*.*\0\0";
+                        auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Materials");
+                        if (!openFile.empty())
+                        {
+                            auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
+                            staticMeshRenderer->SetMaterial(ResourceManager::Load<Material>(relPath.replace_extension()));
+                        }
+                        */
                     }
-                    */
-                }
-                ImGui::Columns(1);
-                ImGui::PopID();
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
-                // transparent
-                ImGui::PushID("RenderMode");
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                ImGui::Text("Render Mode");
-                ImGui::NextColumn();
-                int curTransparent = material->IsTransparent() ? 1 : 0;
-                ImGui::RadioButton("Opaque", &curTransparent, 0);
-                ImGui::SameLine();
-                ImGui::RadioButton("Transparent", &curTransparent, 1);
-                material->SetTransparent(curTransparent ? true : false);
-                ImGui::Columns(1);
-                ImGui::PopID();
-                
-                // albedo
-                ImGui::PushID("Albedo");
-                ImVec4 albedo = XMFloat4ToImVec4(material->GetBaseColor());
-                ImTextureID textureID = (ImTextureID)(material->GetMap(eMapType::Albedo) ?
-                    material->GetMap(eMapType::Albedo) : 0);
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Albedo", textureID, ImVec2(20, 20)))
-                {
-                    /*
-                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
-                        "All Files (*.*)\0*.*\0\0";
-                    auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
-                    if (!openFile.empty())
+                    // transparent
+                    ImGui::PushID("RenderMode");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    ImGui::Text("Render Mode");
+                    ImGui::NextColumn();
+                    int curTransparent = material->IsTransparent() ? 1 : 0;
+                    ImGui::RadioButton("Opaque", &curTransparent, 0);
+                    ImGui::SameLine();
+                    ImGui::RadioButton("Transparent", &curTransparent, 1);
+                    material->SetTransparent(curTransparent ? true : false);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
+
+                    // albedo
+                    ImGui::PushID("Albedo");
+                    ImVec4 albedo = XMFloat4ToImVec4(material->GetBaseColor());
+                    ImTextureID textureID = (ImTextureID)(material->GetMap(eMapType::Albedo) ?
+                        material->GetMap(eMapType::Albedo) : 0);
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    if (ImGui::ImageButton("##Albedo", textureID, ImVec2(20, 20)))
                     {
-                        auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
-                        material->SetMap(eMapType::Diffuse, ResourceManager::Load<Texture2D>(relPath.replace_extension()));
+                        /*
+                        const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
+                            "All Files (*.*)\0*.*\0\0";
+                        auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
+                        if (!openFile.empty())
+                        {
+                            auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
+                            material->SetMap(eMapType::Diffuse, ResourceManager::Load<Texture2D>(relPath.replace_extension()));
+                        }
+                        else
+                        {
+                            material->SetMap(eMapType::Diffuse, std::shared_ptr<Texture2D>(nullptr));
+                        }
+                        */
                     }
-                    else
+                    ImGui::SameLine();
+                    ImGui::Text("Albedo");
+                    ImGui::NextColumn();
+                    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
+                    ImGui::ColorEdit4("##AlbedoColor", (float*)&albedo, flags);
+                    material->SetBaseColor(ImVec4ToXMFloat4(albedo));
+                    ImGui::Columns(1);
+                    ImGui::PopID();
+
+                    // normal map
+                    ImGui::PushID("NormalMap");
+                    textureID = (ImTextureID)(material->GetMap(eMapType::Normal) ?
+                        material->GetMap(eMapType::Normal) : 0);
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    if (ImGui::ImageButton("##Normal", textureID, ImVec2(20, 20)))
                     {
-                        material->SetMap(eMapType::Diffuse, std::shared_ptr<Texture2D>(nullptr));
+                        /*
+                        const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
+                            "All Files (*.*)\0*.*\0\0";
+                        auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
+                        if (!openFile.empty())
+                        {
+                            auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
+                            material->SetMap(eMapType::Normal, ResourceManager::Load<Texture2D>(relPath.replace_extension()));
+                        }
+                        else
+                        {
+                            material->SetMap(eMapType::Normal, std::shared_ptr<Texture2D>(nullptr));
+                        }
+                        */
                     }
-                    */
-                }
-                ImGui::SameLine();
-                ImGui::Text("Albedo");
-                ImGui::NextColumn();
-                ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
-                ImGui::ColorEdit4("##AlbedoColor", (float*)&albedo, flags);
-                material->SetBaseColor(ImVec4ToXMFloat4(albedo));
-                ImGui::Columns(1);
-                ImGui::PopID();
+                    ImGui::SameLine();
+                    ImGui::Text("Normal");
+                    ImGui::NextColumn();
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
-                // normal map
-                ImGui::PushID("NormalMap");
-                textureID = (ImTextureID)(material->GetMap(eMapType::Normal) ?
-                    material->GetMap(eMapType::Normal) : 0);
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Normal", textureID, ImVec2(20, 20)))
-                {
-                    /*
-                    const char* pFilter = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
-                        "All Files (*.*)\0*.*\0\0";
-                    auto openFile = FileUtils::OpenFile(pFilter, nullptr, "Assets/Resources/Textures");
-                    if (!openFile.empty())
+                    textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
+                        material->GetMap(eMapType::ORM) : 0);
+
+                    // Occlusion Map은 일단 제외
+
+                    // Roughness Map
+                    if (textureID == 0)
                     {
-                        auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
-                        material->SetMap(eMapType::Normal, ResourceManager::Load<Texture2D>(relPath.replace_extension()));
+                        textureID = (ImTextureID)(material->HasMap(eMapType::Roughness) ?
+                            material->GetMap(eMapType::Roughness) : 0);
                     }
-                    else
+                    ImGui::PushID("Roughness");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    if (ImGui::ImageButton("##Roughness", textureID, ImVec2(20, 20)))
                     {
-                        material->SetMap(eMapType::Normal, std::shared_ptr<Texture2D>(nullptr));
                     }
-                    */
-                }
-                ImGui::SameLine();
-                ImGui::Text("Normal Map");
-                ImGui::NextColumn();
-                ImGui::Columns(1);
-                ImGui::PopID();
+                    ImGui::SameLine();
+                    ImGui::Text("Roughness");
+                    ImGui::NextColumn();
+                    float roughnessFactor = material->GetRoughnessFactor();
+                    ImGui::SliderFloat("##RoughnessFactor", &roughnessFactor, 0.0f, 1.0f, "%.2f");
+                    material->SetRoughnessFactor(roughnessFactor);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
-                textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
-                    material->GetMap(eMapType::ORM) : 0);
+                    // 조금 번잡하지만 일단 회피용이다.
+                    textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
+                        material->GetMap(eMapType::ORM) : 0);
 
-                // Occlusion Map은 일단 제외
-              
-                // Roughness Map
-                if (textureID == 0)
-                {
-                    textureID = (ImTextureID)(material->HasMap(eMapType::Roughness) ?
-                        material->GetMap(eMapType::Roughness) : 0);
-                }
-                ImGui::PushID("RoughnessMap");
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Roughness", textureID, ImVec2(20, 20)))
-                {
-                }
-                ImGui::SameLine();
-                ImGui::Text("Roughness Map");
-                ImGui::NextColumn();
-                float roughnessFactor = material->GetRoughnessFactor();
-                ImGui::SliderFloat("##RoughnessFactor", &roughnessFactor, 0.0f, 1.0f, "%.2f");
-                material->SetRoughnessFactor(roughnessFactor);
-                ImGui::Columns(1);
-                ImGui::PopID();
+                    // Metalic Map
+                    if (textureID == 0)
+                    {
+                        textureID = (ImTextureID)(material->HasMap(eMapType::Metallic) ?
+                            material->GetMap(eMapType::Metallic) : 0);
+                    }
+                    ImGui::PushID("Metallic");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    if (ImGui::ImageButton("##Metalic", textureID, ImVec2(20, 20)))
+                    {
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("Metallic");
+                    ImGui::NextColumn();
+                    float metallicFactor = material->GetMetallicFactor();
+                    ImGui::SliderFloat("##MetallicFactor", &metallicFactor, 0.0f, 1.0f, "%.2f");
+                    material->SetMetallicFactor(metallicFactor);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
-                // 조금 번잡하지만 일단 회피용이다.
-                textureID = (ImTextureID)(material->HasMap(eMapType::ORM) ?
-                    material->GetMap(eMapType::ORM) : 0);
-
-                // Metalic Map
-                if (textureID == 0)
-                {
-                    textureID = (ImTextureID)(material->HasMap(eMapType::Metallic) ?
-                        material->GetMap(eMapType::Metallic) : 0);
+                    // Displacement Map
+                    ImGui::PushID("Displacement");
+                    textureID = (ImTextureID)(material->GetMap(eMapType::Displacement) ?
+                        material->GetMap(eMapType::Displacement) : 0);
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 150.0f);
+                    if (ImGui::ImageButton("##Displacement", textureID, ImVec2(20, 20)))
+                    {
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("Displacement");
+                    ImGui::NextColumn();
+                    float heightScale = material->GetHeightScale();
+                    if (ImGui::DragFloat("##heightScale", &heightScale, 0.005f, 0.0f, 2.0f, "%.3f"))
+                    {
+                        material->SetHeightScale(heightScale);
+                    }
+                    ImGui::Columns(1);
+                    ImGui::PopID();
                 }
-                ImGui::PushID("MetallicMap");
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Metalic", textureID, ImVec2(20, 20)))
-                {
-                }
-                ImGui::SameLine();
-                ImGui::Text("Metallic Map");
-                ImGui::NextColumn();
-                float metallicFactor = material->GetMetallicFactor();
-                ImGui::SliderFloat("##MetallicFactor", &metallicFactor, 0.0f, 1.0f, "%.2f");
-                material->SetMetallicFactor(metallicFactor);
-                ImGui::Columns(1);
-                ImGui::PopID();
-
-                // Displacement Map
-                ImGui::PushID("DisplacementMap");
-                textureID = (ImTextureID)(material->GetMap(eMapType::Displacement) ?
-                    material->GetMap(eMapType::Displacement) : 0);
-                ImGui::Columns(2);
-                ImGui::SetColumnWidth(0, 150.0f);
-                if (ImGui::ImageButton("##Displacement", textureID, ImVec2(20, 20)))
-                {
-                }
-                ImGui::SameLine();
-                ImGui::Text("Displacement Map");
-                ImGui::NextColumn();
-                float heightScale = material->GetHeightScale();
-                if (ImGui::DragFloat("##heightScale", &heightScale, 0.005f, 0.0f, 2.0f, "%.3f"))
-                {
-                    material->SetHeightScale(heightScale);
-                }
-                ImGui::Columns(1);
-                ImGui::PopID();
             }
         }
         ImGui::End();
@@ -1221,258 +1249,6 @@ namespace Dive
         ImGui::PopStyleColor();
     }
 
-    void Sandbox::newScene()
-    {
-        m_scene = m_engine->NewScene();
-        m_scene->SetName("Sandbox");
-
-        auto& env = m_scene->GetEnviroment();
-        env.skyboxCubemap = m_skyCubemaps["clear_night"];
-        m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
-
-        // camera
-        {
-            m_mainCamera = m_scene->GetCamera();
-            auto transform = m_mainCamera->GetTransform();
-            transform->SetPosition(0.0f, 5.0f, -12.0f);
-            transform->SetRotationByDegrees({15.0f, 0.0f, 0.0f});
-        }
-
-        // Lights
-        {
-            // Dir Light
-            {
-                auto renderer = m_engine->GetRenderer();
-                renderer->SetLightDir(1.0f, -1.0f, 1.0f);
-
-            }
-            // Point Light Red
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("PointLight_Red");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Point);
-                light->SetColor(1.0f, 0.0f, 0.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(5.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(2.5f, 2.0f, -2.5f);
-                
-                // 임시다.
-                // MeshRenderer가 없어야 하지만
-                // ObjectID때문에 일단 되살렸다.
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-
-                //auto mtrl = MaterialManager::Get().CreateMaterial("PointLightIcon");
-                //mtrl->SetMap(eMapType::Albedo, m_pointLightIcon);
-                //mtrl->SetTransparent(true);
-                //meshRenderer->SetMaterial(mtrl);
-            }
-
-            // Point Light Green
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("PointLight_Green");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Point);
-                light->SetColor(0.0f, 1.0f, 0.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(5.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(-2.5f, 2.0f, 0.0f);
-
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-
-                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
-                //meshRenderer->SetMaterial(mtrl);
-            }
-
-            // Point Light Blue
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("PointLight_Blue");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Point);
-                light->SetColor(0.0f, 0.0f, 1.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(5.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(-1.0f, 2.0f, 3.0f);
-                
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-
-                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
-                //meshRenderer->SetMaterial(mtrl);
-            }
-
-            // Point Light Yellow
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("PointLight");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Point);
-                light->SetColor(1.0f, 1.0f, 0.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(5.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(2.5f, 2.0f, 0.0f);
-                
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-                //meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-
-                //auto mtrl = MaterialManager::Get().GetMaterial("PointLightIcon");
-                //meshRenderer->SetMaterial(mtrl);
-            }
-
-            // SpotLight White
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("SpotLight");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Spot);
-                light->SetColor(1.0f, 1.0f, 1.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(10.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(0.0f, 2.5f, -2.5f);
-                transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
-
-                // 임시다. ObjectID를 위해 추가했다.
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-            }
-
-            // SpotLight Purple
-            {
-                auto gameObject = m_scene->CreateGameObject();
-                gameObject->SetName("SpotLight");
-
-                auto light = gameObject->AddComponent<Light>();
-                light->SetLightType(eLightType::Spot);
-                light->SetColor(1.0f, 0.0f, 1.0f);
-                light->SetIntensity(8.0f);
-                light->SetRange(10.0f);
-
-                auto transform = gameObject->GetTransform();
-                transform->SetPosition(2.5f, 2.5f, 3.0f);
-                transform->SetRotationByDegrees({ 90.0f, 0.0f, 0.0f });
-
-                // 임시다. ObjectID를 위해 추가했다.
-                auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
-            }
-        }
-        
-        // Objects
-        {
-            // bottom
-            {
-                auto bottom = m_scene->CreateGameObject();
-                bottom->SetName("Bottom");
-                auto meshRenderer = bottom->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
-                meshRenderer->SetMaterial(mtrl);
-            }
-
-            // wall
-            {
-                auto wall = m_scene->CreateGameObject();
-                wall->SetName("Bottom");
-                auto meshRenderer = wall->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
-                meshRenderer->SetMaterial(mtrl);
-
-                auto transform = wall->GetTransform();
-                transform->SetPosition(-2.5f, 2.5f, 5.0f);
-                transform->SetScale({ 5.0f, 5.0f, 1.0f });
-            }
-
-            // Cube metal plate
-            {
-                auto cube = m_scene->CreateGameObject();
-                auto meshRenderer = cube->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
-                cube->SetName("Cube");
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Metal_Plate");
-                meshRenderer->SetMaterial(mtrl);
-
-                auto transform = cube->GetTransform();
-                transform->SetPosition(-2.0f, 0.5f, 3.0f);
-            }
-
-            // Cube Rusty Metal
-            {
-                auto cube = m_scene->CreateGameObject();
-                auto meshRenderer = cube->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
-                cube->SetName("Quad_Left");
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Rusty_Metal_Grid");
-                meshRenderer->SetMaterial(mtrl);
-
-                cube->GetTransform()->SetPosition(2.5f, 0.5f, 3.0f);
-            }
-
-            // Cube Stacked Brick Wall
-            {
-                auto cube = m_scene->CreateGameObject();
-                auto meshRenderer = cube->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
-                cube->SetName("Quad_Right");
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Stacked_Brick_Wall");
-                meshRenderer->SetMaterial(mtrl);
-
-                auto transform = cube->GetTransform();
-                transform->SetPosition(2.0f, 0.5f, 0.0f);
-            }
-
-            // Spherer
-            {
-                auto sphere = m_scene->CreateGameObject();
-                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
-                sphere->SetName("Sphere");
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Marble_Cliff_06");
-                meshRenderer->SetMaterial(mtrl);
-                
-                auto transform = sphere->GetTransform();
-                transform->SetPosition(0.0f, 1.0f, -3.0f);
-            }
-        
-            // Capsule
-            {
-                auto capsule = m_scene->CreateGameObject();
-                auto meshRenderer = capsule->AddComponent<MeshRenderer>();
-                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
-                capsule->SetName("Capsule");
-
-                auto mtrl = MaterialManager::Get().GetMaterial("Rust_Metal_05");
-                meshRenderer->SetMaterial(mtrl);
-
-                auto transform = capsule->GetTransform();
-                transform->SetPosition(-3.5f, 1.0f, -3.0f);
-            }
-        }
-    }
-
     void Sandbox::setSelectedObject(GameObject* obj)
     {
         if (m_selectedObject != obj)
@@ -1542,6 +1318,411 @@ namespace Dive
             mtrl->SetMap(eMapType::Normal, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_nor_dx_1k.png");
             mtrl->SetMap(eMapType::ORM, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_arm_1k.png");
             mtrl->SetMap(eMapType::Displacement, "Assets/Textures/rusty_metal_05_1k/rusty_metal_05_disp_1k.png");
+
+            mtrl = MaterialManager::Get().CreateMaterial("No_Texture");
+            mtrl->SetMap(eMapType::Albedo, "Assets/Textures/no_texture.png");
+            
+            mtrl = MaterialManager::Get().CreateMaterial("White");
+            mtrl->SetBaseColor(1.0f, 1.0f, 1.0f, 1.0f);
+            mtrl->SetRoughnessFactor(0.35f);
+
+            mtrl = MaterialManager::Get().CreateMaterial("Metal White");
+            mtrl->SetBaseColor(1.0f, 1.0f, 1.0f, 1.0f);
+            mtrl->SetMetallicFactor(1.0f);
+            mtrl->SetRoughnessFactor(0.35f);
+
+            mtrl = MaterialManager::Get().CreateMaterial("Gray");
+            mtrl->SetBaseColor(0.8f, 0.8f, 0.8f, 1.0f);
+
+            mtrl = MaterialManager::Get().CreateMaterial("Orange");
+            mtrl->SetBaseColor(0.95f, 0.55f, 0.12f, 1.0f);
+
+            mtrl = MaterialManager::Get().CreateMaterial("Brown");
+            mtrl->SetBaseColor(0.80f, 0.58f, 0.25f, 1.0f);
+
+            mtrl = MaterialManager::Get().CreateMaterial("Mint");
+            mtrl->SetBaseColor(0.20f, 0.80f, 0.75f, 1.0f);
+        }
+    }
+
+    void Sandbox::sceneEmpty()
+    {
+        m_scene = m_engine->NewScene();
+        m_scene->SetName("Empty");
+    }
+
+    void Sandbox::sceneInnocent()
+    {
+        m_scene = m_engine->NewScene();
+        m_scene->SetName("Innocent");
+
+        auto renderer = m_engine->GetRenderer();
+        renderer->SetSkyMode(eSkyMode::UniformColor);
+        renderer->SetSkyColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+        // camera
+        {
+            m_mainCamera = m_scene->GetCamera();
+            auto transform = m_mainCamera->GetTransform();
+            transform->SetLocalPosition(0.0f, 5.0f, -12.0f);
+            transform->SetRotationByDegrees({ 15.0f, 0.0f, 0.0f });
+        }
+
+        // Lights
+        {
+            // Dir Light
+            {
+                renderer->SetLightDir(1.0f, -1.0f, 1.0f);
+            }
+        }
+
+        // Objects
+        {
+            // bottom
+            {
+                auto bottom = m_scene->CreateGameObject();
+                bottom->SetName("Bottom");
+                auto meshRenderer = bottom->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Gray");
+                meshRenderer->SetMaterial(mtrl);
+            }
+
+
+            // Brown Cube
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Brown Cube");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Brown");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = cube->GetTransform();
+                transform->SetLocalPosition(-1.0f, 0.5f, 1.5f);
+                transform->SetLocalRotationByDegrees(0.0f, 45.0f, 0.0f);
+            }
+
+            // Mint Cube
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Mint Cube");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Mint");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = cube->GetTransform();
+                transform->SetLocalPosition(1.0f, 1.0f, 0.0f);
+                transform->SetScale(1.0f, 2.0f, 1.0f);
+            }
+
+            // Metal White Spherer
+            {
+                auto sphere = m_scene->CreateGameObject();
+                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                sphere->SetName("Metal White Sphere");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Metal White");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = sphere->GetTransform();
+                transform->SetLocalPosition(-3.0f, 0.5f, -4.0f);
+            }
+
+            // White Spherer
+            {
+                auto sphere = m_scene->CreateGameObject();
+                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                sphere->SetName("White Sphere");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("White");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = sphere->GetTransform();
+                transform->SetLocalPosition(-1.5f, 0.5f, -4.0f);
+            }
+
+            // White Spherer
+            {
+                auto sphere = m_scene->CreateGameObject();
+                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                sphere->SetName("White Sphere");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("White");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = sphere->GetTransform();
+                transform->SetLocalPosition(0.0f, 0.5f, -4.0f);
+            }
+
+            // Orange Triangle
+            {
+                auto triangle = m_scene->CreateGameObject();
+                auto meshRenderer = triangle->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
+                triangle->SetName("Orange Triangle");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Orange");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = triangle->GetTransform();
+                transform->SetLocalPosition(1.5f, 0.5f, -2.0f);
+            }
+        }
+    }
+
+    void Sandbox::sceneLighting()
+    {
+        m_scene = m_engine->NewScene();
+        m_scene->SetName("Lighting");
+
+        auto& env = m_scene->GetEnviroment();
+        env.skyboxCubemap = m_skyCubemaps["clear_night"];
+        m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
+
+        // camera
+        {
+            m_mainCamera = m_scene->GetCamera();
+            auto transform = m_mainCamera->GetTransform();
+            transform->SetLocalPosition(0.0f, 5.0f, -12.0f);
+            transform->SetRotationByDegrees({ 15.0f, 0.0f, 0.0f });
+        }
+
+        // Lights
+        {
+            // Dir Light
+            {
+                auto renderer = m_engine->GetRenderer();
+                renderer->SetLightDir(1.0f, -1.0f, -1.0f);
+            }
+
+            // Point Light Red
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Red");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(1.0f, 0.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(2.5f, 2.0f, -2.5f);
+
+                // 임시다.
+                // MeshRenderer가 없어야 하지만
+                // ObjectID때문에 일단 되살렸다.
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // Point Light Green
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Green");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(0.0f, 1.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(-2.5f, 2.0f, 0.0f);
+
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // Point Light Blue
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight_Blue");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(0.0f, 0.0f, 1.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(-1.0f, 2.0f, 3.0f);
+
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // Point Light Yellow
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("PointLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Point);
+                light->SetColor(1.0f, 1.0f, 0.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(5.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(2.5f, 2.0f, 0.0f);
+
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // SpotLight White
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("SpotLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Spot);
+                light->SetColor(1.0f, 1.0f, 1.0f);
+                light->SetInnerAngleDegrees(13.0f);
+                light->SetOuterAngleDegrees(13.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(10.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(-2.5f, 2.5f, -2.5f);
+                
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+
+            // SpotLight Purple
+            {
+                auto gameObject = m_scene->CreateGameObject();
+                gameObject->SetName("SpotLight");
+
+                auto light = gameObject->AddComponent<Light>();
+                light->SetLightType(eLightType::Spot);
+                light->SetColor(1.0f, 0.0f, 1.0f);
+                light->SetIntensity(8.0f);
+                light->SetRange(10.0f);
+
+                auto transform = gameObject->GetTransform();
+                transform->SetLocalPosition(2.5f, 2.5f, 3.0f);
+                transform->SetLocalRotationByDegrees(90.0f, 0.0f, 0.0f);
+
+                //auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+            }
+        }
+
+        // Objects
+        {
+            // bottom
+            {
+                auto bottom = m_scene->CreateGameObject();
+                bottom->SetName("Bottom");
+                auto meshRenderer = bottom->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Metal_Plate");//"Marble_Cliff_06");
+                meshRenderer->SetMaterial(mtrl);
+            }
+
+            // wall
+            {
+                auto wall = m_scene->CreateGameObject();
+                wall->SetName("Bottom");
+                auto meshRenderer = wall->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = wall->GetTransform();
+                transform->SetLocalPosition(-2.5f, 2.5f, 5.0f);
+                transform->SetScale(5.0f, 5.0f, 1.0f);
+            }
+
+            // Cube metal plate
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Cube");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Marble_Cliff_06");// "Metal_Plate");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = cube->GetTransform();
+                transform->SetLocalPosition(-2.0f, 0.5f, 3.0f);
+            }
+
+            // Cube Rusty Metal
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Quad_Left");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Rusty_Metal_Grid");
+                meshRenderer->SetMaterial(mtrl);
+
+                cube->GetTransform()->SetLocalPosition(2.5f, 0.5f, 3.0f);
+            }
+
+            // Cube Stacked Brick Wall
+            {
+                auto cube = m_scene->CreateGameObject();
+                auto meshRenderer = cube->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
+                cube->SetName("Quad_Right");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Stacked_Brick_Wall");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = cube->GetTransform();
+                transform->SetLocalPosition(2.0f, 0.5f, 0.0f);
+            }
+
+            // Spherer
+            {
+                auto sphere = m_scene->CreateGameObject();
+                auto meshRenderer = sphere->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
+                sphere->SetName("Sphere");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Metal White");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = sphere->GetTransform();
+                transform->SetLocalPosition(0.0f, 1.0f, -3.0f);
+            }
+
+            // Capsule
+            {
+                auto capsule = m_scene->CreateGameObject();
+                auto meshRenderer = capsule->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
+                capsule->SetName("Capsule");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Rust_Metal_05");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = capsule->GetTransform();
+                transform->SetLocalPosition(-3.5f, 1.0f, -3.0f);
+            }
+
+            // Triangle
+            {
+                auto triangle = m_scene->CreateGameObject();
+                auto meshRenderer = triangle->AddComponent<MeshRenderer>();
+                meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
+                triangle->SetName("Triangle");
+
+                auto mtrl = MaterialManager::Get().GetMaterial("Orange");
+                meshRenderer->SetMaterial(mtrl);
+
+                auto transform = triangle->GetTransform();
+                transform->SetLocalPosition(-1.5f, 1.0f, -3.0f);
+
+            }
         }
     }
 }

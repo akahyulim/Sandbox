@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Component.h"
 
 #include <DirectXMath.h>
@@ -41,25 +41,33 @@ namespace Dive
 		DirectX::XMFLOAT3 GetRotationDegrees();
 		void SetRotationVector(const DirectX::XMVECTOR& worldRot);
 		void SetRotation(const DirectX::XMFLOAT4& worldRot);
+		void SetRotation(float x, float y, float z, float w);
 		void SetRotationByRadians(const DirectX::XMFLOAT3& radians);
+		void SetRotationByRadians(float x, float y, float z);
 		void SetRotationByDegrees(const DirectX::XMFLOAT3& degrees);
+		void SetRotationByDegrees(float x, float y, float z);
 		DirectX::XMVECTOR GetLocalRotationVector() const { return DirectX::XMLoadFloat4(&m_localRotation); }
 		const DirectX::XMFLOAT4& GetLocalRotation() const { return m_localRotation; }
 		DirectX::XMFLOAT3 GetLocalRotationRadians() const;
 		const DirectX::XMFLOAT3& GetLocalRotationDegrees() const { return m_localEulerDegrees; }
 		void SetLocalRotationVector(const DirectX::XMVECTOR& localRot);
 		void SetLocalRotation(const DirectX::XMFLOAT4& localRot);
+		void SetLocalRotation(float x, float y, float z, float w);
 		void SetLocalRotationByRadians(const DirectX::XMFLOAT3& radians);
+		void SetLocalRotationByRadians(float x, float y, float z);
 		void SetLocalRotationByDegrees(const DirectX::XMFLOAT3& degrees);
+		void SetLocalRotationByDegrees(float x, float y, float z);
 
 		DirectX::XMVECTOR GetScaleVector();
 		DirectX::XMFLOAT3 GetScale();
 		void SetScaleVector(const DirectX::XMVECTOR& worldScale);
 		void SetScale(const DirectX::XMFLOAT3& worldScale);
+		void SetScale(float x, float y, float z);
 		DirectX::XMVECTOR GetLocalScaleVector() const { return DirectX::XMLoadFloat3(&m_localScale); }
 		const DirectX::XMFLOAT3& GetLocalScale() const { return m_localScale; }
 		void SetLocalScaleVector(const DirectX::XMVECTOR& localScale);
 		void SetLocalScale(const DirectX::XMFLOAT3& localScale);
+		void SetLocalScale(float x, float y, float z);
 
 		void TranslateVector(DirectX::FXMVECTOR translation, eSpace space = eSpace::Local);
 		void Translate(const DirectX::XMFLOAT3& translation, eSpace space = eSpace::Local);

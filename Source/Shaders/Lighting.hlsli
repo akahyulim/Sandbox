@@ -57,20 +57,16 @@ float3 BRDF_PBR(float3 N, float3 V, float3 L, float3 albedo, float metallic, flo
 
     return (diffuse + specular) * NdotL;
 }
-// 물리 기반 조명(PBR) 계산을 위한 감쇠 및 각도 계산 함수들
 float CalcPointAttenuation(float distance, float rangeRcp)
 {
-    // 거리 기반 감쇠 (Standard Clamped Distance Attenuation)
-    // rangeRcp는 1.0 / range 입니다. (곱셈이 나눗셈보다 빠름)
     float distanceNorm = distance * rangeRcp;
     float attenuation = saturate(1.0f - (distanceNorm * distanceNorm));
-    return attenuation * attenuation; // 부드러운 감쇠 곡선
+    
+    return attenuation * attenuation;
 }
 
 float CalcSpotCone(float3 lightDir, float3 spotDir, float cosInnerAngle, float cosOuterAngle)
 {
-    // 스팟라이트 원뿔 각도 계산
     float cosTheta = dot(-lightDir, spotDir);
-    // 내각과 외각 사이를 부드럽게 보간 (Smoothstep 유사 기능)
     return saturate((cosTheta - cosOuterAngle) / (cosInnerAngle - cosOuterAngle));
 }

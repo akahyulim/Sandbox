@@ -9,17 +9,17 @@ SamplerState ShadowCompare : register(s5);
 // Material Textures (t0 ~ t5)
 Texture2D AlbedoMap : register(t0);
 Texture2D NormalMap : register(t1);
-Texture2D ORMMap : register(t2);            // Ambient Occlusion (R), Roughness (G), Metallic (B) 통합 맵
+Texture2D ORMMap : register(t2);
 Texture2D DisplacementMap : register(t3);
 Texture2D RoughnessMap : register(t4);
 Texture2D MetallicMap : register(t5);
 
 // G-Buffer Inputs (t6 ~ t9)
-Texture2D<float4> GBuffer_AlbedoRoughness : register(t6);   // RGB: Albedo(기본 색상) / A: Roughness(거친 정도)
-Texture2D<float4> GBuffer_NormalMetallic : register(t7);    // RGB: View Space Normal(법선) / A: Metallic(금속성)
-Texture2D<float4> GBuffer_Emissive : register(t8);          // RGB: Emissive(자체 발광 색상)
-Texture2D<uint> GBuffer_ObjectID : register(t9);            // 추후 슬롯 맞추기
-Texture2D<float> GBuffer_Depth : register(t10);             // Depth (깊이 버퍼 - 월드 좌표 복원용)
+Texture2D<float4> GBuffer_AlbedoRoughness : register(t6);
+Texture2D<float4> GBuffer_NormalMetallic : register(t7);
+Texture2D<float4> GBuffer_Emissive : register(t8);
+Texture2D<uint> GBuffer_ObjectID : register(t9);
+Texture2D<float> GBuffer_Depth : register(t10);
 
 TextureCube SkyMap : register(t11);
 Texture2D SkySphere : register(t12);

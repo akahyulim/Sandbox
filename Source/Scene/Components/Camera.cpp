@@ -17,6 +17,7 @@ namespace Dive
 	Camera::Camera(GameObject* owner)
 		: Component(owner)
 	{
+		XMStoreFloat4x4(&m_projection, XMMatrixIdentity());
 	}
 
 	DirectX::XMFLOAT4X4 Camera::GetView() const
@@ -40,33 +41,12 @@ namespace Dive
 
 	DirectX::XMFLOAT4X4 Camera::GetProjection() const
 	{
-		XMFLOAT4X4 projection{};
-		XMStoreFloat4x4(&projection, GetProjectionMatrix());
-		return projection;
+		return m_projection;
 	}
 
 	DirectX::XMMATRIX Camera::GetProjectionMatrix() const
 	{
-		if (m_projectionType == eProjectionType::Perspective)
-		{
-			return XMMatrixPerspectiveFovLH(
-				XMConvertToRadians(m_fov),
-				m_aspectRatio,
-				m_nearClip,
-				m_farClip
-			);
-		}
-		else
-		{
-			// 코파일럿이 작성한  코드다.
-			// width, height가 맞는지 모르겠다.
-			return XMMatrixOrthographicLH(
-				m_aspectRatio * m_farClip,
-				m_farClip,
-				m_nearClip,
-				m_farClip
-			);
-		}
+		return XMLoadFloat4x4(&m_projection);
 	}
 
 	DirectX::XMFLOAT4X4 Camera::GetViewProj() const
@@ -82,19 +62,51 @@ namespace Dive
 		return DirectX::XMMatrixMultiply(GetViewMatrix(), GetProjectionMatrix());
 	}
 
+	DirectX::XMFLOAT4X4 Camera::GetInverseViewProj() const
+	{
+		XMFLOAT4X4 invViewProj;
+		XMStoreFloat4x4(&invViewProj, GetInverseViewProjMatrix());
+		return invViewProj;
+	}
+
+	DirectX::XMMATRIX Camera::GetInverseViewProjMatrix() const
+	{
+		return XMMatrixInverse(nullptr, GetViewProjMatrix());
+	}
+
+	void Camera::SetProjectionType(eProjectionType type)
+	{
+		if (m_projectionType == type)
+			return;
+
+		m_projectionType = type;
+		updateProjection();
+	}
+
 	void Camera::SetAspectRatio(float width, float height)
 	{
-		m_aspectRatio = width / height;
+		float value = width / height;
+
+		if (fabsf(m_aspectRatio - value) < 1e-5f)
+			return;
+
+		m_aspectRatio = value;
+		updateProjection();
 	}
 
 	void Camera::SetFieldOfView(float fov)
 	{
+		if (m_fov == fov)
+			return;
+
 		if (fov < FOV_MIN)
 			m_fov = FOV_MIN;
 		else if (fov > FOV_MAX)
 			m_fov = FOV_MAX;
 		else
 			m_fov = fov;
+
+		updateProjection();
 	}
 
 	void Camera::SetNearClipPlane(float nearPlane)
@@ -104,7 +116,12 @@ namespace Dive
 			spdlog::warn("[::SetNearClipPlane] 유효하지 않은 Near Clip 값: {}", nearPlane);
 			return;
 		}
-		m_nearClip = nearPlane;
+
+		if (fabsf(m_nearClip - nearPlane) < 1e-5f)
+			return;
+
+		m_nearClip = nearPlane; 
+		updateProjection();
 	}
 
 	void Camera::SetFarClipPlane(float farPlane)
@@ -114,6 +131,64 @@ namespace Dive
 			spdlog::warn("유효하지 않은 Far Clip 값 전달: {}", farPlane);
 			return;
 		}
+
+		if (fabsf(m_farClip - farPlane) < 1e-5f)
+			return;
+
 		m_farClip = farPlane;
+		updateProjection();
+	}
+
+	void Camera::SetOrthoHeight(float height)
+	{
+		if (fabsf(m_orthoHeight - height) < 1e-5f)
+			return;
+
+		m_orthoHeight = height;
+		updateProjection();
+	}
+
+	DirectX::XMFLOAT4 Camera::GetPosition() const
+	{
+		auto transform = GetTransform();
+		assert(transform);
+
+		auto pos = transform->GetPosition();
+		return DirectX::XMFLOAT4(pos.x, pos.y, pos.z, 1.0f);
+	}
+
+	DirectX::XMFLOAT4 Camera::GetForward() const
+	{
+		auto transform = GetTransform();
+		assert(transform);
+
+		auto forward = transform->GetForward();
+		return DirectX::XMFLOAT4(forward.x, forward.y, forward.z, 0.0f);
+	}
+
+	void Camera::updateProjection()
+	{
+		if (m_projectionType == eProjectionType::Perspective)
+		{
+			XMStoreFloat4x4(&m_projection, 
+				XMMatrixPerspectiveFovLH(
+					XMConvertToRadians(m_fov),
+					m_aspectRatio,
+					m_nearClip,
+					m_farClip
+				));
+		}
+		else
+		{
+			float viewWidth = m_orthoHeight * m_aspectRatio;
+
+			XMStoreFloat4x4(&m_projection,
+				XMMatrixOrthographicLH(
+					viewWidth,
+					m_orthoHeight,
+					m_nearClip,
+					m_farClip
+				));
+		}
 	}
 }

@@ -136,8 +136,7 @@ namespace Dive
 
 	enum class eLightType : uint32_t
 	{
-		Directional = 0,
-		Point,
+		Point = 0,
 		Spot
 	};
 

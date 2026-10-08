@@ -133,7 +133,7 @@ namespace Dive
 		void updateWeather();
 
 		void passGBuffer();
-		void passDeferredLighting();
+		void passDeferred();
 		void passSky(Scene* scene);
 		void passForward();
 		void passPostProcessing();
@@ -156,13 +156,9 @@ namespace Dive
 		std::unique_ptr<RenderTexture> m_offScreenRenderTarget;
 		std::unique_ptr<RenderTexture> m_depthTarget;
 
-		FrameData m_frameData{};
 		std::unique_ptr<ConstantBuffer<FrameData>> m_cbFrame;
-		ObjectData m_objectData{};
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
-		WeatherData m_weatherData{};
 		std::unique_ptr<ConstantBuffer<WeatherData>> m_cbWeather;
-		LightConstants m_lightConstants;
 		std::unique_ptr<ConstantBuffer<LightConstants>> m_cbLight;
 
 		uint32_t m_lastSelectedObjectID = 0;

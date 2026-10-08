@@ -33,7 +33,7 @@ namespace Dive
 			m_worldMatrix = localMatrix;
 		}
 
-		m_isDirty = false;
+		//m_isDirty = false;
 
 		// 루트부터 시작해 하향식으로 자식들을 갱신 필요상태로 변경
 		for (auto child : m_children)
@@ -160,18 +160,37 @@ namespace Dive
 		SetRotationVector(XMLoadFloat4(&worldRot));
 	}
 
+	void Transform::SetRotation(float x, float y, float z, float w)
+	{
+		SetRotationVector(XMVectorSet(x, y, z, w));
+	}
+
 	void Transform::SetRotationByRadians(const XMFLOAT3& radians)
 	{
 		SetRotationVector(XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&radians)));
 	}
 
+	void Transform::SetRotationByRadians(float x, float y, float z)
+	{
+		SetRotationVector(XMQuaternionRotationRollPitchYaw(x, y, z));
+	}
+
 	void Transform::SetRotationByDegrees(const XMFLOAT3& degrees)
 	{
-		SetRotationByRadians({
+		SetRotationByRadians(
 			XMConvertToRadians(degrees.x),
 			XMConvertToRadians(degrees.y),
 			XMConvertToRadians(degrees.z)
-			});
+			);
+	}
+
+	void Transform::SetRotationByDegrees(float x, float y, float z)
+	{
+		SetRotationByRadians(
+			XMConvertToRadians(x),
+			XMConvertToRadians(y),
+			XMConvertToRadians(z)
+		);
 	}
 
 	XMFLOAT3 Transform::GetLocalRotationRadians() const
@@ -197,25 +216,42 @@ namespace Dive
 		SetLocalRotationVector(XMLoadFloat4(&localRot));
 	}
 
+	void Transform::SetLocalRotation(float x, float y, float z, float w)
+	{
+		SetLocalRotationVector(XMVectorSet(x, y, z, w));
+	}
+
 	void Transform::SetLocalRotationByRadians(const XMFLOAT3& radians)
 	{
-		XMVECTOR localRotation = XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&radians));
-		SetLocalRotationVector(localRotation);
+		SetLocalRotationVector(
+			XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3(&radians))
+		);
+	}
+
+	void Transform::SetLocalRotationByRadians(float x, float y, float z)
+	{
+		SetLocalRotationVector(
+			XMQuaternionRotationRollPitchYaw(x, y, z)
+		);
 	}
 
 	void Transform::SetLocalRotationByDegrees(const XMFLOAT3& degrees)
 	{
-		m_localEulerDegrees = degrees;
-
-		XMVECTOR q = XMQuaternionRotationRollPitchYaw(
+		SetLocalRotationByRadians(
 			XMConvertToRadians(degrees.x),
 			XMConvertToRadians(degrees.y),
 			XMConvertToRadians(degrees.z)
 		);
 
-		XMStoreFloat4(&m_localRotation, q);
+	}
 
-		m_isDirty = true;
+	void Transform::SetLocalRotationByDegrees(float x, float y, float z)
+	{
+		SetLocalRotationByRadians(
+			XMConvertToRadians(x),
+			XMConvertToRadians(y),
+			XMConvertToRadians(z)
+		);
 	}
 
 	DirectX::XMVECTOR Transform::GetScaleVector()
@@ -270,6 +306,11 @@ namespace Dive
 		SetScaleVector(XMLoadFloat3(&worldScale));
 	}
 
+	void Transform::SetScale(float x, float y, float z)
+	{
+		SetScaleVector(XMVectorSet(x, y, z, 0.0f));
+	}
+
 	void Transform::SetLocalScaleVector(const XMVECTOR& localScale)
 	{
 		auto safeLocalScale = XMVectorSelect(
@@ -284,6 +325,11 @@ namespace Dive
 	void Transform::SetLocalScale(const XMFLOAT3& localScale)
 	{
 		SetLocalScaleVector(XMLoadFloat3(&localScale));
+	}
+
+	void Transform::SetLocalScale(float x, float y, float z)
+	{
+		SetLocalScaleVector(XMVectorSet(x, y, z, 0.0f));
 	}
 
 	void Transform::TranslateVector(DirectX::FXMVECTOR translation, eSpace space)

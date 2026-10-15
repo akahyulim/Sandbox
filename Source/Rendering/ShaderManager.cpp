@@ -225,7 +225,7 @@ namespace Dive
 			spdlog::error("SkySphere ShaderProgram 생성 실패");
 			return false;
 		}
-		if (!createShaderProgram("Skybox", "UniformSky", eShaderPrograms::UniformSky))
+		if (!createShaderProgram("SkySphere", "UniformSky", eShaderPrograms::UniformSky))
 		{
 			spdlog::error("UniformSky ShaderProgram 생성 실패");
 			return false;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Material.h"
 #include "Graphics/Graphics.h"
+#include "Utilities/YamlHelper.h"
 
 namespace Dive
 {
@@ -13,6 +14,155 @@ namespace Dive
 	}
 
 	Material::~Material() = default;
+
+	bool Material::SaveToFile(const std::filesystem::path& filepath)
+	{
+		if (!IsDirty())
+			return true;
+
+		std::string target = filepath.string() + ".mat";
+		std::ofstream fout(target, std::ios::binary);
+		if (!fout.is_open())
+		{
+			spdlog::error("머티리얼 파일 생성 실패: {}", target);
+			return false;
+		}
+
+		if (!Serialize(fout))
+			return false;
+
+		ClearDirty();
+		return true;
+	}
+
+	bool Material::LoadFromFile(const std::filesystem::path& filepath)
+	{
+		std::string target = filepath.string() + ".mat";
+		std::ifstream fin(target, std::ios::binary);
+		if (!fin.is_open())
+		{
+			spdlog::error("머티리얼 파일 열기 실패: {}", target);
+			return false;
+		}
+
+		if (!Deserialize(fin))
+			return false;
+
+		ClearDirty();
+		return true;
+	}
+
+	bool Material::Serialize(std::ofstream& fout) const
+	{
+		if (!fout.good())
+		{
+			spdlog::error("쓰기 스트림 오류");
+			return false;
+		}
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << GetName();
+		out << YAML::Key << "Transparent" << YAML::Value << m_isTransparent;
+		out << YAML::Key << "BaseColor" << YAML::Value << m_data.baseColor;
+		out << YAML::Key << "EmissiveFactor" << YAML::Value << m_data.emissiveFactor;
+		out << YAML::Key << "RoughnessFactor" << YAML::Value << m_data.roughnessFactor;
+		out << YAML::Key << "Tiling" << YAML::Value << m_data.tiling;
+		out << YAML::Key << "Offset" << YAML::Value << m_data.offset;
+		out << YAML::Key << "MetalicFactor" << YAML::Value << m_data.metallicFactor;
+		out << YAML::Key << "HeightScale" << YAML::Value << m_data.heightScale;
+
+		out << YAML::Key << "Maps" << YAML::BeginMap;
+		for (size_t i = 0; i < static_cast<size_t>(eMapType::Count); ++i)
+		{
+			if (!m_mapPaths[i].empty())
+			{
+				out << YAML::Key << GetMapTypeName(static_cast<eMapType>(i))
+					<< YAML::Value << m_mapPaths[i];
+			}
+		}
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+
+		fout << out.c_str();
+
+		return true;
+	}
+
+	bool Material::Deserialize(std::ifstream& fin)
+	{
+		if (!fin.good())
+		{
+			spdlog::error("읽기 스트림 오류");
+			return false;
+		}
+
+		try
+		{
+			// 1. 파일 스트림으로부터 YAML 노드 로드
+			YAML::Node root = YAML::Load(fin);
+			if (!root.IsMap())
+			{
+				spdlog::error("잘못된 YAML 포맷입니다.");
+				return false;
+			}
+
+			// 2. 기본 정보 복원
+			if (root["Name"])
+				SetName(root["Name"].as<std::string>());
+
+			if (root["Transparent"])
+				m_isTransparent = root["Transparent"].as<bool>();
+
+			// convert 덕분에 한 줄로 깔끔하게 역직렬화됩니다!
+			if (root["BaseColor"])
+				m_data.baseColor = root["BaseColor"].as<DirectX::XMFLOAT4>();
+
+			if (root["EmissiveFactor"])
+				m_data.emissiveFactor = root["EmissiveFactor"].as<DirectX::XMFLOAT3>();
+
+			if (root["RoughnessFactor"])
+				m_data.roughnessFactor = root["RoughnessFactor"].as<float>();
+
+			if (root["Tiling"])
+				m_data.tiling = root["Tiling"].as<DirectX::XMFLOAT2>();
+
+			if (root["Offset"])
+				m_data.offset = root["Offset"].as<DirectX::XMFLOAT2>();
+
+			if (root["MetalicFactor"])
+				m_data.metallicFactor = root["MetalicFactor"].as<float>();
+
+			if (root["HeightScale"])
+				m_data.heightScale = root["HeightScale"].as<float>();
+
+			// 3. 맵 경로 복원 및 텍스처 로드 연동
+			if (root["Maps"] && root["Maps"].IsMap())
+			{
+				YAML::Node mapsNode = root["Maps"];
+				for (auto it = mapsNode.begin(); it != mapsNode.end(); ++it)
+				{
+					std::string typeStr = it->first.as<std::string>();
+					std::string path = it->second.as<std::string>();
+
+					eMapType type = GetMapTypeFromString(typeStr);
+					if (type != eMapType::Count && !path.empty())
+					{
+						// SetMap을 호출하여 경로 저장 및 텍스처 핸들 로드 동시 처리
+						SetMap(type, path);
+					}
+				}
+			}
+		}
+		catch (const YAML::Exception& e)
+		{
+			spdlog::error("YAML 파싱 실패: {}", e.what());
+			return false;
+		}
+
+		return true;
+	}
 
 	ID3D11ShaderResourceView* Material::GetMap(eMapType type) const
 	{
@@ -27,6 +177,7 @@ namespace Dive
 		size_t slot = static_cast<size_t>(type);
 
 		m_maps[slot] =  TextureManager::Get().LoadTexture(path);
+		m_mapPaths[slot] = path;
 
 		if (m_maps[slot] != INVALID_TEXTURE_HANDLE)
 		{
@@ -84,6 +235,7 @@ namespace Dive
 		if (nullptr == TextureManager::Get().GetTextureView(handle))
 		{
 			m_maps[slot] = INVALID_TEXTURE_HANDLE;
+			m_mapPaths[slot] = "";
 			m_data.flags &= ~(1U << slot);
 
 			if (type == eMapType::ORM)
@@ -107,6 +259,7 @@ namespace Dive
 		else
 		{
 			m_maps[slot] = handle;
+			m_mapPaths[slot] = TextureManager::Get().GetTextureFilepath(handle);
 			m_data.flags |= (1U << slot);
 
 			if (type == eMapType::ORM)
@@ -260,5 +413,31 @@ namespace Dive
 
 		m_cbuffer->Bind(graphics, eShaderStage::DS, static_cast<uint32_t>(eConstantBuffer::Material));
 		m_cbuffer->Bind(graphics, eShaderStage::PS, static_cast<uint32_t>(eConstantBuffer::Material));
+	}
+
+	const char* Material::GetMapTypeName(eMapType type)
+	{
+		switch (type)
+		{
+		case eMapType::Albedo:       return "Albedo";
+		case eMapType::Normal:       return "Normal";
+		case eMapType::ORM:          return "ORM";
+		case eMapType::Displacement: return "Displacement";
+		case eMapType::Roughness:    return "Roughness";
+		case eMapType::Metallic:     return "Metallic";
+		default:                     return "Unknown";
+		}
+	}
+
+	eMapType Material::GetMapTypeFromString(const std::string& name)
+	{
+		if (name == "Albedo")       return eMapType::Albedo;
+		if (name == "Normal")       return eMapType::Normal;
+		if (name == "ORM")          return eMapType::ORM;
+		if (name == "Displacement") return eMapType::Displacement;
+		if (name == "Roughness")    return eMapType::Roughness;
+		if (name == "Metallic")     return eMapType::Metallic;
+
+		return eMapType::Count;
 	}
 }

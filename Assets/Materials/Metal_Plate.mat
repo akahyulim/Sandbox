@@ -1,0 +1,14 @@
+Name: Metal_Plate
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 1
+Tiling: [2, 2]
+Offset: [0, 0]
+MetalicFactor: 1
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/metal_plate_1k/metal_plate_diff_1k.png
+  Normal: Assets/Textures/metal_plate_1k/metal_plate_nor_dx_1k.png
+  ORM: Assets/Textures/metal_plate_1k/metal_plate_arm_1k.png
+  Displacement: Assets/Textures/metal_plate_1k/metal_plate_disp_1k.png

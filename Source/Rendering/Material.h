@@ -29,6 +29,12 @@ namespace Dive
 		Material();
 		virtual ~Material();
 
+		bool SaveToFile(const std::filesystem::path& filepath) override;
+		bool LoadFromFile(const std::filesystem::path& filepath) override;
+
+		bool Serialize(std::ofstream& fout) const override;
+		bool Deserialize(std::ifstream& fin) override;
+
 		ID3D11ShaderResourceView* GetMap(eMapType type) const;
 		void SetMap(eMapType type, const std::string& path);
 		void SetMap(eMapType type, TextureHandle handle);
@@ -66,9 +72,13 @@ namespace Dive
 
 		void Bind(Graphics* graphics);
 
+		static const char* GetMapTypeName(eMapType type);
+		static eMapType GetMapTypeFromString(const std::string& name);
+
 	private:
 		MaterialData m_data{};
 		std::array<TextureHandle, static_cast<size_t>(eMapType::Count)> m_maps{};
+		std::array<std::string, static_cast<size_t>(eMapType::Count)> m_mapPaths{};
 
 		std::unique_ptr<ConstantBuffer<MaterialData>> m_cbuffer;
 

@@ -1,0 +1,14 @@
+Name: Marble_Cliff_06
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 1
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 0
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/marble_cliff_06_1k/marble_cliff_06_diff_1k.png
+  Normal: Assets/Textures/marble_cliff_06_1k/marble_cliff_06_nor_dx_1k.png
+  Displacement: Assets/Textures/marble_cliff_06_1k/marble_cliff_06_disp_1k.png
+  Roughness: Assets/Textures/marble_cliff_06_1k/marble_cliff_06_rough_1k.png

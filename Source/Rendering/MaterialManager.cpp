@@ -5,14 +5,36 @@ namespace Dive
 {
 	void MaterialManager::Initialize()
 	{
-		m_default = std::make_unique<Material>();
-		m_default->SetName("Default");
-		m_default->SetBaseColor(1.0f, 1.0f, 1.0f, 1.0f);
+		SetDirectory("Assets/Materials");
+		CreateMaterial("Standard");
 	}
 
-	Material* MaterialManager::LoadFromFile(const std::string& path)
+	void MaterialManager::SaveToFiles()
 	{
-		return nullptr;
+		if (!std::filesystem::exists(m_directory))
+		{
+			std::filesystem::create_directories(m_directory);
+		}
+
+		for (auto mat : m_materialList)
+		{
+			std::filesystem::path filepath = m_directory / mat->GetName();
+
+			if (!mat->SaveToFile(filepath))
+				spdlog::error("머티리얼 저장 실패: {}", filepath.string());
+		}
+	}
+
+	Material* MaterialManager::LoadFromFile(const std::filesystem::path& filepath)
+	{
+		auto material = CreateMaterial(filepath.filename().string());
+		if (!material->LoadFromFile(filepath))
+		{
+			spdlog::warn("머티리얼 파일 로드 실패: {}", filepath.string());
+			return nullptr;
+		}
+
+		return material;
 	}
 
 	Material* MaterialManager::CreateMaterial(const std::string& name)
@@ -24,15 +46,19 @@ namespace Dive
 			return it->second.get();
 		}
 
-		m_materials[name] = std::move(std::make_unique<Material>());
+		auto material = std::make_unique<Material>();
+		Material* rawPtr = material.get();
+
+		m_materials[name] = std::move(material);
 		m_materials[name]->SetName(name);
-		return m_materials[name].get();
+		m_materialList.push_back(rawPtr);
+
+		return rawPtr;
 	}
 
-	Material* MaterialManager::GetDefault() const
+	Material* MaterialManager::GeStandard() const
 	{
-		assert(m_default);
-		return m_default.get();
+		return GetMaterial("Standard");
 	}
 
 	Material* MaterialManager::GetMaterial(const std::string& name) const
@@ -41,6 +67,6 @@ namespace Dive
 		if (it != m_materials.end())
 			return it->second.get();
 		
-		return GetDefault();
+		return GeStandard();
 	}
 }

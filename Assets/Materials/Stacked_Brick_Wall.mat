@@ -1,0 +1,13 @@
+Name: Stacked_Brick_Wall
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 0
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 0
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_diff_1k.png
+  Normal: Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_nor_dx_1k.png
+  Displacement: Assets/Textures/stacked_brick_wall_1k/stacked_brick_wall_disp_1k.png

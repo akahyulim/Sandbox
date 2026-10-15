@@ -203,7 +203,12 @@ namespace Dive
 		return handle;
 	}
 	
-	std::wstring TextureManager::GetTextureFilepath(TextureHandle handle) const
+	std::string TextureManager::GetTextureFilepath(TextureHandle handle) const
+	{
+		return StringUtils::ToString(GetTextureFilepathW(handle));
+	}
+
+	std::wstring TextureManager::GetTextureFilepathW(TextureHandle handle) const
 	{
 		auto it = m_textures.find(handle);
 		if (it != m_textures.end())

@@ -41,7 +41,8 @@ namespace Dive
 
 		void SetFaceData(uint32_t index, const void* pixels, size_t size);
 
-		std::wstring GetTextureFilepath(TextureHandle handle) const;
+		std::string GetTextureFilepath(TextureHandle handle) const;
+		std::wstring GetTextureFilepathW(TextureHandle handle) const;
 		std::string GetTextureName(TextureHandle handle) const;
 		ID3D11ShaderResourceView* GetTextureView(TextureHandle handle) const;
 		

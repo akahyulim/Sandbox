@@ -841,7 +841,8 @@ namespace Dive
   
         data.lightColor = m_lightColor;
         data.ambientColor = m_ambientColor;
-        data.skyColor = m_skyColor;
+        data.apexColor = m_apexColor;
+        data.horizonColor = m_horizonColor;
         m_cbWeather->Update(m_graphics, data);
     }
     
@@ -915,51 +916,54 @@ namespace Dive
 
         m_graphics->EndRenderPass();
     }
-    
+
     void Renderer::passSky(Scene* scene)
     {
         m_graphics->BeginRenderPass(m_skyboxPass);
-
         m_graphics->SetViewport(m_ldrRenderTarget->GetWidth(), m_ldrRenderTarget->GetHeight());
-
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Skybox].Get(), 0);
+
+        auto& envData = scene->GetEnviroment();
+        auto camera = scene->GetCamera();
 
         if (m_skyMode == eSkyMode::Skybox)
         {
             ShaderManager::Get().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
 
-            auto& envData = scene->GetEnviroment();
             auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
             m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
-        }
-        else if (m_skyMode == eSkyMode::SkySphere)
-        {
-            ShaderManager::Get().GetShaderProgram(eShaderPrograms::SkySphere)->Bind(m_graphics);
 
-            auto& envData = scene->GetEnviroment();
-            auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
-            m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);
+            ObjectData data{};
+            data.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
+            m_cbObject->Update(m_graphics, data);
+
+            m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+            m_graphics->SetVertexBuffer(m_cubeVB.get());
+            m_graphics->SetIndexBuffer(m_cubeIB.get());
+            m_graphics->DrawIndexed(m_cubeIB->GetCount());
         }
         else
         {
-            ShaderManager::Get().GetShaderProgram(eShaderPrograms::UniformSky)->Bind(m_graphics);
+            if (m_skyMode == eSkyMode::SkySphere)
+            {
+                ShaderManager::Get().GetShaderProgram(eShaderPrograms::SkySphere)->Bind(m_graphics);
+
+                auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+                m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);
+
+            }
+            else
+            {
+                ShaderManager::Get().GetShaderProgram(eShaderPrograms::UniformSky)->Bind(m_graphics);
+            }
+
+            m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
+            m_graphics->Draw(3, 0);
         }
 
-        ObjectData data{};
-        auto camera = scene->GetCamera();
-        data.model = DirectX::XMMatrixTranspose(DirectX::XMMatrixTranslationFromVector(camera->GetTransform()->GetPositionVector()));
-        m_cbObject->Update(m_graphics, data);
-
-        m_graphics->SetTopology(ePrimitiveTopology::TriangleList);
-        
-        m_graphics->SetVertexBuffer(m_cubeVB.get());
-        m_graphics->SetIndexBuffer(m_cubeIB.get());
-        m_graphics->DrawIndexed(m_cubeIB->GetCount());
-        
         m_graphics->SetRasterizerState(nullptr);
         m_graphics->SetDepthStencilState(nullptr, 0);
-
         m_graphics->EndRenderPass();
     }
 

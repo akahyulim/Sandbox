@@ -199,6 +199,12 @@
     <ClInclude Include="External\imgui\imgui_stdlib.h">
       <Filter>External\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Sandbox\ImGuiHelper.h">
+      <Filter>Sandbox</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utilities\YamlHelper.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Window.cpp">
@@ -328,6 +334,9 @@
     </ClCompile>
     <ClCompile Include="External\imgui\imgui_stdlib.cpp">
       <Filter>External\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Sandbox\ImGuiHelper.cpp">
+      <Filter>Sandbox</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

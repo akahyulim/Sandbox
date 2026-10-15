@@ -1,0 +1,14 @@
+Name: Rust_Metal_05
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 1
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 1
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/rusty_metal_05_1k/rusty_metal_05_diff_1k.png
+  Normal: Assets/Textures/rusty_metal_05_1k/rusty_metal_05_nor_dx_1k.png
+  ORM: Assets/Textures/rusty_metal_05_1k/rusty_metal_05_arm_1k.png
+  Displacement: Assets/Textures/rusty_metal_05_1k/rusty_metal_05_disp_1k.png

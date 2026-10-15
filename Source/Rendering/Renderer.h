@@ -98,9 +98,13 @@ namespace Dive
 		eSkyMode GetSkyMode() const { return m_skyMode; }
 		void SetSkyMode(eSkyMode mode) { m_skyMode = mode; }
 
-		DirectX::XMFLOAT4 GetSkyColor() const { return m_skyColor; }
-		void SetSkyColor(const DirectX::XMFLOAT4& color) { m_skyColor = color; }
-		void SetSkyColor(float r, float g, float b, float a) { m_skyColor = { r, g, b, a }; }
+		DirectX::XMFLOAT4 GetApxeColor() const { return m_apexColor; }
+		void SetApexColor(const DirectX::XMFLOAT4& color) { m_apexColor = color; }
+		void SetApexColor(float r, float g, float b, float a) { m_apexColor = { r, g, b, a }; }
+
+		DirectX::XMFLOAT4 GetHorizonColor() const { return m_horizonColor; }
+		void SetHorizonColor(const DirectX::XMFLOAT4& color) { m_horizonColor = color; }
+		void SetHorizonColor(float r, float g, float b, float a) { m_horizonColor = { r, g, b, a }; }
 
 		DirectX::XMFLOAT3 GetLightColor() const { return { m_lightColor.x, m_lightColor.y, m_lightColor.z }; }
 		void SetLightColor(const DirectX::XMFLOAT3& color) { m_lightColor = { color.x, color.y, color.z, 1.0f }; }
@@ -178,7 +182,8 @@ namespace Dive
 
 		DirectX::XMFLOAT2 m_mousePosition;
 
-		DirectX::XMFLOAT4 m_skyColor = { 0.0f, 0.75f, 1.0f , 0.0f };
+		DirectX::XMFLOAT4 m_apexColor = { 0.0f, 0.05f, 0.6f, 1.0f };
+		DirectX::XMFLOAT4 m_horizonColor = { 0.0f, 0.5f, 0.8f, 1.0f };
 		eSkyMode m_skyMode = eSkyMode::Skybox;
 
 		DirectX::XMFLOAT4 m_lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };

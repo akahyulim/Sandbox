@@ -35,6 +35,9 @@ namespace Dive
 		Resource() = default;
 		virtual ~Resource() override;
 
+		virtual bool SaveToFile(const std::filesystem::path& filepath) = 0;
+		virtual bool LoadFromFile(const std::filesystem::path& filepath) = 0;
+
 		const std::filesystem::path& GetFilepath() const { return m_filepath; }
 		void SetFilepath(const std::filesystem::path& path);
 
@@ -47,6 +50,9 @@ namespace Dive
 		bool IsDirty() const { return m_isDirty; }
 
 	protected:
+		virtual bool Serialize(std::ofstream& fout) const = 0;
+		virtual bool Deserialize(std::ifstream& fin) = 0;
+
 		void MarkDirty() { m_isDirty = true; }
 		void ClearDirty() { m_isDirty = false; }
 

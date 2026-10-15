@@ -1,0 +1,14 @@
+Name: Tiles106
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 1
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 0
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Color.png
+  Normal: Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_NormalDX.png
+  Displacement: Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Displacement.png
+  Roughness: Assets/Textures/Tiles106_1K-PNG/Tiles106_1K-PNG_Roughness.png

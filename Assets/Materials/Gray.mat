@@ -1,0 +1,11 @@
+Name: Gray
+Transparent: false
+BaseColor: [0.8, 0.8, 0.8, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 0
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 0
+HeightScale: 0
+Maps:
+  {}

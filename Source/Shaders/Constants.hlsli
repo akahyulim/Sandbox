@@ -41,7 +41,8 @@ struct WeatherData
     float4 lightDir;
     float4 lightColor;
     float4 ambientColor;
-    float4 skyColor;
+    float4 apexColor;
+    float4 horizonColor;
 };
 
 struct LightData

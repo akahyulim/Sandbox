@@ -1,0 +1,11 @@
+Name: Metal White
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 0.35
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 1
+HeightScale: 0
+Maps:
+  {}

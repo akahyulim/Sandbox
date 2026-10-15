@@ -1,0 +1,14 @@
+Name: Rusty_Metal_Grid
+Transparent: false
+BaseColor: [1, 1, 1, 1]
+EmissiveFactor: [0, 0, 0]
+RoughnessFactor: 1
+Tiling: [1, 1]
+Offset: [0, 0]
+MetalicFactor: 1
+HeightScale: 0
+Maps:
+  Albedo: Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_diff_1k.png
+  Normal: Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_nor_dx_1k.png
+  ORM: Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_arm_1k.png
+  Displacement: Assets/Textures/rusty_metal_grid_1k/rusty_metal_grid_disp_1k.png

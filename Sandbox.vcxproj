@@ -102,10 +102,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_D3D11_CONVERSION_;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;_D3D11_CONVERSION_;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)Source\ThirdParty;$(ProjectDir)source;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)External;$(ProjectDir)source;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -113,7 +113,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;DirectXTex.lib;dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>yaml-cppd.lib;assimp-vc143-mtd.lib;DirectXTex.lib;dinput8.lib;dxguid.lib;dxgi.lib;d3d11.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)External\Libs\Debug;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -180,6 +180,7 @@
     <ClInclude Include="Source\Rendering\ShaderManager.h" />
     <ClInclude Include="Source\Rendering\TextureManager.h" />
     <ClInclude Include="Source\Resource\Resource.h" />
+    <ClInclude Include="Source\Sandbox\ImGuiHelper.h" />
     <ClInclude Include="Source\Sandbox\ImGuiManager.h" />
     <ClInclude Include="Source\Sandbox\Sandbox.h" />
     <ClInclude Include="Source\Scene\Components\MeshRenderer.h" />
@@ -195,6 +196,7 @@
     <ClInclude Include="Source\Utilities\Math.h" />
     <ClInclude Include="Source\Utilities\StringUtils.h" />
     <ClInclude Include="Source\Utilities\Timer.h" />
+    <ClInclude Include="Source\Utilities\YamlHelper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="External\imgui\imgui.cpp">
@@ -260,6 +262,7 @@
     <ClCompile Include="Source\Rendering\ShaderManager.cpp" />
     <ClCompile Include="Source\Rendering\TextureManager.cpp" />
     <ClCompile Include="Source\Resource\Resource.cpp" />
+    <ClCompile Include="Source\Sandbox\ImGuiHelper.cpp" />
     <ClCompile Include="Source\Sandbox\ImGuiManager.cpp" />
     <ClCompile Include="Source\Sandbox\Sandbox.cpp" />
     <ClCompile Include="Source\Scene\Components\MeshRenderer.cpp" />

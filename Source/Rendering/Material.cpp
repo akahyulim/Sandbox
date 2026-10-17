@@ -15,6 +15,8 @@ namespace Dive
 
 	Material::~Material() = default;
 
+	// 여기에서도 dir만 받는 게 어떨까 싶다.
+	// fullpath용을 따로 두는것도 방법이다.
 	bool Material::SaveToFile(const std::filesystem::path& filepath)
 	{
 		if (!IsDirty())
@@ -31,10 +33,14 @@ namespace Dive
 		if (!Serialize(fout))
 			return false;
 
+		m_filepath = filepath;
+
 		ClearDirty();
 		return true;
 	}
 
+	// 여기에서 붙이지 말고...
+	// 흠.. 전달받을 땐 역시 포멧을 제외하는 게 나을 거 같은데...
 	bool Material::LoadFromFile(const std::filesystem::path& filepath)
 	{
 		std::string target = filepath.string() + ".mat";
@@ -47,6 +53,8 @@ namespace Dive
 
 		if (!Deserialize(fin))
 			return false;
+
+		m_filepath = filepath;
 
 		ClearDirty();
 		return true;

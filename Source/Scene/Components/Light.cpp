@@ -2,6 +2,7 @@
 #include "Light.h"
 #include "Transform.h"
 #include "Utilities/Math.h"
+#include "Utilities/YamlHelper.h"
 
 namespace Dive
 {
@@ -120,5 +121,35 @@ namespace Dive
 
         m_data.intensity = intensity;
         m_isDirty = true;
+    }
+
+    // inner, outer 저장이 없다.
+    void Light::Serialize(YAML::Emitter& out)
+    {
+        //if (!m_isDirty)
+        //    return;
+
+        out << YAML::Key << "Light" << YAML::Value << YAML::BeginMap;
+        out << YAML::Value << "LightType" << YAML::Value << static_cast<int>(GetLightType());
+        out << YAML::Value << "LightColor" << YAML::Value << GetColor();
+        out << YAML::Value << "LightIntensity" << YAML::Value << GetIntensity();
+        out << YAML::Value << "LightRange" << YAML::Value << GetRange();
+        out << YAML::Value << "InnerAngle" << YAML::Value << GetInnerAngleDegrees();
+        out << YAML::Value << "OuterAngle" << YAML::Value << GetOuterAngleDegrees();
+        out << YAML::EndMap;
+
+        //m_isDirty = false;
+    }
+
+    void Light::Deserialize(const YAML::Node& node)
+    {
+        SetLightType(static_cast<eLightType>(node["LightType"].as<int>()));
+        SetColor(node["LightColor"].as<DirectX::XMFLOAT3>());
+        SetIntensity(node["LightIntensity"].as<float>());
+        SetRange(node["LightRange"].as<float>());
+        SetInnerAngleDegrees(node["InnerAngle"].as<float>());
+        SetOuterAngleDegrees(node["OuterAngle"].as<float>());
+
+        //m_isDirty = true;
     }
 }

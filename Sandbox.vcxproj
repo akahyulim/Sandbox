@@ -190,6 +190,7 @@
     <ClInclude Include="Source\Scene\Components\Transform.h" />
     <ClInclude Include="Source\Scene\GameObject.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Scene\SceneSerializer.h" />
     <ClInclude Include="Source\Utilities\Delegate.h" />
     <ClInclude Include="Source\Utilities\EventDispatcher.h" />
     <ClInclude Include="Source\Utilities\FileUtils.h" />
@@ -272,6 +273,7 @@
     <ClCompile Include="Source\Scene\Components\Transform.cpp" />
     <ClCompile Include="Source\Scene\GameObject.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
+    <ClCompile Include="Source\Scene\SceneSerializer.cpp" />
     <ClCompile Include="Source\Utilities\EventDispatcher.cpp" />
     <ClCompile Include="Source\Utilities\FileUtils.cpp" />
     <ClCompile Include="Source\Utilities\Math.cpp" />

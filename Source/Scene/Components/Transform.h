@@ -101,6 +101,9 @@ namespace Dive
 
 		void SetDirty();
 
+		void Serialize(YAML::Emitter& out) override;
+		void Deserialize(const YAML::Node& node) override;
+
 	private:
 		DirectX::XMFLOAT3 m_localPosition = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT4 m_localRotation = { 0.0f, 0.0f, 0.0f, 1.0f };

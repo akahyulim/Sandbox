@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Component.h"
 #include "Transform.h"
 #include "Scene/GameObject.h"
@@ -9,7 +9,6 @@ namespace Dive
 		: m_owner(owner)
 	{
 	}
-
 
 	GameObject* Component::GetOwner() const
 	{

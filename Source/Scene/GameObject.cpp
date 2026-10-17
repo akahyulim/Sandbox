@@ -2,6 +2,9 @@
 #include "GameObject.h"
 #include "Scene.h"
 #include "Components/Transform.h"
+#include "Components/Camera.h"
+#include "Components/MeshRenderer.h"
+#include "Components/Light.h"
 
 namespace Dive
 {
@@ -161,6 +164,67 @@ namespace Dive
 			if (child->HasChildren())
 				child->GetDecendants(outDecendants);
 		}
+	}
+
+	void GameObject::Serialize(YAML::Emitter& out)
+	{
+		out << YAML::Key << "ID" << YAML::Value << GetInstanceID();
+		out << YAML::Key << "Name" << YAML::Value << GetName();
+		//out << YAML::Key << "Tag" << YAML::Value << GetTag();
+		//out << YAML::Key << "Active" << YAML::Value << IsActiveSelf();
+
+		m_transform->Serialize(out);
+
+		for (auto& [type, component] : m_components)
+		{
+			if (type == eComponentType::Transform)
+				continue;
+			component->Serialize(out);
+		}
+	}
+
+	void GameObject::Deserialize(const YAML::Node& node)
+	{
+		if (GetInstanceID() != node["ID"].as<uint64_t>())
+		{
+			spdlog::error("InstanceID 초기화에 실패하였습니다.");
+			//SetInstanceID(node["ID"].as<uint64_t>());
+			return;
+		}
+
+		SetName(node["Name"].as<std::string>());
+		//SetTag(node["Tag"].as<std::string>());
+		//SetActive(node["Active"].as<bool>());
+
+		m_transform->Deserialize(node["Transform"]);
+		//m_transform->SubscribeEvents();
+
+		if (auto comNode = node["Camera"])
+		{
+			auto com = AddComponent<Camera>();
+			com->Deserialize(comNode);
+			//com->SubscribeEvents();
+		}
+		if (auto comNode = node["Light"])
+		{
+			auto com = AddComponent<Light>();
+			com->Deserialize(comNode);
+			//com->SubscribeEvents();
+		}
+		if (auto comNode = node["MeshRenderer"])
+		{
+			auto com = AddComponent<MeshRenderer>();
+			com->Deserialize(comNode);
+			//com->SubscribeEvents();
+		}
+		/*
+		if(auto comNode = node["MonoBehaviour"])
+		{
+			auto com = AddComponent<MonoBehaviour>(comNode["ID"].as<uint64_t>());
+			com->Deserialize(comNode);
+			com->SubscribeEvents();
+		}
+		*/
 	}
 
 	void GameObject::notifySceneChanged()

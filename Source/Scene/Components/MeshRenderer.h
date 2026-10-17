@@ -31,6 +31,9 @@ namespace Dive
 
 		static constexpr eComponentType GetType() { return eComponentType::MeshRenderer; }
 
+		void Serialize(YAML::Emitter& out) override;
+		void Deserialize(const YAML::Node& node) override;
+
 	private:
 		uint32_t m_ObjectID;
 		static inline uint32_t s_nextID = 1;

@@ -52,6 +52,9 @@ namespace Dive
 		// 사용하는 곳이 있나...?
 		static constexpr eComponentType GetType() { return eComponentType::Camera; }
 
+		void Serialize(YAML::Emitter& out) override;
+		void Deserialize(const YAML::Node& node) override;
+
 	private:
 		void updateProjection();
 

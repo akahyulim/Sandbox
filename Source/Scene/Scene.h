@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include "Core/Types.h"
+#include "Core/Object.h"
 #include "Rendering/TextureManager.h"
 
 namespace Dive
@@ -34,6 +35,7 @@ namespace Dive
 		void Update();
 		
 		GameObject* CreateGameObject();
+		GameObject* CreateGameObject(const std::string& name, uint64_t id = AUTO_ID);
 		GameObject* CreateGameObjectFromID(uint64_t id);
 		void RemoveGameObject(GameObject* gameObject);
 		void RemoveGameObjectByID(uint64_t id);
@@ -47,9 +49,7 @@ namespace Dive
 		GameObject* GetDirectionalLight() const { return m_directionalLight; }
 		const std::vector<GameObject*>& GetLightQueue() const { return m_lights; }
 		const std::vector<GameObject*>& GetRenderables() const { return m_renderables; }
-
-		bool SaveToFile(const std::filesystem::path& filepath);
-		bool LoadFromFile(const std::filesystem::path& filepath);
+		std::vector<GameObject*> GetAllGameObjects();
 
 		bool IsDirty() const { return m_isDirty; }
 		void SetDirty() { m_isDirty = true; }

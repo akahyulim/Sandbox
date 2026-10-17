@@ -24,6 +24,7 @@ namespace Dive
 		void Update();
 
 		template<typename T> T* AddComponent();
+		template<typename T> T* AddComponent(uint64_t id);
 		template<typename T> void RemoveComponent();
 
 		template<typename T> bool HasComponent() const;
@@ -52,6 +53,9 @@ namespace Dive
 		bool IsDescendantOf(GameObject* target) const;
 		void GetDecendants(std::vector<GameObject*>& outDecendants) const;
 
+		void Serialize(YAML::Emitter& out);
+		void Deserialize(const YAML::Node& node);
+
 	private:
 		void notifySceneChanged();
 
@@ -78,6 +82,24 @@ namespace Dive
 			return static_cast<T*>(it->second.get());
 
 		auto component = std::make_unique<T>(this);
+		T* componentPtr = component.get();
+		m_components[type] = std::move(component);
+
+		notifySceneChanged();
+
+		return componentPtr;
+	}
+
+	template<typename T>
+	inline T* GameObject::AddComponent(uint64_t id)
+	{
+		eComponentType type = T::GetType();
+
+		auto it = m_components.find(type);
+		if (it != m_components.end())
+			return static_cast<T*>(it->second.get());
+
+		auto component = std::make_unique<T>(this, id);
 		T* componentPtr = component.get();
 		m_components[type] = std::move(component);
 

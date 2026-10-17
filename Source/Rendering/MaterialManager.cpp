@@ -25,9 +25,13 @@ namespace Dive
 		}
 	}
 
+	// CreateMaterial을 내부에서 구현하자.
+	// filepaht를 두 번 전달하니깐
 	Material* MaterialManager::LoadFromFile(const std::filesystem::path& filepath)
 	{
-		auto material = CreateMaterial(filepath.filename().string());
+		// 현재 받은 경로를 그대로 key로 사용한다.
+		// 이 문제는 좀 더 생각해보자.
+		auto material = CreateMaterial(filepath.string());// .filename().string());
 		if (!material->LoadFromFile(filepath))
 		{
 			spdlog::warn("머티리얼 파일 로드 실패: {}", filepath.string());

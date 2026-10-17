@@ -50,6 +50,26 @@ namespace Dive
 		return m_ib ? m_ib->GetCount() : 0;
 	}
 
+	bool Mesh::SaveToFile(const std::filesystem::path& filepath)
+	{
+		return false;
+	}
+
+	bool Mesh::LoadFromFile(const std::filesystem::path& filepath)
+	{
+		return false;
+	}
+
+	bool Mesh::Serialize(std::ofstream& fout) const
+	{
+		return false;
+	}
+
+	bool Mesh::Deserialize(std::ifstream& fin)
+	{
+		return false;
+	}
+
 	void Mesh::createIndexBuffer(Graphics* graphics, const std::vector<uint32_t>& indices)
 	{
 		if (indices.empty())

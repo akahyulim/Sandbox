@@ -15,36 +15,42 @@ namespace Dive
 		{
 			data = Preset::GenerateTriangle();
 			auto triangle = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			triangle->SetName("Triangle");
 			m_meshes["Triangle"] = std::move(triangle);
 		}
 		// Preset Quad
 		{
 			data = Preset::GenerateQuad();
 			auto quad = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			quad->SetName("Quad");
 			m_meshes["Quad"] = std::move(quad);
 		}
 		// Preset Plane
 		{
 			data = Preset::GeneratePlane();
 			auto plane = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			plane->SetName("Plane");
 			m_meshes["Plane"] = std::move(plane);
 		}
 		// Preset Cube
 		{
 			data = Preset::GenerateCube();
 			auto cube = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			cube->SetName("Cube");
 			m_meshes["Cube"] = std::move(cube);
 		}
 		// Preset Sphere
 		{
 			data = Preset::GenerateSphere();
 			auto sphere = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			sphere->SetName("Sphere");
 			m_meshes["Sphere"] = std::move(sphere);
 		}
 		// Preset Capsule
 		{
 			data = Preset::GenerateCapsule();
 			auto capsule = std::make_unique<Mesh>(graphics, data.vertices, data.indices);
+			capsule->SetName("Capsule");
 			m_meshes["Capsule"] = std::move(capsule);
 		}
 	}

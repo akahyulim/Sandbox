@@ -41,6 +41,9 @@ namespace Dive
 
 		static constexpr eComponentType GetType() { return eComponentType::Light; }
 
+		void Serialize(YAML::Emitter& out) override;
+		void Deserialize(const YAML::Node& node) override;
+
 	private:
 		LightData m_data{};
 	};

@@ -1,0 +1,152 @@
+Scene: Lighting
+GameObjects:
+  - ID: 14536285353454823298
+    Name: PointLight_Green
+    Transform:
+      Position: [-2.5, 2, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 0
+      LightColor: [0, 1, 0]
+      LightIntensity: 8
+      LightRange: 5
+      InnerAngle: 0
+      OuterAngle: 45.008648
+  - ID: 17043051595222628727
+    Name: PointLight_Red
+    Transform:
+      Position: [2.5, 2, -2.5]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 0
+      LightColor: [1, 0, 0]
+      LightIntensity: 8
+      LightRange: 5
+      InnerAngle: 0
+      OuterAngle: 45.008648
+  - ID: 8908179486745657961
+    Name: PointLight_Blue
+    Transform:
+      Position: [-1, 2, 3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 0
+      LightColor: [0, 0, 1]
+      LightIntensity: 8
+      LightRange: 5
+      InnerAngle: 0
+      OuterAngle: 45.008648
+  - ID: 835567347440171561
+    Name: SpotLight_White
+    Transform:
+      Position: [-2.5, 2.5, -2.5]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 1
+      LightColor: [1, 1, 1]
+      LightIntensity: 8
+      LightRange: 10
+      InnerAngle: 13
+      OuterAngle: 13
+  - ID: 14950547444667600116
+    Name: PointLight_Yellow
+    Transform:
+      Position: [2.5, 2, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 0
+      LightColor: [1, 1, 0]
+      LightIntensity: 8
+      LightRange: 5
+      InnerAngle: 0
+      OuterAngle: 45.008648
+  - ID: 17362675685660228963
+    Name: SpotLight_Purple
+    Transform:
+      Position: [2.5, 2.5, 3]
+      Rotation: [0.7071068, 0, 0, 0.70710677]
+      Scale: [1, 1, 1]
+    Light:
+      LightType: 1
+      LightColor: [1, 1, 1]
+      LightIntensity: 8
+      LightRange: 10
+      InnerAngle: 0
+      OuterAngle: 45.008648
+  - ID: 8737919508698415003
+    Name: Quad_Right
+    Transform:
+      Position: [2, 0.5, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Cube
+      Material: Assets/Materials/Stacked_Brick_Wall
+  - ID: 3697222408274093551
+    Name: Bottom
+    Transform:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Plane
+      Material: Assets/Materials/Metal_Plate
+  - ID: 3546535333599444033
+    Name: Bottom
+    Transform:
+      Position: [-2.5, 2.5, 5]
+      Rotation: [0, 0, 0, 1]
+      Scale: [5, 5, 1]
+    MeshRenderer:
+      Mesh: Quad
+      Material: Assets/Materials/Tiles106
+  - ID: 4492905728568855834
+    Name: Cube
+    Transform:
+      Position: [-2, 0.5, 3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Cube
+      Material: Assets/Materials/Marble_Cliff_06
+  - ID: 7713654521853571654
+    Name: Quad_Left
+    Transform:
+      Position: [2.5, 0.5, 3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Cube
+      Material: Assets/Materials/Rusty_Metal_Grid
+  - ID: 13664343349625393853
+    Name: Sphere
+    Transform:
+      Position: [0, 1, -3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Sphere
+      Material: Assets/Materials/Metal White
+  - ID: 8840328807992447792
+    Name: Capsule
+    Transform:
+      Position: [-3.5, 1, -3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Capsule
+      Material: Assets/Materials/Rust_Metal_05
+  - ID: 16628226747779184010
+    Name: Triangle
+    Transform:
+      Position: [-1.5, 1, -3]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Triangle
+      Material: Assets/Materials/Orange

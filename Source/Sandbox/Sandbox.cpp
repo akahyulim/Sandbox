@@ -20,6 +20,7 @@
 #include "Scene/Components/Transform.h"
 #include "Scene/Components/MeshRenderer.h"
 #include "Scene/Components/Light.h"
+#include "Scene/SceneSerializer.h"
 
 namespace Dive
 {
@@ -40,6 +41,7 @@ namespace Dive
  
         //sceneInnocent();
         sceneLighting();
+       
     }
 
     void Sandbox::Run()
@@ -133,7 +135,7 @@ namespace Dive
         }
 
         float moveSpeed = 0.001f * dt;
-        float rotSpeed = 0.00015f * dt;//0.5f * dt * 0.002f;
+        float rotSpeed = 0.0001f * dt;
 
         if (input->KeyPress(DIK_LSHIFT))
         {
@@ -248,22 +250,25 @@ namespace Dive
 
             renderLightIcons(viewportPos, viewportSize);
 
-            if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            if (m_isSceneViewHovered && 
+                !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() 
+                && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 handleSceneClick(viewportPos, viewportSize);
             }
 
-
-            if (m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+            if (//m_isSceneViewHovered && !ImGuizmo::IsUsing() && !ImGuizmo::IsOver() && 
+                ImGui::IsMouseClicked(ImGuiMouseButton_Right))
             {
-                if (m_selectedObject)
-                {
-                    auto renderer = m_engine->GetRenderer();
-                    renderer->ProcessPicking();
-                    auto data = renderer->GetPickingData();
+                // 현재 Light는 반응하지 않는다.
+                // 아마도 Selected와 ContextTarget이 일치하지 않기 때문인 듯하다.
+                // Light는 MeshRenderer가 없어서 Picking을 다르게 하고 있다.
+                auto renderer = m_engine->GetRenderer();
+                renderer->ProcessPicking();
+                auto data = renderer->GetPickingData();
 
-                    m_contextTargetObject = m_scene->GetGameObjectByObjectID(data.id);
-                }
+                m_contextTargetObject = m_scene->GetGameObjectByObjectID(data.id);
+                
                 ImGui::OpenPopup("SceneViewContextMenu");
             }
             drawCanvasContextMenu();
@@ -310,12 +315,11 @@ namespace Dive
     {
         if (ImGui::BeginPopup("SceneViewContextMenu"))
         {
-            if(m_selectedObject && m_contextTargetObject != nullptr)
+            if(m_selectedObject && m_contextTargetObject != nullptr && m_selectedObject == m_contextTargetObject)
             {
-                if (m_selectedObject != m_contextTargetObject)
-                {
-                    setSelectedObject(m_contextTargetObject);
-                }
+                ImGui::MenuItem("Edit", "I", &m_showInspectorMenu);
+
+                ImGui::Separator();
 
                 if (ImGui::MenuItem("Cut"))
                 {
@@ -334,10 +338,6 @@ namespace Dive
                     m_scene->RemoveGameObject(m_contextTargetObject);
                     setSelectedObject(nullptr);
                 }
-                
-                ImGui::Separator();
-
-                ImGui::MenuItem("Inspector", "I", &m_showInspectorMenu);
             }
             else
             {
@@ -686,7 +686,7 @@ namespace Dive
 
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.15f, 0.15f, 0.15f, 0.75f));
 
-        if (ImGui::Begin("Inspector", &m_showInspectorMenu, flags))
+        if (ImGui::Begin("Inspector", &m_showInspectorMenu, ImGuiWindowFlags_NoCollapse))
         {
             switch (m_inspectorMode)
             {
@@ -763,6 +763,9 @@ namespace Dive
                 // TODO: 저장 로직
 
                 MaterialManager::Get().SaveToFiles();
+
+                SceneSerializer serializer(m_scene);
+                serializer.Serialize("Assets/Scenes");
             }
 
             // 3. Load
@@ -944,9 +947,7 @@ namespace Dive
 
                     // 1. Mesh 이름 표시 영역 (더블클릭 시 반응)
                     ImGui::PushID("MeshName");
-                    std::string meshName = "no name";
-                    // 현재 mesh에 GetName()이 없다.
-                    //(mesh != nullptr) ? "mesh->GetName()" : "No Mesh"; // 실제 구현에 맞게 수정
+                    std::string meshName = (mesh != nullptr) ? "mesh->GetName()" : "No Mesh"; // 실제 구현에 맞게 수정
 
                     ImGui::Columns(2);
                     ImGui::SetColumnWidth(0, 100.0f);
@@ -1084,6 +1085,22 @@ namespace Dive
     void Sandbox::sceneInnocent()
     {
         m_scene = m_engine->NewScene();
+
+        auto renderer = m_engine->GetRenderer();
+        renderer->SetSkyMode(eSkyMode::UniformColor);
+        renderer->SetApexColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+        // camera
+        {
+            m_mainCamera = m_scene->GetCamera();
+            auto transform = m_mainCamera->GetTransform();
+            transform->SetLocalPosition(0.0f, 5.0f, -12.0f);
+            transform->SetRotationByDegrees({ 15.0f, 0.0f, 0.0f });
+        }
+        SceneSerializer serializer(m_scene);
+        serializer.Deserialize("Assets/Scenes/Innocent.scene");
+        /*
+        m_scene = m_engine->NewScene();
         m_scene->SetName("Innocent");
 
         auto renderer = m_engine->GetRenderer();
@@ -1115,7 +1132,7 @@ namespace Dive
                 auto meshRenderer = bottom->AddComponent<MeshRenderer>();
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Gray");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Gray");
                 meshRenderer->SetMaterial(mtrl);
             }
 
@@ -1127,7 +1144,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                 cube->SetName("Brown Cube");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Brown");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Brown");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = cube->GetTransform();
@@ -1142,7 +1159,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                 cube->SetName("Mint Cube");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Mint");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Mint");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = cube->GetTransform();
@@ -1157,7 +1174,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
                 sphere->SetName("Metal White Sphere");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Metal White");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Metal White");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = sphere->GetTransform();
@@ -1171,7 +1188,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
                 sphere->SetName("White Sphere");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("White");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/White");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = sphere->GetTransform();
@@ -1185,7 +1202,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
                 sphere->SetName("White Sphere");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("White");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/White");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = sphere->GetTransform();
@@ -1199,17 +1216,33 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
                 triangle->SetName("Orange Triangle");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Orange");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Orange");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = triangle->GetTransform();
                 transform->SetLocalPosition(1.5f, 0.5f, -2.0f);
             }
         }
+        */
     }
 
     void Sandbox::sceneLighting()
     {
+        m_scene = m_engine->NewScene();
+        auto& env = m_scene->GetEnviroment();
+        env.skyboxCubemap = m_skyCubemaps["clear_night"];
+        m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
+
+        // camera
+        {
+            m_mainCamera = m_scene->GetCamera();
+            auto transform = m_mainCamera->GetTransform();
+            transform->SetLocalPosition(0.0f, 5.0f, -12.0f);
+            transform->SetRotationByDegrees({ 15.0f, 0.0f, 0.0f });
+        }
+        SceneSerializer serializer(m_scene);
+        serializer.Deserialize("Assets/Scenes/Lighting.scene");
+        /*
         m_scene = m_engine->NewScene();
         m_scene->SetName("Lighting");
 
@@ -1329,7 +1362,7 @@ namespace Dive
                 auto meshRenderer = bottom->AddComponent<MeshRenderer>();
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Plane"));
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Metal_Plate");//"Marble_Cliff_06");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Metal_Plate");//"Marble_Cliff_06");
                 meshRenderer->SetMaterial(mtrl);
             }
 
@@ -1340,7 +1373,7 @@ namespace Dive
                 auto meshRenderer = wall->AddComponent<MeshRenderer>();
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Quad"));
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Tiles106");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Tiles106");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = wall->GetTransform();
@@ -1355,7 +1388,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                 cube->SetName("Cube");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Marble_Cliff_06");// "Metal_Plate");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Marble_Cliff_06");// "Metal_Plate");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = cube->GetTransform();
@@ -1369,7 +1402,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                 cube->SetName("Quad_Left");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Rusty_Metal_Grid");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Rusty_Metal_Grid");
                 meshRenderer->SetMaterial(mtrl);
 
                 cube->GetTransform()->SetLocalPosition(2.5f, 0.5f, 3.0f);
@@ -1382,7 +1415,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Cube"));
                 cube->SetName("Quad_Right");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Stacked_Brick_Wall");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Stacked_Brick_Wall");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = cube->GetTransform();
@@ -1396,7 +1429,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Sphere"));
                 sphere->SetName("Sphere");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Metal White");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Metal White");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = sphere->GetTransform();
@@ -1410,7 +1443,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Capsule"));
                 capsule->SetName("Capsule");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Rust_Metal_05");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Rust_Metal_05");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = capsule->GetTransform();
@@ -1424,7 +1457,7 @@ namespace Dive
                 meshRenderer->SetMesh(MeshManager::Get().GetMesh("Triangle"));
                 triangle->SetName("Triangle");
 
-                auto mtrl = MaterialManager::Get().GetMaterial("Orange");
+                auto mtrl = MaterialManager::Get().GetMaterial("Assets/Materials/Orange");
                 meshRenderer->SetMaterial(mtrl);
 
                 auto transform = triangle->GetTransform();
@@ -1432,6 +1465,7 @@ namespace Dive
 
             }
         }
+        */
     }
 
     void Sandbox::showMaterial()

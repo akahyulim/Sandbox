@@ -1,0 +1,65 @@
+Scene: Innocent
+GameObjects:
+  - ID: 1814703187520403316
+    Name: White Sphere
+    Transform:
+      Position: [-1.5, 0.5, -4]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Sphere
+      Material: Assets/Materials/White
+  - ID: 17269609348977130030
+    Name: Metal White Sphere
+    Transform:
+      Position: [-3, 0.5, -4]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Sphere
+      Material: Assets/Materials/Metal White
+  - ID: 15203100017080171477
+    Name: Brown Cube
+    Transform:
+      Position: [-1, 0.5, 1.5]
+      Rotation: [0, 0.38268346, 0, 0.92387956]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Cube
+      Material: Assets/Materials/Brown
+  - ID: 16136177510220046620
+    Name: Bottom
+    Transform:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Plane
+      Material: Assets/Materials/Gray
+  - ID: 11596693771541560815
+    Name: Orange Triangle
+    Transform:
+      Position: [1.5, 0.5, -2]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Triangle
+      Material: Assets/Materials/Orange
+  - ID: 15380226352306670383
+    Name: Mint Cube
+    Transform:
+      Position: [1, 1, 0]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 2, 1]
+    MeshRenderer:
+      Mesh: Cube
+      Material: Assets/Materials/Mint
+  - ID: 9166016439717156466
+    Name: White Sphere
+    Transform:
+      Position: [0, 0.5, -4]
+      Rotation: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshRenderer:
+      Mesh: Sphere
+      Material: Assets/Materials/White

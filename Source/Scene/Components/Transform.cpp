@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Transform.h"
 #include "Utilities/Math.h"
+#include "Utilities/YamlHelper.h"
 #include "Scene/GameObject.h" 
 
 using namespace DirectX;
@@ -582,5 +583,34 @@ namespace Dive
 		{
 			child->SetDirty();
 		}
+	}
+
+	void Transform::Serialize(YAML::Emitter& out)
+	{
+		// Transform의 특징인가.. Update에서 결국 false로 초기화된다.
+		//if (!m_isDirty)
+		//	return;
+
+		out << YAML::Key << "Transform" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Position" << YAML::Value << m_localPosition;
+		out << YAML::Key << "Rotation" << YAML::Value << m_localRotation;
+		out << YAML::Key << "Scale" << YAML::Value << m_localScale;
+		//if (auto parent = GetParent())	out << YAML::Key << "Parent" << YAML::Value << parent->GetInstanceID();
+		out << YAML::EndMap;
+
+		//m_isDirty = false;
+	}
+
+	void Transform::Deserialize(const YAML::Node& node)
+	{
+		SetLocalPosition(node["Position"].as<XMFLOAT3>());
+		SetLocalRotation(node["Rotation"].as<XMFLOAT4>());
+		SetLocalScale(node["Scale"].as<XMFLOAT3>());
+
+		// 계층구조 형성은 일단 직렬화를 끝낸 후로 미루기
+		// Scene에 관려 메서드를 만들고 호출
+		// 문제는 부모 Transform의 ID를 기반으로 형성해야 한다는 거다.
+
+		//m_isDirty = true;
 	}
 }

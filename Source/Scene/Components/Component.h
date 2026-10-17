@@ -42,6 +42,9 @@ namespace Dive
 
 		static constexpr eComponentType GetType() { return eComponentType::Undefined; }
 
+		virtual void Serialize(YAML::Emitter& out) = 0;
+		virtual void Deserialize(const YAML::Node& node) = 0;
+
 	protected:
 		GameObject* m_owner = nullptr;
 		bool m_isDirty = true;

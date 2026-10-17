@@ -3,6 +3,7 @@
 #include <vector>
 #include <d3d11.h>
 
+#include "Resource/Resource.h"
 #include "Graphics/Geometry.h"
 
 namespace Dive
@@ -11,7 +12,7 @@ namespace Dive
 	class VertexBuffer;
 	class IndexBuffer;
 
-	class Mesh
+	class Mesh : public Resource
 	{
 	public:
 		Mesh() = delete;
@@ -30,6 +31,12 @@ namespace Dive
 		uint32_t GetIndexCount() const;
 
 		bool IsSkinned() const { return m_isSkinned; }
+		
+		bool SaveToFile(const std::filesystem::path& filepath) override;
+		bool LoadFromFile(const std::filesystem::path& filepath)  override;
+
+		bool Serialize(std::ofstream& fout) const override;
+		bool Deserialize(std::ifstream& fin) override;
 
 	private:
 		void createIndexBuffer(Graphics* graphics, const std::vector<uint32_t>& indices);

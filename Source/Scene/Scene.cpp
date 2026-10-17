@@ -120,7 +120,19 @@ namespace Dive
 	GameObject* Scene::CreateGameObject()
 	{
 		auto gameObject = std::make_unique<GameObject>(this);
-		gameObject->AddComponent<Transform>();
+		//gameObject->AddComponent<Transform>();
+
+		auto rawPtr = gameObject.get();
+
+		m_pendingAdditions.emplace_back(std::move(gameObject));
+
+		return rawPtr;
+	}
+
+	GameObject* Scene::CreateGameObject(const std::string& name, uint64_t id)
+	{
+		auto gameObject = std::make_unique<GameObject>(this, id, name);
+		//gameObject->AddComponent<Transform>();
 
 		auto rawPtr = gameObject.get();
 
@@ -132,7 +144,7 @@ namespace Dive
 	GameObject* Scene::CreateGameObjectFromID(uint64_t id)
 	{
 		auto gameObject = std::make_unique<GameObject>(this, id);
-		gameObject->AddComponent<Transform>();
+		//gameObject->AddComponent<Transform>();
 
 		auto rawPtr = gameObject.get();
 
@@ -198,14 +210,16 @@ namespace Dive
 		return nullptr;
 	}
 
-	bool Scene::SaveToFile(const std::filesystem::path& filepath)
+	std::vector<GameObject*> Scene::GetAllGameObjects()
 	{
-		return false;
-	}
+		std::vector<GameObject*> all;
+		all.reserve(m_gameObjectMap.size());
 
-	bool Scene::LoadFromFile(const std::filesystem::path& filepath)
-	{
+		for (auto& [id, gameObject] : m_gameObjectMap)
+		{
+			all.push_back(gameObject.get());
+		}
 
-		return false;
+		return all;
 	}
 }

@@ -1,6 +1,6 @@
 #include "Constants.hlsli"
 #include "Resources.hlsli"
-#include "Lighting.hlsli"
+#include "LightUtil.hlsli"
 
 struct VSInput
 {
@@ -89,11 +89,11 @@ PSOutput MainPS(VSToPS input)
     
     float3 V = normalize(frameData.cameraPosition.xyz - input.WorldPos);
     
-    float3 ambientColor = weatherData.ambientColor.xyz;
+    float3 ambientColor = environmentData.ambientColor.xyz;
     float3 ambient = albedoColor * ambientColor;
     
-    float3 sunLightColor = weatherData.lightColor.xyz;
-    float3 sunLightDir = normalize(-weatherData.lightDir);
+    float3 sunLightColor = environmentData.lightColor.xyz;
+    float3 sunLightDir = normalize(-environmentData.lightDir);
     float sunIntensity = 3.0f;
     
     float3 totalPbrLighting = BRDF_PBR(normal, V, sunLightDir, albedoColor, metallic, roughness)

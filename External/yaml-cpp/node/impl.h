@@ -1,11 +1,20 @@
 #ifndef NODE_IMPL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define NODE_IMPL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include "yaml-cpp/exceptions.h"
 #include "yaml-cpp/node/detail/memory.h"
@@ -22,7 +31,7 @@ inline Node::Node()
 inline Node::Node(NodeType::value type)
     : m_isValid(true),
       m_invalidKey{},
-      m_pMemory(new detail::memory_holder),
+      m_pMemory(std::make_shared<detail::memory_holder>()),
       m_pNode(&m_pMemory->create_node()) {
   m_pNode->set_type(type);
 }
@@ -31,7 +40,7 @@ template <typename T>
 inline Node::Node(const T& rhs)
     : m_isValid(true),
       m_invalidKey{},
-      m_pMemory(new detail::memory_holder),
+      m_pMemory(std::make_shared<detail::memory_holder>()),
       m_pNode(&m_pMemory->create_node()) {
   Assign(rhs);
 }
@@ -63,6 +72,12 @@ inline void Node::EnsureNodeExists() const {
     m_pNode = &m_pMemory->create_node();
     m_pNode->set_null();
   }
+}
+
+inline void Node::Invalidate() {
+  m_isValid = false;
+  m_pNode = nullptr;
+  m_pMemory = nullptr;
 }
 
 inline bool Node::IsDefined() const {
@@ -169,6 +184,14 @@ inline const std::string& Node::Scalar() const {
   if (!m_isValid)
     throw InvalidNode(m_invalidKey);
   return m_pNode ? m_pNode->scalar() : detail::node_data::empty_scalar();
+}
+
+YAML_ATTRIBUTE_NO_SANITIZE_ADDRESS
+inline const std::string& Node::UninstrumentedScalarForTesting() const {
+  if (m_isValid && m_pMemory != nullptr && m_pNode != nullptr)
+    throw InvalidNode("use-after-free");
+  else
+    throw BadDereference();
 }
 
 inline const std::string& Node::Tag() const {
@@ -289,6 +312,14 @@ inline iterator Node::begin() {
   return m_pNode ? iterator(m_pNode->begin(), m_pMemory) : iterator();
 }
 
+inline const_reverse_iterator Node::rbegin() const {
+  return const_reverse_iterator(end());
+}
+
+inline reverse_iterator Node::rbegin() {
+  return reverse_iterator(end());
+}
+
 inline const_iterator Node::end() const {
   if (!m_isValid)
     return const_iterator();
@@ -299,6 +330,14 @@ inline iterator Node::end() {
   if (!m_isValid)
     return iterator();
   return m_pNode ? iterator(m_pNode->end(), m_pMemory) : iterator();
+}
+
+inline const_reverse_iterator Node::rend() const {
+  return const_reverse_iterator(begin());
+}
+
+inline reverse_iterator Node::rend() {
+  return reverse_iterator(begin());
 }
 
 // sequence
@@ -378,6 +417,14 @@ template <typename Key, typename Value>
 inline void Node::force_insert(const Key& key, const Value& value) {
   EnsureNodeExists();
   m_pNode->force_insert(key, value, m_pMemory);
+}
+
+template <typename Key>
+inline bool Node::contains(const Key& key) const {
+  if (!m_isValid)
+    throw InvalidNode(m_invalidKey);
+  if (!m_pNode) return false;
+  return (static_cast<const detail::node*>(m_pNode))->get(key, m_pMemory) != nullptr;
 }
 
 // free functions

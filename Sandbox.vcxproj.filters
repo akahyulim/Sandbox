@@ -208,6 +208,9 @@
     <ClInclude Include="Source\Scene\SceneSerializer.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\Tag.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Window.cpp">
@@ -344,6 +347,9 @@
     <ClCompile Include="Source\Scene\SceneSerializer.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Core\Tag.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Shaders\Constants.hlsli">
@@ -352,7 +358,7 @@
     <None Include="Source\Shaders\Resources.hlsli">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Source\Shaders\Lighting.hlsli">
+    <None Include="Source\Shaders\LightUtil.hlsli">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
@@ -366,7 +372,7 @@
     <FxCompile Include="Source\Shaders\GBuffer.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Source\Shaders\Deferred.hlsl">
+    <FxCompile Include="Source\Shaders\DeferredLighting.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Source\Shaders\Picker.hlsl">

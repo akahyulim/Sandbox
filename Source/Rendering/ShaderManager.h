@@ -15,7 +15,7 @@ namespace Dive
 	{
 		GBuffer,
 		GBufferTessellation,
-		Deferred,
+		DeferredLighting,
 		Forward,
 		ForwardTessellation,
 		Skybox,

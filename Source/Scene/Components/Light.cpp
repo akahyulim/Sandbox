@@ -126,9 +126,6 @@ namespace Dive
     // inner, outer 저장이 없다.
     void Light::Serialize(YAML::Emitter& out)
     {
-        //if (!m_isDirty)
-        //    return;
-
         out << YAML::Key << "Light" << YAML::Value << YAML::BeginMap;
         out << YAML::Value << "LightType" << YAML::Value << static_cast<int>(GetLightType());
         out << YAML::Value << "LightColor" << YAML::Value << GetColor();
@@ -137,8 +134,6 @@ namespace Dive
         out << YAML::Value << "InnerAngle" << YAML::Value << GetInnerAngleDegrees();
         out << YAML::Value << "OuterAngle" << YAML::Value << GetOuterAngleDegrees();
         out << YAML::EndMap;
-
-        //m_isDirty = false;
     }
 
     void Light::Deserialize(const YAML::Node& node)
@@ -149,7 +144,5 @@ namespace Dive
         SetRange(node["LightRange"].as<float>());
         SetInnerAngleDegrees(node["InnerAngle"].as<float>());
         SetOuterAngleDegrees(node["OuterAngle"].as<float>());
-
-        //m_isDirty = true;
     }
 }

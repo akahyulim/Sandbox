@@ -48,6 +48,16 @@ namespace Dive
 		return nullptr;
 	}
 
+	void GameObject::SetTag(const std::string& name)
+	{
+		Tag tag(name);
+		if (m_tag != tag)
+		{
+			m_tag = tag;
+			notifySceneChanged();
+		}
+	}
+
 	bool GameObject::IsActive() const
 	{
 		if (m_parent)
@@ -170,8 +180,8 @@ namespace Dive
 	{
 		out << YAML::Key << "ID" << YAML::Value << GetInstanceID();
 		out << YAML::Key << "Name" << YAML::Value << GetName();
-		//out << YAML::Key << "Tag" << YAML::Value << GetTag();
-		//out << YAML::Key << "Active" << YAML::Value << IsActiveSelf();
+		out << YAML::Key << "Tag" << YAML::Value << GetTag();
+		out << YAML::Key << "Active" << YAML::Value << IsActive();
 
 		m_transform->Serialize(out);
 
@@ -185,16 +195,9 @@ namespace Dive
 
 	void GameObject::Deserialize(const YAML::Node& node)
 	{
-		if (GetInstanceID() != node["ID"].as<uint64_t>())
-		{
-			spdlog::error("InstanceID 초기화에 실패하였습니다.");
-			//SetInstanceID(node["ID"].as<uint64_t>());
-			return;
-		}
-
 		SetName(node["Name"].as<std::string>());
-		//SetTag(node["Tag"].as<std::string>());
-		//SetActive(node["Active"].as<bool>());
+		SetTag(node["Tag"].as<std::string>());
+		SetActive(node["Active"].as<bool>());
 
 		m_transform->Deserialize(node["Transform"]);
 		//m_transform->SubscribeEvents();

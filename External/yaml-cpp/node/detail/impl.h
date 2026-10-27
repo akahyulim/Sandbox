@@ -1,11 +1,20 @@
 #ifndef NODE_DETAIL_IMPL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define NODE_DETAIL_IMPL_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include "yaml-cpp/node/detail/node.h"
 #include "yaml-cpp/node/detail/node_data.h"
@@ -43,7 +52,7 @@ struct get_idx<Key,
 };
 
 template <typename Key>
-struct get_idx<Key, typename std::enable_if<std::is_signed<Key>::value>::type> {
+struct get_idx<Key, typename std::enable_if<std::is_signed<Key>::value && std::is_integral<Key>::value>::type> {
   static node* get(const std::vector<node*>& sequence, const Key& key,
                    shared_memory_holder pMemory) {
     return key >= 0 ? get_idx<std::size_t>::get(
@@ -218,7 +227,7 @@ inline void node_data::force_insert(const Key& key, const Value& value,
 
   node& k = convert_to_node(key, pMemory);
   node& v = convert_to_node(value, pMemory);
-  insert_map_pair(k, v);
+  insert_map_pair(k, v, true);
 }
 
 template <typename T>

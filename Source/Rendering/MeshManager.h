@@ -25,6 +25,7 @@ namespace Dive
 		void Shutdown();
 
 		Mesh* GetMesh(const std::string& name);
+		std::vector<Mesh*> GetAllMeshes() const { return m_meshList; }
 
 	private:
 		MeshManager() = default;
@@ -33,5 +34,6 @@ namespace Dive
 	private:
 		Graphics* m_graphics = nullptr;
 		std::unordered_map<std::string, std::unique_ptr<Mesh>> m_meshes;
+		std::vector<Mesh*> m_meshList;
 	};
 }

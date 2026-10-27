@@ -2,13 +2,11 @@
 #include "SceneSerializer.h"
 #include "Scene.h"
 #include "GameObject.h"
+#include "Utilities/YamlHelper.h"
 #include "Components/Transform.h"
 #include "Components/Camera.h"
 #include "Components/MeshRenderer.h"
 #include "Components/Light.h"
-//#include "Core/CoreSystem.h"
-//#include "Rendering/RenderingSystem.h"
-//#include "Resource/ResourceSystem.h"
 
 using namespace DirectX;
 
@@ -41,6 +39,17 @@ namespace Dive
 		out << YAML::Key << "Scene" << YAML::Value << m_scene->GetName();
 
 		// Environment, MainCamera 등도 여기서 처리하는 게 맞다.
+		auto env = m_scene->GetEnvironment();
+		out << YAML::Key << "Environment" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "SkyMode" << YAML::Value << static_cast<uint8_t>(env.skyMode);
+		out << YAML::Key << "SkyboxCubemap" << YAML::Value << env.skyboxCubemap;
+		out << YAML::Key << "SkyboxPath" << YAML::Value << env.skyboxPath;
+		out << YAML::Key << "ApexColor" << YAML::Value << env.data.apexColor;
+		out << YAML::Key << "HorizonColor" << YAML::Value << env.data.horizonColor;
+		out << YAML::Key << "LightDir" << YAML::Value << env.data.lightDir;
+		out << YAML::Key << "LightColor" << YAML::Value << env.data.lightColor;
+		out << YAML::Key << "AmbientColor" << YAML::Value << env.data.ambientColor;
+		out << YAML::EndMap;
 
 		out << YAML::Key << "GameObjects" << YAML::Value << YAML::BeginSeq;
 
@@ -104,6 +113,19 @@ namespace Dive
 		if (data["Scene"])
 			m_scene->SetName(data["Scene"].as<std::string>());
 
+		/*
+		if (data["Environment"])
+		{
+			Environment env;
+			env.skyMode = static_cast<eSkyMode>(data["Enviroment"]["SkyMode"].as<uint8_t>());
+			//env.skyboxPath = data["Environment"]["SkyboxPath"].as<std::string>();
+			env.data.apexColor = data["Environment"]["ApexColor"].as<DirectX::XMFLOAT4>();
+			env.data.horizonColor = data["Environment"]["HorizonColor"].as<DirectX::XMFLOAT4>();
+			env.data.lightDir = data["Environment"]["LightDir"].as<DirectX::XMFLOAT4>();
+			env.data.lightColor = data["Environment"]["LightColor"].as<DirectX::XMFLOAT4>();
+			env.data.ambientColor = data["Environment"]["AmbientColor"].as<DirectX::XMFLOAT4>();
+		}
+		*/
 		const auto& nodes = data["GameObjects"];
 		if (!nodes || !nodes.IsSequence())
 			return false;

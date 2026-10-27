@@ -95,15 +95,8 @@ namespace Dive
 
 					if (auto light = gameObect->GetComponent<Light>())
 					{
-						// 현재 m_direcitonalLight는 사용하지 않는다.
-						//if (m_directionalLight == nullptr && light->GetLightType() == eLightType::Directional)
-						{
-						//	m_directionalLight = gameObect.get();
-						}
-						//else
-						{
-							m_lights.emplace_back(gameObect.get());
-						}
+						// dir light는 어떻게...?
+						m_lights.emplace_back(gameObect.get());
 					}
 
 					if (gameObect->GetComponent<MeshRenderer>())
@@ -120,8 +113,6 @@ namespace Dive
 	GameObject* Scene::CreateGameObject()
 	{
 		auto gameObject = std::make_unique<GameObject>(this);
-		//gameObject->AddComponent<Transform>();
-
 		auto rawPtr = gameObject.get();
 
 		m_pendingAdditions.emplace_back(std::move(gameObject));
@@ -132,8 +123,6 @@ namespace Dive
 	GameObject* Scene::CreateGameObject(const std::string& name, uint64_t id)
 	{
 		auto gameObject = std::make_unique<GameObject>(this, id, name);
-		//gameObject->AddComponent<Transform>();
-
 		auto rawPtr = gameObject.get();
 
 		m_pendingAdditions.emplace_back(std::move(gameObject));
@@ -144,8 +133,6 @@ namespace Dive
 	GameObject* Scene::CreateGameObjectFromID(uint64_t id)
 	{
 		auto gameObject = std::make_unique<GameObject>(this, id);
-		//gameObject->AddComponent<Transform>();
-
 		auto rawPtr = gameObject.get();
 
 		m_pendingAdditions.emplace_back(std::move(gameObject));
@@ -221,5 +208,14 @@ namespace Dive
 		}
 
 		return all;
+	}
+
+	void Scene::SetEnvironment(const Environment& data)
+	{
+		if (m_environment != data)
+		{
+			m_environment = data;
+			m_isDirty = true;
+		}
 	}
 }

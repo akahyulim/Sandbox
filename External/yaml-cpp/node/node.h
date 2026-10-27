@@ -1,11 +1,20 @@
 #ifndef NODE_NODE_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define NODE_NODE_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include <stdexcept>
 #include <string>
@@ -40,6 +49,8 @@ class YAML_CPP_API Node {
 
   using iterator = YAML::iterator;
   using const_iterator = YAML::const_iterator;
+  using reverse_iterator = YAML::reverse_iterator;
+  using const_reverse_iterator = YAML::const_reverse_iterator;
 
   Node();
   explicit Node(NodeType::value type);
@@ -67,6 +78,7 @@ class YAML_CPP_API Node {
   template <typename T, typename S>
   T as(const S& fallback) const;
   const std::string& Scalar() const;
+  const std::string& UninstrumentedScalarForTesting() const;
 
   const std::string& Tag() const;
   void SetTag(const std::string& tag);
@@ -88,9 +100,13 @@ class YAML_CPP_API Node {
 
   const_iterator begin() const;
   iterator begin();
+  const_reverse_iterator rbegin() const;
+  reverse_iterator rbegin();
 
   const_iterator end() const;
   iterator end();
+  const_reverse_iterator rend() const;
+  reverse_iterator rend();
 
   // sequence
   template <typename T>
@@ -113,6 +129,9 @@ class YAML_CPP_API Node {
   template <typename Key, typename Value>
   void force_insert(const Key& key, const Value& value);
 
+  template <typename Key>
+  bool contains(const Key& key) const;
+
  private:
   enum Zombie { ZombieNode };
   explicit Node(Zombie);
@@ -120,6 +139,7 @@ class YAML_CPP_API Node {
   explicit Node(detail::node& node, detail::shared_memory_holder pMemory);
 
   void EnsureNodeExists() const;
+  void Invalidate();
 
   template <typename T>
   void Assign(const T& rhs);
@@ -141,7 +161,7 @@ YAML_CPP_API bool operator==(const Node& lhs, const Node& rhs);
 
 YAML_CPP_API Node Clone(const Node& node);
 
-template <typename T>
+template <typename T, typename Enable = void>
 struct convert;
 }
 

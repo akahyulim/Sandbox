@@ -7,6 +7,8 @@
 
 #include "Core/Types.h"
 #include "Core/Object.h"
+#include "Utilities/Math.h"
+#include "Graphics/ConstantBufferDatas.h"
 #include "Rendering/TextureManager.h"
 
 namespace Dive
@@ -17,11 +19,36 @@ namespace Dive
 	class Light;
 	class MeshRenderer;
 
-	struct EnviromentData
+	enum class eSkyMode : uint8_t
 	{
-		// skysphere랑 공유해도 된다.
-		// 따라서 이름을 바꾸는 편이 낫다
+		Skybox,
+		SkySphere,
+		UniformColor
+	};
+
+	struct Environment
+	{
+		bool operator==(const Environment& other) const
+		{
+			return (skyMode == other.skyMode) &&
+				(skyboxCubemap == other.skyboxCubemap) &&
+				(skyboxPath == other.skyboxPath) &&
+				Math::XMFLOAT4Equal(data.apexColor, other.data.apexColor) &&
+				Math::XMFLOAT4Equal(data.horizonColor, other.data.horizonColor) &&
+				Math::XMFLOAT4Equal(data.lightDir, other.data.lightDir) &&
+				Math::XMFLOAT4Equal(data.lightColor, other.data.lightColor) &&
+				Math::XMFLOAT4Equal(data.ambientColor, other.data.ambientColor);
+		}
+
+		bool operator!=(const Environment& other) const
+		{
+			return !(*this == other);
+		}
+
+		eSkyMode skyMode = eSkyMode::Skybox;
 		TextureHandle skyboxCubemap = INVALID_TEXTURE_HANDLE;
+		std::string skyboxPath = "";
+		EnvironmentData data;
 	};
 
 	class Scene
@@ -46,7 +73,6 @@ namespace Dive
 		GameObject* GetGameObjectByObjectID(uint32_t objectID);
 
 		GameObject* GetCamera() const { return m_camera; }
-		GameObject* GetDirectionalLight() const { return m_directionalLight; }
 		const std::vector<GameObject*>& GetLightQueue() const { return m_lights; }
 		const std::vector<GameObject*>& GetRenderables() const { return m_renderables; }
 		std::vector<GameObject*> GetAllGameObjects();
@@ -58,7 +84,8 @@ namespace Dive
 		std::string GetName() const { return m_name; }
 		void SetName(const std::string& name) { m_name = name; }
 
-		EnviromentData& GetEnviroment() { return m_enviroment; }
+		Environment GetEnvironment() const { return m_environment; }
+		void SetEnvironment(const Environment& data);
 
 	private:
 		std::string m_name = "Playgorund";
@@ -68,13 +95,12 @@ namespace Dive
 		std::vector<GameObject*> m_pendingRemovals;
 		
 		GameObject* m_camera = nullptr;
-		GameObject* m_directionalLight = nullptr;
 		std::vector<GameObject*> m_lights;
 		std::vector<GameObject*> m_renderables;
 		// particles
 
 		bool m_isDirty = false;
 
-		EnviromentData m_enviroment;
+		Environment m_environment;
 	};
 }

@@ -55,13 +55,13 @@ namespace Dive
         uint32_t padding = 0;
     };
 
-    struct WeatherData
+    struct EnvironmentData
     {
+        DirectX::XMFLOAT4 apexColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        DirectX::XMFLOAT4 horizonColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         DirectX::XMFLOAT4 lightDir{ -1.0f, -1.0f, 1.0f, 1.0f };
         DirectX::XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
         DirectX::XMFLOAT4 ambientColor{ 0.5f, 0.5f, 0.5f, 1.0f };
-        DirectX::XMFLOAT4 apexColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-        DirectX::XMFLOAT4 horizonColor{ 1.0f, 1.0f, 1.0f, 1.0f };
     };
 
     struct LightData

@@ -104,7 +104,8 @@ namespace Dive
             }
         }
 
-        updateWeather();
+        updateEnvironment(scene);
+        //updateWeather();
 
         // 추후 분리
         {
@@ -171,7 +172,7 @@ namespace Dive
             return;
 
         passGBuffer();
-        passDeferred();
+        passLighting();
         passSky(scene);
         passForward();
         //passPostProcessing();
@@ -557,7 +558,7 @@ namespace Dive
     {
         m_cbFrame = std::make_unique<ConstantBuffer<FrameData>>(m_graphics); 
         m_cbObject = std::make_unique<ConstantBuffer<ObjectData>>(m_graphics);
-        m_cbWeather = std::make_unique<ConstantBuffer<WeatherData>>(m_graphics);
+        m_cbWeather = std::make_unique<ConstantBuffer<EnvironmentData>>(m_graphics);
         m_cbLight = std::make_unique<ConstantBuffer<LightConstants>>(m_graphics);
 
         m_cbSelectedObject = std::make_unique<ConstantBuffer<SelectedObjectData>>(m_graphics);
@@ -710,7 +711,7 @@ namespace Dive
             m_gbufferPass = desc;
         }
 
-        // Deferred Lighting
+        // DeferredLighting Lighting
         {
             RenderTargetDesc rtDesc{};
             rtDesc.RenderTargetView = m_ldrRenderTarget->GetRenderTargetView();
@@ -828,22 +829,17 @@ namespace Dive
         }
     }
 
-    // 역시 Enviroment가 어울린다.
-    void Renderer::updateWeather()
+    // Environment와 EnvironmentData로 분리되어 있다.
+    // EnvironmentData는 uniform color, dir light 정보만 다룬다.
+    void Renderer::updateEnvironment(Scene* scene)
     {
-        // 이건 멤버 변수가 더 어울릴 수 있다.
-        // 현재는 데이터들을 개별 메서드로 전달, 입력받고 있기 때문이다.
-        WeatherData data;
+        auto env = scene->GetEnvironment();
 
-        DirectX::XMVECTOR dir = DirectX::XMLoadFloat4(&m_lightDir);
+        DirectX::XMVECTOR dir = DirectX::XMLoadFloat4(&env.data.lightDir);
         DirectX::XMVector4Normalize(dir);
-        DirectX::XMStoreFloat4(&data.lightDir, dir);
-  
-        data.lightColor = m_lightColor;
-        data.ambientColor = m_ambientColor;
-        data.apexColor = m_apexColor;
-        data.horizonColor = m_horizonColor;
-        m_cbWeather->Update(m_graphics, data);
+        DirectX::XMStoreFloat4(&env.data.lightDir, dir);
+
+        m_cbWeather->Update(m_graphics, env.data);
     }
     
     void Renderer::passGBuffer()
@@ -889,7 +885,8 @@ namespace Dive
         m_graphics->EndRenderPass();
     }
     
-    void Renderer::passDeferred()
+    // 셰이더들도 ligting으로 바꾸자.
+    void Renderer::passLighting()
     {
         m_graphics->BeginRenderPass(m_deferredLightingPass);
 
@@ -899,7 +896,7 @@ namespace Dive
         m_graphics->SetDepthStencilState(nullptr, 0);
         m_graphics->SetTopology(ePrimitiveTopology::TriangleStrip);
 
-        ShaderManager::Get().GetShaderProgram(eShaderPrograms::Deferred)->Bind(m_graphics);
+        ShaderManager::Get().GetShaderProgram(eShaderPrograms::DeferredLighting)->Bind(m_graphics);
 
         // SetGBufferSRV 같은 걸 만드는 게 나을 듯하다.
         auto albedoSrv = m_gbuffer[static_cast<size_t>(eGBufferType::AlbedoRoughness)]->GetShaderResourceView();
@@ -924,14 +921,15 @@ namespace Dive
         m_graphics->SetRasterizerState(m_rasterizerStates[(size_t)eRasterizerState::FillSolid_CullNone].Get());
         m_graphics->SetDepthStencilState(m_depthStencilStates[(size_t)eDepthStencilState::Skybox].Get(), 0);
 
-        auto& envData = scene->GetEnviroment();
+        auto env = scene->GetEnvironment();
         auto camera = scene->GetCamera();
 
-        if (m_skyMode == eSkyMode::Skybox)
+        if (env.skyMode == eSkyMode::Skybox)
         {
             ShaderManager::Get().GetShaderProgram(eShaderPrograms::Skybox)->Bind(m_graphics);
 
-            auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+            //auto srv = TextureManager::Get().GetTextureView(env.skyboxCubemap);
+            auto srv = TextureManager::Get().GetTextureViewByPath(env.skyboxPath);
             m_graphics->SetShaderResourceView(eShaderStage::PS, 11, &srv);
 
             ObjectData data{};
@@ -945,11 +943,12 @@ namespace Dive
         }
         else
         {
-            if (m_skyMode == eSkyMode::SkySphere)
+            if (env.skyMode == eSkyMode::SkySphere)
             {
                 ShaderManager::Get().GetShaderProgram(eShaderPrograms::SkySphere)->Bind(m_graphics);
 
-                auto srv = TextureManager::Get().GetTextureView(envData.skyboxCubemap);
+                //auto srv = TextureManager::Get().GetTextureView(env.skyboxCubemap);
+                auto srv = TextureManager::Get().GetTextureViewByPath(env.skyboxPath); 
                 m_graphics->SetShaderResourceView(eShaderStage::PS, 12, &srv);
 
             }

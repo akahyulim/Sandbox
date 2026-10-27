@@ -82,6 +82,7 @@ namespace Dive
 		void showNewMaterial();
 
 		// Popups
+		void popupMeshes();
 		void popupMaterials();
 
 		// Add Menu

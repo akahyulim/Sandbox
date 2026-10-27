@@ -45,6 +45,11 @@ namespace Dive
 		std::wstring GetTextureFilepathW(TextureHandle handle) const;
 		std::string GetTextureName(TextureHandle handle) const;
 		ID3D11ShaderResourceView* GetTextureView(TextureHandle handle) const;
+		ID3D11ShaderResourceView* GetTextureViewByPath(const std::wstring& filepath) const;
+		ID3D11ShaderResourceView* GetTextureViewByPath(const std::string& filepath) const;
+		ID3D11ShaderResourceView* GetTextureViewByName(const std::string& name) const;
+
+		const std::unordered_map<std::wstring, TextureHandle>& GetPathMap() const { return m_pathMap; }
 		
 	private:
 		TextureManager() = default;
@@ -66,7 +71,8 @@ namespace Dive
 		
 		TextureHandle m_handle = INVALID_TEXTURE_HANDLE;
 		std::unordered_map<TextureHandle, TextureInfo> m_textures;
-		std::unordered_map<std::wstring, TextureHandle> m_loaded;
+		std::unordered_map<std::wstring, TextureHandle> m_pathMap;
+		std::unordered_map<std::string, TextureHandle> m_nameMap;
 
 		std::array<std::vector<uint8_t>, 6> m_faceData;
 	};

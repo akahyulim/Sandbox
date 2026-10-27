@@ -1,11 +1,20 @@
 #ifndef EMITTER_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define EMITTER_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include <cmath>
 #include <cstddef>
@@ -50,7 +59,7 @@ class YAML_CPP_API Emitter {
 
   // state checking
   bool good() const;
-  const std::string GetLastError() const;
+  std::string GetLastError() const;
 
   // global setters
   bool SetOutputCharset(EMITTER_MANIP value);
@@ -65,11 +74,13 @@ class YAML_CPP_API Emitter {
   bool SetPostCommentIndent(std::size_t n);
   bool SetFloatPrecision(std::size_t n);
   bool SetDoublePrecision(std::size_t n);
+  bool SetShowTrailingZero(bool value);
   void RestoreGlobalModifiedSettings();
 
   // local setters
   Emitter& SetLocalValue(EMITTER_MANIP value);
   Emitter& SetLocalIndent(const _Indent& indent);
+  Emitter& SetLocalWrap(const _Wrap& wrap);
   Emitter& SetLocalPrecision(const _Precision& precision);
 
   // overloads of write
@@ -95,6 +106,7 @@ class YAML_CPP_API Emitter {
   void SetStreamablePrecision(std::stringstream&) {}
   std::size_t GetFloatPrecision() const;
   std::size_t GetDoublePrecision() const;
+  bool GetShowTrailingZero() const;
 
   void PrepareIntegralStream(std::stringstream& stream) const;
   void StartedScalar();
@@ -133,7 +145,6 @@ class YAML_CPP_API Emitter {
 
   const char* ComputeFullBoolName(bool b) const;
   const char* ComputeNullName() const;
-  bool CanEmitNewline() const;
 
  private:
   std::unique_ptr<EmitterState> m_pState;
@@ -187,8 +198,17 @@ inline Emitter& Emitter::WriteStreamable(T value) {
   }
 
   if (!special) {
-    stream << FpToString(value, stream.precision());
+    auto value_as_str = FpToString(value, static_cast<size_t>(stream.precision()));
+    if (GetShowTrailingZero()) {
+        bool isInScientificNotation = (value_as_str.find('e') != std::string::npos);
+        bool hasDot                 = (value_as_str.find('.') != std::string::npos);
+        if (!isInScientificNotation && !hasDot) {
+            value_as_str += ".0";
+        }
+    }
+    stream << value_as_str;
   }
+
   m_stream << stream.str();
 
   StartedScalar();
@@ -222,7 +242,7 @@ inline Emitter& operator<<(Emitter& emitter, char v) {
   return emitter.Write(v);
 }
 inline Emitter& operator<<(Emitter& emitter, unsigned char v) {
-  return emitter.Write(static_cast<char>(v));
+  return emitter.WriteIntegralType(static_cast<unsigned int>(v));
 }
 inline Emitter& operator<<(Emitter& emitter, const _Alias& v) {
   return emitter.Write(v);
@@ -285,6 +305,10 @@ inline Emitter& operator<<(Emitter& emitter, EMITTER_MANIP value) {
 
 inline Emitter& operator<<(Emitter& emitter, _Indent indent) {
   return emitter.SetLocalIndent(indent);
+}
+
+inline Emitter& operator<<(Emitter& emitter, _Wrap wrap) {
+  return emitter.SetLocalWrap(wrap);
 }
 
 inline Emitter& operator<<(Emitter& emitter, _Precision precision) {

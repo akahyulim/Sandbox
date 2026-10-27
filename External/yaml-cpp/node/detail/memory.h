@@ -1,11 +1,20 @@
 #ifndef VALUE_DETAIL_MEMORY_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define VALUE_DETAIL_MEMORY_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include <set>
 
@@ -34,7 +43,7 @@ class YAML_CPP_API memory {
 
 class YAML_CPP_API memory_holder {
  public:
-  memory_holder() : m_pMemory(new memory) {}
+  memory_holder() : m_pMemory(std::make_shared<memory>()) {}
 
   node& create_node() { return m_pMemory->create_node(); }
   void merge(memory_holder& rhs);

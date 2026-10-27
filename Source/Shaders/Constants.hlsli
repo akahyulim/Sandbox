@@ -36,13 +36,13 @@ struct MaterialData
     uint padding;
 };
 
-struct WeatherData
+struct EnvironmentData
 {
+    float4 apexColor;
+    float4 horizonColor;
     float4 lightDir;
     float4 lightColor;
     float4 ambientColor;
-    float4 apexColor;
-    float4 horizonColor;
 };
 
 struct LightData
@@ -89,9 +89,9 @@ cbuffer cbMaterial : register(b2)
     MaterialData materialData;
 }
 
-cbuffer cbWeather : register(b3)
+cbuffer cbEnvironment : register(b3)
 {
-    WeatherData weatherData;
+    EnvironmentData environmentData;
 }
 
 cbuffer cbLightData : register(b4)

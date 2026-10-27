@@ -1,11 +1,20 @@
 #ifndef VALUE_DETAIL_NODE_ITERATOR_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define VALUE_DETAIL_NODE_ITERATOR_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include "yaml-cpp/dll.h"
 #include "yaml-cpp/node/ptr.h"
@@ -58,14 +67,18 @@ class node_iterator_base {
 
   struct proxy {
     explicit proxy(const node_iterator_value<V>& x) : m_ref(x) {}
-    node_iterator_value<V>* operator->() { return std::addressof(m_ref); }
-    operator node_iterator_value<V>*() { return std::addressof(m_ref); }
+    node_iterator_value<V>* operator->() YAML_ATTRIBUTE_LIFETIME_BOUND {
+      return std::addressof(m_ref);
+    }
+    operator node_iterator_value<V>*() YAML_ATTRIBUTE_LIFETIME_BOUND {
+      return std::addressof(m_ref);
+    }
 
     node_iterator_value<V> m_ref;
   };
 
  public:
-  using iterator_category = std::forward_iterator_tag;
+  using iterator_category = std::bidirectional_iterator_tag;
   using value_type = node_iterator_value<V>;
   using difference_type = std::ptrdiff_t;
   using pointer = node_iterator_value<V>*;
@@ -136,9 +149,30 @@ class node_iterator_base {
     return *this;
   }
 
+  node_iterator_base<V>& operator--() {
+    switch (m_type) {
+      case iterator_type::NoneType:
+        break;
+      case iterator_type::Sequence:
+        --m_seqIt;
+        break;
+      case iterator_type::Map:
+        --m_mapIt;
+        m_mapIt = decrement_until_defined(m_mapIt);
+        break;
+    }
+    return *this;
+  }
+
   node_iterator_base<V> operator++(int) {
     node_iterator_base<V> iterator_pre(*this);
     ++(*this);
+    return iterator_pre;
+  }
+
+  node_iterator_base<V> operator--(int) {
+    node_iterator_base<V> iterator_pre(*this);
+    --(*this);
     return iterator_pre;
   }
 
@@ -159,6 +193,12 @@ class node_iterator_base {
   MapIter increment_until_defined(MapIter it) {
     while (it != m_mapEnd && !is_defined(it))
       ++it;
+    return it;
+  }
+
+  MapIter decrement_until_defined(MapIter it) {
+    while (!is_defined(it))
+      --it;
     return it;
   }
 

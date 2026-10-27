@@ -1,6 +1,6 @@
 #include "Constants.hlsli"
 #include "Resources.hlsli"
-#include "Lighting.hlsli"
+#include "LightUtil.hlsli"
 
 static const float2 arrBasePos[4] =
 {
@@ -45,11 +45,11 @@ float4 MainPS(VSToPS input) : SV_Target
 
     float3 V = normalize(frameData.cameraPosition.xyz - worldPos);
     
-    float3 ambientColor = weatherData.ambientColor.xyz;
+    float3 ambientColor = environmentData.ambientColor.xyz;
     float3 ambient = albedo * ambientColor;
     
-    float3 sunLightColor = weatherData.lightColor.xyz;
-    float3 sunLightDir = normalize(-weatherData.lightDir);
+    float3 sunLightColor = environmentData.lightColor.xyz;
+    float3 sunLightDir = normalize(-environmentData.lightDir);
     float sunIntensity = 3.0f;
     
     float3 totalPbrLighting = BRDF_PBR(normal, V, sunLightDir, albedo, metallic, roughness)

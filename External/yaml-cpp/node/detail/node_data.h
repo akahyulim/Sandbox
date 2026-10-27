@@ -1,11 +1,20 @@
 #ifndef VALUE_DETAIL_NODE_DATA_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define VALUE_DETAIL_NODE_DATA_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include <list>
 #include <map>
@@ -90,7 +99,7 @@ class YAML_CPP_API node_data {
   void reset_sequence();
   void reset_map();
 
-  void insert_map_pair(node& key, node& value);
+  void insert_map_pair(node& key, node& value, bool force = false);
   void convert_to_map(const shared_memory_holder& pMemory);
   void convert_sequence_to_map(const shared_memory_holder& pMemory);
 

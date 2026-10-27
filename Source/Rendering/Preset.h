@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace Dive
 {
@@ -12,6 +12,7 @@ namespace Dive
 		Cube,
 		Sphere,
 		Capsule,
+		Disk,
 		None
 	};
 

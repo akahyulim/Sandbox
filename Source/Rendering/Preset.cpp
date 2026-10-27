@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Preset.h"
 #include "Graphics/Geometry.h"
 
@@ -54,7 +54,7 @@ namespace Dive
 
 		return data;
 	}
-
+	
 	StaticGeometryData Preset::GenerateQuad()
 	{
 		StaticGeometryData data;
@@ -162,7 +162,7 @@ namespace Dive
 
 		return data;
 	}
-
+	
 	StaticGeometryData Preset::GenerateCube()
 	{
 		StaticGeometryData data;

@@ -1,14 +1,24 @@
 #ifndef VALUE_DETAIL_ITERATOR_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 #define VALUE_DETAIL_ITERATOR_H_62B23520_7C8E_11DE_8A39_0800200C9A66
 
+
+
+
 #if defined(_MSC_VER) ||                                            \
     (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
      (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
 #pragma once
+
+
 #endif
+
+// IWYU pragma: private, include "yaml-cpp/yaml.h"
+// IWYU pragma: friend "yaml-cpp/.*"
+
 
 #include "yaml-cpp/dll.h"
 #include "yaml-cpp/node/detail/node_iterator.h"
+#include "yaml-cpp/node/detail/reverse_iterator.h"
 #include "yaml-cpp/node/node.h"
 #include "yaml-cpp/node/ptr.h"
 #include <cstddef>
@@ -30,14 +40,18 @@ class iterator_base {
 
   struct proxy {
     explicit proxy(const V& x) : m_ref(x) {}
-    V* operator->() { return std::addressof(m_ref); }
-    operator V*() { return std::addressof(m_ref); }
+    V* operator->() YAML_ATTRIBUTE_LIFETIME_BOUND {
+      return std::addressof(m_ref);
+    }
+    operator V*() YAML_ATTRIBUTE_LIFETIME_BOUND {
+      return std::addressof(m_ref);
+    }
 
     V m_ref;
   };
 
  public:
-  using iterator_category = std::forward_iterator_tag;
+  using iterator_category = std::bidirectional_iterator_tag;
   using value_type = V;
   using difference_type = std::ptrdiff_t;
   using pointer = V*;
@@ -65,6 +79,17 @@ class iterator_base {
     return iterator_pre;
   }
 
+  iterator_base<V>& operator--() {
+    --m_iterator;
+    return *this;
+  }
+
+  iterator_base<V> operator--(int) {
+    iterator_base<V> iterator_pre(*this);
+    --(*this);
+    return iterator_pre;
+  }
+
   template <typename W>
   bool operator==(const iterator_base<W>& rhs) const {
     return m_iterator == rhs.m_iterator;
@@ -75,7 +100,7 @@ class iterator_base {
     return m_iterator != rhs.m_iterator;
   }
 
-  value_type operator*() const {
+  value_type operator*() const YAML_ATTRIBUTE_LIFETIME_BOUND {
     const typename base_type::value_type& v = *m_iterator;
     if (v.pNode)
       return value_type(Node(*v, m_pMemory));
@@ -84,7 +109,9 @@ class iterator_base {
     return value_type();
   }
 
-  proxy operator->() const { return proxy(**this); }
+  proxy operator->() const YAML_ATTRIBUTE_LIFETIME_BOUND {
+    return proxy(**this);
+  }
 
  private:
   base_type m_iterator;

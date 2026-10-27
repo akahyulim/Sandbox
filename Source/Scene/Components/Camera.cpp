@@ -195,22 +195,12 @@ namespace Dive
 
 	void Camera::Serialize(YAML::Emitter& out)
 	{
-		//if (!m_isDirty)
-		//	return;
-
 		out << YAML::Key << "Camera" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "ProjectionType" << YAML::Value << static_cast<int>(m_projectionType);
 		out << YAML::Key << "FieldOfView" << YAML::Value << m_fov;
 		out << YAML::Key << "NearClipPlane" << YAML::Value << m_nearClip;
 		out << YAML::Key << "FarClipPlane" << YAML::Value << m_farClip;
-		//out << YAML::Key << "ViewportLeft" << YAML::Value << m_viewportLeft;
-		//out << YAML::Key << "ViewportTop" << YAML::Value << m_viewportTop;
-		//out << YAML::Key << "ViewportRight" << YAML::Value << m_viewportRight;
-		//out << YAML::Key << "ViewportBottom" << YAML::Value << m_viewportBottom;
-		//out << YAML::Key << "BackgroundColor" << YAML::Value << m_backgroundColor;
 		out << YAML::EndMap;
-
-		m_isDirty = false;
 	}
 
 	void Camera::Deserialize(const YAML::Node& node)
@@ -219,12 +209,5 @@ namespace Dive
 		m_fov = node["FieldOfView"].as<float>();
 		m_nearClip = node["NearClipPlane"].as<float>();
 		m_farClip = node["FarClipPlane"].as<float>();
-		//m_viewportLeft = node["ViewportLeft"].as<float>();
-		//m_viewportTop = node["ViewportTop"].as<float>();
-		//m_viewportRight = node["ViewportRight"].as<float>();
-		//m_viewportBottom = node["ViewportBottom"].as<float>();
-		//m_backgroundColor = node["BackgroundColor"].as<XMFLOAT4>();
-
-		//m_isDirty = true;
 	}
 }

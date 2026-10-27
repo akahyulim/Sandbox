@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "Core/Object.h"
+#include "Core/Tag.h"
 #include "Components/Component.h"
 
 namespace Dive
@@ -33,6 +34,9 @@ namespace Dive
 		Component* GetComponentByType(eComponentType type) const;
 
 		Transform* GetTransform() const { return m_transform.get(); }
+
+		const std::string& GetTag() const { return m_tag.name; }
+		void SetTag(const std::string& name);
 
 		bool IsActive() const;
 		void SetActive(bool active);
@@ -67,6 +71,7 @@ namespace Dive
 		std::unique_ptr<Transform> m_transform;
 		std::unordered_map<eComponentType, std::unique_ptr<Component>> m_components;
 
+		Tag m_tag;
 		bool m_isActive = true;
 
 		friend class Scene;

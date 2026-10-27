@@ -18,13 +18,6 @@ namespace Dive
 	class Scene;
 	class GameObject;
 
-	enum class eSkyMode : uint8_t
-	{
-		Skybox,
-		SkySphere,
-		UniformColor
-	};
-
 	class Renderer
 	{
 		enum class eDepthStencilState : uint8_t
@@ -95,29 +88,6 @@ namespace Dive
 		void ProcessPicking();
 		PickingData GetPickingData() const { return m_pickingData; }
 
-		eSkyMode GetSkyMode() const { return m_skyMode; }
-		void SetSkyMode(eSkyMode mode) { m_skyMode = mode; }
-
-		DirectX::XMFLOAT4 GetApxeColor() const { return m_apexColor; }
-		void SetApexColor(const DirectX::XMFLOAT4& color) { m_apexColor = color; }
-		void SetApexColor(float r, float g, float b, float a) { m_apexColor = { r, g, b, a }; }
-
-		DirectX::XMFLOAT4 GetHorizonColor() const { return m_horizonColor; }
-		void SetHorizonColor(const DirectX::XMFLOAT4& color) { m_horizonColor = color; }
-		void SetHorizonColor(float r, float g, float b, float a) { m_horizonColor = { r, g, b, a }; }
-
-		DirectX::XMFLOAT3 GetLightColor() const { return { m_lightColor.x, m_lightColor.y, m_lightColor.z }; }
-		void SetLightColor(const DirectX::XMFLOAT3& color) { m_lightColor = { color.x, color.y, color.z, 1.0f }; }
-		void SetLightColor(float r, float g, float b, float a) { m_lightColor = { r, g, b, a }; }
-
-		DirectX::XMFLOAT3 GetLightDir() const { return { m_lightDir.x, m_lightDir.y, m_lightDir.z }; }
-		void SetLightDir(const DirectX::XMFLOAT3& dir) { m_lightDir = { dir.x, dir.y, dir.z, 1.0f }; }
-		void SetLightDir(float x, float y, float z) { m_lightDir = { x, y, z, 1.0f }; }
-
-		DirectX::XMFLOAT3 GetAmbientColor() const { return { m_ambientColor.x, m_ambientColor.y, m_ambientColor.z }; }
-		void SetAmbientColor(const DirectX::XMFLOAT3& color) { m_ambientColor = { color.x, color.y, color.z , 1.0f }; }
-		void SetAmbientColor(float r, float g, float b, float a) { m_ambientColor = { r, g, b, a }; }
-
 	private:
 		void createDepthStencilStates();
 		void createRasterizerStates();
@@ -134,10 +104,10 @@ namespace Dive
 
 		void bindGlobals();
 		
-		void updateWeather();
+		void updateEnvironment(Scene* scene);
 
 		void passGBuffer();
-		void passDeferred();
+		void passLighting();
 		void passSky(Scene* scene);
 		void passForward();
 		void passPostProcessing();
@@ -162,7 +132,7 @@ namespace Dive
 
 		std::unique_ptr<ConstantBuffer<FrameData>> m_cbFrame;
 		std::unique_ptr<ConstantBuffer<ObjectData>> m_cbObject;
-		std::unique_ptr<ConstantBuffer<WeatherData>> m_cbWeather;
+		std::unique_ptr<ConstantBuffer<EnvironmentData>> m_cbWeather;
 		std::unique_ptr<ConstantBuffer<LightConstants>> m_cbLight;
 
 		uint32_t m_lastSelectedObjectID = 0;
@@ -181,14 +151,6 @@ namespace Dive
 		std::unique_ptr<IndexBuffer> m_cubeIB;
 
 		DirectX::XMFLOAT2 m_mousePosition;
-
-		DirectX::XMFLOAT4 m_apexColor = { 0.0f, 0.05f, 0.6f, 1.0f };
-		DirectX::XMFLOAT4 m_horizonColor = { 0.0f, 0.5f, 0.8f, 1.0f };
-		eSkyMode m_skyMode = eSkyMode::Skybox;
-
-		DirectX::XMFLOAT4 m_lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 m_lightDir = { -1.0f, -1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 m_ambientColor = { 0.05f, 0.05f, 0.05f, 1.0f };
 
 		std::vector<GameObject*> m_opaques;
 		std::vector<GameObject*> m_transparents;

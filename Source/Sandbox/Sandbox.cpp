@@ -540,71 +540,65 @@ namespace Dive
 
         if (ImGui::Begin("Environment", &m_showEnvironmentMenu, flags))
         {
+            auto env = m_scene->GetEnvironment();
+
             if (ImGui::CollapsingHeader("Sky", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 auto renderer = m_engine->GetRenderer();
 
-                int currentSkyMode = static_cast<int>(renderer->GetSkyMode());
+                int currentSkyMode = static_cast<int>(env.skyMode);
 
                 // Skybox랑 Sphere를 하나로 합치고 싶다.
                 if (ImGui::RadioButton("Skybox", &currentSkyMode, 0))
-                    renderer->SetSkyMode(eSkyMode::Skybox);
+                    env.skyMode = eSkyMode::Skybox;
                 ImGui::SameLine();
                 if (ImGui::RadioButton("SkySphere", &currentSkyMode, 1))
-                    renderer->SetSkyMode(eSkyMode::SkySphere);
+                    env.skyMode = eSkyMode::SkySphere;
                 ImGui::SameLine();
                 if(ImGui::RadioButton("Uniform Color", &currentSkyMode, 2))
-                    renderer->SetSkyMode(eSkyMode::UniformColor);
+                    env.skyMode = eSkyMode::UniformColor;
 
                 if (currentSkyMode == 0)
                 {
                     const char* items[] = { "Cloudy", "Sunset", "Desert"};
                     static int item_current = 0;
                     ImGui::Combo("##Cube Map", &item_current, items, IM_COUNTOF(items));
-
                     auto handle = m_skyCubemaps[items[item_current]];
-                    m_scene->GetEnviroment().skyboxCubemap = handle;    // 이 부분이 마음에 들지 않는다.
+                    env.skyboxCubemap = handle;
+                    env.skyboxPath = TextureManager::Get().GetTextureFilepath(handle);
                 }
                 else if (currentSkyMode == 1)
                 {
                     const char* items[] = { "night_puresky", "dawn", "clear_night"};
                     static int item_current = 0; 
                     ImGui::Combo("##Cube Map", &item_current, items, IM_COUNTOF(items));
-
                     auto handle = m_skyCubemaps[items[item_current]];
-                    m_scene->GetEnviroment().skyboxCubemap = handle;    // 이 부분이 마음에 들지 않는다.
+                    env.skyboxCubemap = handle;
+                    env.skyboxPath = TextureManager::Get().GetTextureFilepath(handle);
                 }
                 else
                 {
+                    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
+
                     // Apex Color
-                    {
-                        ImGui::PushID("ApexColor");
-                        auto color = renderer->GetApxeColor();
-                        ImGui::Columns(2);
-                        ImGui::SetColumnWidth(0, 100.0f);
-                        ImGui::Text("Apex");
-                        ImGui::NextColumn();
-                        ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
-                        ImGui::ColorEdit3("##ApexColor", (float*)&color, flags);
-                        renderer->SetApexColor(color);
-                        ImGui::Columns(1);
-                        ImGui::PopID();
-                    }
+                    ImGui::PushID("ApexColor");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 100.0f);
+                    ImGui::Text("Apex");
+                    ImGui::NextColumn();
+                    ImGui::ColorEdit3("##ApexColor", (float*)&env.data.apexColor, flags);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
 
                     // Horizon Color
-                    {
-                        ImGui::PushID("HorizonColor");
-                        auto color = renderer->GetHorizonColor();
-                        ImGui::Columns(2);
-                        ImGui::SetColumnWidth(0, 100.0f);
-                        ImGui::Text("Horizon");
-                        ImGui::NextColumn();
-                        ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
-                        ImGui::ColorEdit3("##HorizonColor", (float*)&color, flags);
-                        renderer->SetHorizonColor(color);
-                        ImGui::Columns(1);
-                        ImGui::PopID();
-                    }
+                    ImGui::PushID("HorizonColor");
+                    ImGui::Columns(2);
+                    ImGui::SetColumnWidth(0, 100.0f);
+                    ImGui::Text("Horizon");
+                    ImGui::NextColumn();
+                    ImGui::ColorEdit3("##HorizonColor", (float*)&env.data.horizonColor, flags);
+                    ImGui::Columns(1);
+                    ImGui::PopID();
                 }
             }
 
@@ -617,44 +611,34 @@ namespace Dive
                 auto renderer = m_engine->GetRenderer();
 
                 // direction
-                // -1.0f ~ 1.0 사이로 제한해야 한다.
-                // 그림판3D처럼 제어하고 싶다.
-                {
-                    DirectX::XMFLOAT3 dir = renderer->GetLightDir();
-                    ImGuiHelper::DrawVec3Control("Direction", dir, 0.0f, 100.0f);
-                    renderer->SetLightDir(dir);
-                }
+                DirectX::XMFLOAT3 dir = DirectX::XMFLOAT3(env.data.lightDir.x, env.data.lightDir.y, env.data.lightDir.z);
+                ImGuiHelper::DrawVec3Control("Direction", dir, 0.0f, 100.0f);
+                env.data.lightDir = DirectX::XMFLOAT4(dir.x, dir.y, dir.z, 1.0f);
+
+                ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
 
                 // color
-                {
-                    ImGui::PushID("Color");
-                    auto color = renderer->GetLightColor();
-                    ImGui::Columns(2);
-                    ImGui::SetColumnWidth(0, 100.0f);
-                    ImGui::Text("Color");
-                    ImGui::NextColumn();
-                    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
-                    ImGui::ColorEdit3("##LightColor", (float*)&color, flags);
-                    renderer->SetLightColor(color);
-                    ImGui::Columns(1);
-                    ImGui::PopID();
-                }
+                ImGui::PushID("Color");
+                ImGui::Columns(2);
+                ImGui::SetColumnWidth(0, 100.0f);
+                ImGui::Text("Color");
+                ImGui::NextColumn();
+                ImGui::ColorEdit3("##LightColor", (float*)&env.data.lightColor, flags);
+                ImGui::Columns(1);
+                ImGui::PopID();
 
                 // ambient
-                {
-                    ImGui::PushID("Ambient");
-                    auto color = renderer->GetAmbientColor();
-                    ImGui::Columns(2);
-                    ImGui::SetColumnWidth(0, 100.0f);
-                    ImGui::Text("Ambient");
-                    ImGui::NextColumn();
-                    ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
-                    ImGui::ColorEdit3("##AmbientColor", (float*)&color, flags);
-                    renderer->SetAmbientColor(color);
-                    ImGui::Columns(1);
-                    ImGui::PopID();
-                }
+                ImGui::PushID("Ambient");
+                ImGui::Columns(2);
+                ImGui::SetColumnWidth(0, 100.0f);
+                ImGui::Text("Ambient");
+                ImGui::NextColumn();
+                ImGui::ColorEdit3("##AmbientColor", (float*)&env.data.ambientColor, flags);
+                ImGui::Columns(1);
+                ImGui::PopID();
             }
+
+            m_scene->SetEnvironment(env);
 
             /*
             ImGui::Separator();
@@ -822,6 +806,24 @@ namespace Dive
             }
         }
 
+        // Tag
+        {
+            std::string tag = m_selectedObject->GetTag();
+
+            ImGui::PushID("Tag");
+            ImGui::Columns(2);
+            ImGui::SetColumnWidth(0, 100.0f);
+            ImGui::Text("Tag");
+            ImGui::NextColumn();
+            if (ImGui::InputText("##Tag", &tag))
+            {
+                m_selectedObject->SetTag(tag);
+            }
+            ImGui::Columns(1);
+            ImGui::PopID();
+           
+        }
+
         ImGui::Separator();
 
         if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
@@ -947,7 +949,7 @@ namespace Dive
 
                     // 1. Mesh 이름 표시 영역 (더블클릭 시 반응)
                     ImGui::PushID("MeshName");
-                    std::string meshName = (mesh != nullptr) ? "mesh->GetName()" : "No Mesh"; // 실제 구현에 맞게 수정
+                    std::string meshName = (mesh != nullptr) ? mesh->GetName() : "No Mesh"; // 실제 구현에 맞게 수정
 
                     ImGui::Columns(2);
                     ImGui::SetColumnWidth(0, 100.0f);
@@ -974,7 +976,9 @@ namespace Dive
                     ImGui::SameLine();
                     if (ImGui::Button("◎##Mesh", ImVec2(30.0f, 0.0f)))
                     {
+                        ImGui::OpenPopup("Meshes");
                     }
+                    popupMeshes();
 
                     ImGui::Columns(1);
                     ImGui::PopID();
@@ -1065,6 +1069,7 @@ namespace Dive
             MaterialManager::Get().LoadFromFile("Assets/Materials/Rusty_Metal_Grid");
             MaterialManager::Get().LoadFromFile("Assets/Materials/Stacked_Brick_Wall");
             MaterialManager::Get().LoadFromFile("Assets/Materials/Marble_Cliff_06");
+            MaterialManager::Get().LoadFromFile("Assets/Materials/Raw_Plank_Wall");
             MaterialManager::Get().LoadFromFile("Assets/Materials/Rust_Metal_05");
             MaterialManager::Get().LoadFromFile("Assets/Materials/No_Texture");
             MaterialManager::Get().LoadFromFile("Assets/Materials/White");
@@ -1086,9 +1091,9 @@ namespace Dive
     {
         m_scene = m_engine->NewScene();
 
-        auto renderer = m_engine->GetRenderer();
-        renderer->SetSkyMode(eSkyMode::UniformColor);
-        renderer->SetApexColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+        //auto renderer = m_engine->GetRenderer();
+        //renderer->SetSkyMode(eSkyMode::UniformColor);
+        //renderer->SetApexColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
         // camera
         {
@@ -1229,9 +1234,12 @@ namespace Dive
     void Sandbox::sceneLighting()
     {
         m_scene = m_engine->NewScene();
-        auto& env = m_scene->GetEnviroment();
+        auto env = m_scene->GetEnvironment();
         env.skyboxCubemap = m_skyCubemaps["clear_night"];
-        m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
+        env.skyboxPath = TextureManager::Get().GetTextureFilepath(env.skyboxCubemap);
+        env.skyMode = eSkyMode::SkySphere;
+        m_scene->SetEnvironment(env);
+        //m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
 
         // camera
         {
@@ -1246,7 +1254,7 @@ namespace Dive
         m_scene = m_engine->NewScene();
         m_scene->SetName("Lighting");
 
-        auto& env = m_scene->GetEnviroment();
+        auto& env = m_scene->GetEnvironment();
         env.skyboxCubemap = m_skyCubemaps["clear_night"];
         m_engine->GetRenderer()->SetSkyMode(eSkyMode::SkySphere);
 
@@ -1889,6 +1897,61 @@ namespace Dive
         }
         ImGui::Columns(1);
         ImGui::PopID();
+    }
+
+    void Sandbox::popupMeshes()
+    {
+        if (ImGui::BeginPopup("Meshes"))
+        {
+            ImGui::Text("Select Mesh");
+            ImGui::Separator();
+
+            const auto& meshList = MeshManager::Get().GetAllMeshes();
+
+            if (meshList.empty())
+            {
+                ImGui::TextDisabled("No meshes loaded.");
+            }
+            else
+            {
+                // 벡터 순회 (생성/로드된 순서대로 출력)
+                for (Mesh* mesh : meshList)
+                {
+                    if (!mesh) continue;
+
+                    std::string name = mesh->GetName();
+
+                    if (ImGui::Selectable(name.c_str()))
+                    {
+                        if (m_selectedObject && m_selectedObject->HasComponent<MeshRenderer>())
+                        {
+                            auto meshRenderer = m_selectedObject->GetComponent<MeshRenderer>();
+                            meshRenderer->SetMesh(mesh);
+                        }
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+
+            // 2. 구분선 및 파일 불러오기 옵션
+            ImGui::Separator();
+
+            if (ImGui::Selectable("Load File..."))
+            {
+                const char* filters = "Texture Files (*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga)\0*.png;*.jpg;*.jpeg;*.dds;*.bmp;*.tga\0"
+                    "All Files (*.*)\0*.*\0\0";
+                auto openFile = FileUtils::OpenFile(filters, nullptr, "Assets/Textures");
+                if (!openFile.empty())
+                {
+                    //auto relPath = std::filesystem::relative(openFile, ResourceManager::GetResourcePath());
+                    //newMaterial->SetMap(eMapType::Diffuse, ResourceManager::Load<Texture2D>(relPath.replace_extension()));
+                }
+
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
     }
 
     void Sandbox::popupMaterials()

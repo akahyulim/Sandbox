@@ -79,7 +79,7 @@ namespace Dive
 			case DXGI_FORMAT_R32G32B32A32_FLOAT:
 				return 16;
 			default:
-				//DV_LOG(Texture, warn, "[::GetPixelSize] 잘못된 포멧 전달");
+				spdlog::warn("[::GetPixelSize] 잘못된 포멧 전달");
 				return 0;
 			}
 		}
@@ -93,15 +93,16 @@ namespace Dive
 	void TextureManager::Shutdown()
 	{
 		m_textures.clear();
-		m_loaded.clear();
+		m_pathMap.clear();
+		m_nameMap.clear();
 
 		m_graphics = nullptr;
 	}
 	
 	TextureHandle TextureManager::LoadTexture(const std::wstring& filepath, bool mips)
 	{
-		auto it = m_loaded.find(filepath);
-		if (it != m_loaded.end())
+		auto it = m_pathMap.find(filepath);
+		if (it != m_pathMap.end())
 			return it->second;
 
 		TextureFormat format = GetTextureFormat(filepath);
@@ -136,8 +137,8 @@ namespace Dive
 	
 	TextureHandle TextureManager::LoadCubemap(const std::wstring& filepath)
 	{
-		auto it = m_loaded.find(filepath);
-		if (it != m_loaded.end())
+		auto it = m_pathMap.find(filepath);
+		if (it != m_pathMap.end())
 			return it->second;
 
 		TextureFormat format = GetTextureFormat(filepath);
@@ -192,11 +193,14 @@ namespace Dive
 
 		++m_handle;
 		TextureHandle handle = m_handle;
-		m_loaded.insert({ filepath, handle });
+		m_pathMap.insert({ filepath, handle });
+
+		auto name = std::filesystem::path(filepath).stem().string();
+		m_nameMap.insert({ name, handle });
 
 		TextureInfo info{};
 		info.filepath = filepath;
-		info.name = std::filesystem::path(filepath).stem().string();
+		info.name = name;
 		info.srv = std::move(srv);
 		m_textures.emplace(handle, std::move(info));
 
@@ -231,6 +235,29 @@ namespace Dive
 		auto it = m_textures.find(handle);
 		if (it != m_textures.end())
 			return it->second.srv.Get();
+
+		return nullptr;
+	}
+
+	ID3D11ShaderResourceView* TextureManager::GetTextureViewByPath(const std::wstring& filepath) const
+	{
+		auto it = m_pathMap.find(filepath);
+		if (it != m_pathMap.end())
+			return GetTextureView(it->second);
+
+		return nullptr;
+	}
+
+	ID3D11ShaderResourceView* TextureManager::GetTextureViewByPath(const std::string& filepath) const
+	{
+		return GetTextureViewByPath(StringUtils::ToWString(filepath));
+	}
+
+	ID3D11ShaderResourceView* TextureManager::GetTextureViewByName(const std::string& name) const
+	{
+		auto it = m_nameMap.find(name);
+		if (it != m_nameMap.end())
+			return GetTextureView(it->second);
 
 		return nullptr;
 	}
@@ -283,7 +310,6 @@ namespace Dive
 
 		auto hr = DirectX::LoadFromWICFile(
 			filepath.c_str(),
-			//DirectX::WIC_FLAGS_FORCE_LINEAR,
 			DirectX::WIC_FLAGS_NONE,
 			&metaData,
 			scratchImage
@@ -367,11 +393,14 @@ namespace Dive
 
 		++m_handle;
 		TextureHandle handle = m_handle;
-		m_loaded.insert({ filepath, handle });
+		m_pathMap.insert({ filepath, handle });
+
+		auto name = std::filesystem::path(filepath).stem().string();
+		m_nameMap.insert({ name, handle });
 
 		TextureInfo info{};
 		info.filepath = filepath;
-		info.name = std::filesystem::path(filepath).stem().string();
+		info.name = name;
 		info.srv = std::move(srv);
 		m_textures.emplace(handle, std::move(info));
 
